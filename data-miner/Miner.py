@@ -113,7 +113,7 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
             if th and td:
                 rows.append([url, th.get_text(strip=True), td.get_text(strip=True)])
         if rows:
-            logging.info(f"✅ Found {len(rows)} specs on {url}")
+            logging.info(f"Found {len(rows)} specs on {url}")
             return ScrapeResult(next_urls=[], scraped_rows=rows)
 
     # 2. If no specs, it's a navigation page. Find all possible links.
@@ -136,7 +136,7 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
             next_urls.append(full_url)
             
     if next_urls:
-        logging.info(f"🔗 Found {len(next_urls)} sub-links on {url}")
+        logging.info(f"Found {len(next_urls)} sub-links on {url}")
 
     return ScrapeResult(next_urls=list(set(next_urls)), scraped_rows=[]) 
 
