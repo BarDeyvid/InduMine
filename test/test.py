@@ -17,7 +17,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tqdm.asyncio import tqdm_asyncio
 
-
 # ------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------
@@ -26,19 +25,17 @@ START_URL = "https://www.weg.net/institutional/BR/en/"
 
 OUTPUT_FILE = Path("database/weg_products_final.csv")
 CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe" 
-WAIT_TIMEOUT = 15
-MAX_WORKERS = 8 # Lowered for better stability on most systems
-
+WAIT_TIMEOUT = 15          # Seconds to wait for page load and elements
+MAX_WORKERS = 16           # Lowered for better stability on most systems
 
 # ------------------------------------------------------------------
 # Logging
 # ------------------------------------------------------------------
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.CRITICAL,
     format="%(asctime)s %(levelname)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-
 
 # ------------------------------------------------------------------
 # Helper: create a fresh headless ChromeDriver
@@ -46,8 +43,8 @@ logging.basicConfig(
 def make_driver() -> webdriver.Chrome:
     """Creates and returns a configured, headless Chrome driver instance."""
     opts = Options()
-    opts.add_argument("--headless=new") # Use new headless mode, old one Weg BLocks it
-    opts.add_argument("--disable-gpu") # Not needed in headless mode
+    opts.add_argument("--headless=new")  # Use new headless mode
+    opts.add_argument("--disable-gpu")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--log-level=3")
     opts.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -62,7 +59,6 @@ def make_driver() -> webdriver.Chrome:
         logging.error(f"Failed to create ChromeDriver. Ensure path is correct. Error: {e}")
         raise
 
-
 # ------------------------------------------------------------------
 # Data Structures
 # ------------------------------------------------------------------
@@ -70,22 +66,28 @@ class ScrapeResult(NamedTuple):
     next_urls: list[str]
     scraped_rows: list[list[str]]
 
-
 # ------------------------------------------------------------------
 # Synchronous worker (runs inside a thread)
 # ------------------------------------------------------------------
 def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
     """
     Loads a single page with retries, scrapes specs or finds sub-URLs.
+    Skips the page if it takes longer than WAIT_TIMEOUT seconds to load.
     """
     try:
-        driver = make_driver() # <-- This is the line that fails
+        driver = make_driver()
     except WebDriverException as e:
         logging.error(f"Failed to create driver for {url}. Error: {e}")
-        return ScrapeResult(next_urls=[], scraped_rows=[]) # Return empty result
+        return ScrapeResult(next_urls=[], scraped_rows=[])
 
+    start_time = time.time()   # Measure how long the page load takes
     try:
         driver.get(url)
+        elapsed = time.time() - start_time
+        if elapsed > WAIT_TIMEOUT:
+            logging.warning(f"Page load exceeded {WAIT_TIMEOUT}s for {url}. Skipping.")
+            return ScrapeResult(next_urls=[], scraped_rows=[])
+
         wait_selector = (
             "a.xtt-url-categories, div.product-info-specs, "
             "td.product-code, a.btn.btn-primary.btn-sm.btn-block, "
@@ -118,28 +120,33 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
 
     # 2. If no specs, it's a navigation page. Find all possible links.
     next_urls = []
+
     main_menu_links = soup.select("#productMenuContent li a[href]")
     category_links = soup.select("a.xtt-url-categories[href]")
+    subcategory_links = soup.select("#products-selection a[href]")
     product_list_buttons = soup.select("a.btn.btn-primary.btn-sm.btn-block[href]")
     product_detail_links = soup.select("td.product-code a[href]")
+    product_title_links = soup.select("li.xtt-listing-grid-product h4 a[href]")
+
     all_link_tags = (
-        main_menu_links + 
-        category_links + 
-        product_list_buttons + 
-        product_detail_links
+        main_menu_links +
+        category_links +
+        subcategory_links +
+        product_list_buttons +
+        product_detail_links +
+        product_title_links
     )
-    
+
     for a in all_link_tags:
         href = a.get("href")
         if href and href.strip() != "#":
             full_url = urljoin(BASE_URL, href)
             next_urls.append(full_url)
-            
+
     if next_urls:
         logging.info(f"Found {len(next_urls)} sub-links on {url}")
 
-    return ScrapeResult(next_urls=list(set(next_urls)), scraped_rows=[]) 
-
+    return ScrapeResult(next_urls=list(set(next_urls)), scraped_rows=[])
 
 # ------------------------------------------------------------------
 # Async dispatcher
@@ -160,9 +167,9 @@ async def crawl(start_url: str) -> list[list[str]]:
         while pending_urls and len(tasks) < MAX_WORKERS:
             url_to_scrape = pending_urls.pop()
             if url_to_scrape in visited_urls:
-                pbar.total = max(1, pbar.total - 1) 
+                pbar.total = max(1, pbar.total - 1)
                 continue
-            
+
             visited_urls.add(url_to_scrape)
             task = loop.run_in_executor(executor, scrape_page_sync, url_to_scrape)
             tasks.add(task)
@@ -171,26 +178,25 @@ async def crawl(start_url: str) -> list[list[str]]:
             continue
 
         done, tasks = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        
+
         for future in done:
             result = await future
             pbar.update(1)
             if result.scraped_rows:
                 all_scraped_rows.extend(result.scraped_rows)
-            
+
             new_urls = 0
             for u in result.next_urls:
                 if u not in visited_urls and u not in pending_urls:
                     pending_urls.add(u)
                     new_urls += 1
-            
+
             if new_urls > 0:
                 pbar.total += new_urls
-    
+
     pbar.close()
     executor.shutdown(wait=True)
     return all_scraped_rows
-
 
 # ------------------------------------------------------------------
 # Entry point
@@ -213,7 +219,8 @@ async def main() -> None:
     if final_rows:
         try:
             df = pd.read_csv(OUTPUT_FILE)
-            pivoted_df = df.pivot_table(index="Product URL", columns="Feature", values="Value", aggfunc='first')
+            pivoted_df = df.pivot_table(index="Product URL", columns="Feature",
+                                         values="Value", aggfunc='first')
             pivoted_df.reset_index(inplace=True)
             pivoted_output_file = "grouped_products_final.csv"
             pivoted_df.to_csv(pivoted_output_file, index=False)

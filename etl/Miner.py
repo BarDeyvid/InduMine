@@ -34,6 +34,8 @@ MAX_WORKERS = 8 # Lowered for better stability on most systems
 # Logging
 # ------------------------------------------------------------------
 logging.basicConfig(
+    filename="logs/scraper.log",
+    filemode="a",
     level=logging.INFO,
     format="%(asctime)s %(levelname)s: %(message)s",
     datefmt="%H:%M:%S",
@@ -79,10 +81,10 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
     Loads a single page with retries, scrapes specs or finds sub-URLs.
     """
     try:
-        driver = make_driver() # <-- This is the line that fails
+        driver = make_driver() # <-- TODO: Handle driver creation failure and timeout
     except WebDriverException as e:
         logging.error(f"Failed to create driver for {url}. Error: {e}")
-        return ScrapeResult(next_urls=[], scraped_rows=[]) # Return empty result
+        return ScrapeResult(next_urls=[], scraped_rows=[]) # Return empty result on failure
 
     try:
         driver.get(url)
@@ -118,15 +120,21 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
 
     # 2. If no specs, it's a navigation page. Find all possible links.
     next_urls = []
+
     main_menu_links = soup.select("#productMenuContent li a[href]")
     category_links = soup.select("a.xtt-url-categories[href]")
+    subcategory_links = soup.select("#products-selection a[href]")
     product_list_buttons = soup.select("a.btn.btn-primary.btn-sm.btn-block[href]")
     product_detail_links = soup.select("td.product-code a[href]")
+    product_title_links = soup.select("li.xtt-listing-grid-product h4 a[href]")
+
     all_link_tags = (
-        main_menu_links + 
-        category_links + 
-        product_list_buttons + 
-        product_detail_links
+        main_menu_links +
+        category_links +
+        subcategory_links +
+        product_list_buttons +
+        product_detail_links +
+        product_title_links
     )
     
     for a in all_link_tags:
@@ -223,8 +231,8 @@ async def main() -> None:
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(main()) # TODO: Handle event loop issues on some platforms
     except (KeyboardInterrupt, SystemExit):
         logging.info("Scraping cancelled by user.")
     except Exception as e:
-        logging.critical(f"A critical error occurred: {e}")
+        logging.critical(f"A critical error occurred: {e}") # TODO : Sometimes it just's crashes with csv not found when the code starts.
