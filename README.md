@@ -16,17 +16,6 @@ O objetivo é manter **um pipeline único** de dados, facilitando governança e 
 
 ---
 
-## Arquitetura
-
-```mermaid
-flowchart TD
-    A[Web Scraping / ETL - Python + Pandas] --> B[🗄️ Banco / Arquivos (CSV, SQL)]
-    B --> C[Power BI Relatórios]
-    B --> D[React + FastAPI/Flask Dashboard]
-````
-
----
-
 ## Estrutura do Repositório
 
 ```
