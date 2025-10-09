@@ -54,19 +54,21 @@ function Login() {
       </div>
       <div id="right">
         <div className="contentbox">
-          <h1>
+          <h1 className='rBT'>
             Welcome Back
           </h1>
-          <h3>
+          <h3 className='rNT'>
             Sign in to your analytics dashboard
           </h3>
-          <h4>          
+          <h4 className='rTN'>
+            Email          
           </h4>
-          <input type="email" name="iEmail" placeholder='Enter your email'/>
-          <h4>
+          <input type="email" className='rI' name="iEmail" placeholder='Enter your email'/>
+          <h4 className='rTN'>
+            Password
           </h4>
           <div>
-          <input type="password" name="iPassword" placeholder='Enter your password' id="" />
+          <input type="password" name="iPassword" className='rI' placeholder='Enter your password' id="" />
           <button type="button"></button> 
           <input type="checkbox" id="" /> Remember me
           </div>
