@@ -4,6 +4,8 @@
   --left-background: #069ad7;
   --right-background: #0d0d1a;
   --content-box: #1e2e3f;
+  --right-title-size: 1.5rem;
+  --right-text-size: 1rem
 }
 
 #root {
@@ -22,6 +24,7 @@
 div#left{
   background-color: var(--left-background);
   height: 100vh;
+  width: 100vw;
 }
 
 .logo {
@@ -39,7 +42,8 @@ div#left{
 .title {
   display: flex;
   align-items: flex-end; /* Align children to the bottom */
-  margin-left: 1rem;
+  margin-left: 13.3rem;
+  padding-top: 3.5em;
 }
 
 img.logo {
@@ -118,6 +122,29 @@ img.logo {
 
 div#right {
   background-color: var(--right-background);
+  height: 100vh;
+}
+
+h1.rBT {
+  font-size: var(--right-title-size);
+  text-align: start;
+  padding-left: 1em;
+}
+
+h3.rNT {
+  font-size: var(--right-text-size);
+  text-align: start;
+  padding-left: 1em;
+}
+
+h4.rTN {
+  text-align: start;
+  padding-left: 1em;
+}
+
+input.rI {
+  align-items: start;
+  padding-left: 1em;
 }
 
 @keyframes logo-spin {
