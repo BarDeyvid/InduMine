@@ -1,10 +1,26 @@
-import { useState } from 'react'
+import React, { useState } from 'react';
+import TextField from '@mui/material/TextField';
 import bar_chart from './assets/bar_chart.svg'
 import './Login.css'
+import PI from './Password_In'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Box from '@mui/material/Box';
+
+
 
 function Login() {
-  const [count, setCount] = useState(0)
+  const [email, setEmail] = useState('');
+  const [pin, setPin] = useState(''); // 1. Initialize state for PIN
+  const [rememberMe, setRememberMe] = useState(false);
+  const handleSignIn = () => {
+    console.log('--- Sign In Attempt ---');
+    console.log('Email:', email);
+    console.log('PIN:', pin); 
+    console.log('Remember Me:', rememberMe);
+    // TODO: Add  API call/authentication logic
 
+  };
   return (
     <>
       <div id="left">
@@ -60,19 +76,15 @@ function Login() {
           <h3 className='rNT'>
             Sign in to your analytics dashboard
           </h3>
-          <h4 className='rTN'>
-            Email          
-          </h4>
-          <input type="email" className='rI' name="iEmail" placeholder='Enter your email'/>
-          <h4 className='rTN'>
-            Password
-          </h4>
+          <Box sx={{ width: 500, maxWidth: '100%' }}>
+            <TextField fullWidth value={email} onChange={(e) => setEmail(e.target.value)} label="E-mail" id="fullWidth" />
+          </Box>
+          <h4 className='rTN'>PIN</h4>
           <div>
-          <input type="password" name="iPassword" className='rI' placeholder='Enter your password' id="" />
-          <button type="button"></button> 
-          <input type="checkbox" id="" /> Remember me
+          <PI onChange={setPin}/>
+          <FormControlLabel control={<Checkbox />} label="Remember Me"/>
           </div>
-          <button type="button">Sign In</button>
+          <button onClick={handleSignIn} type="button">Sign In</button>
           <h3>
             Demo Access
           </h3>
@@ -84,7 +96,7 @@ function Login() {
               Email: admin@weg.com
             </h6>
             <h6>
-              Password: password123
+              PIN: 1234
             </h6>
           </div>
           </div>
