@@ -1,26 +1,35 @@
+
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TextField from '@mui/material/TextField';
-import bar_chart from './assets/bar_chart.svg'
-import './Login.css'
-import PI from './Password_In'
-import Checkbox from '@mui/material/Checkbox'
+import bar_chart from './assets/bar_chart.svg';
+import './Login.css';
+import PI from './Password_In';
+import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Box from '@mui/material/Box';
 
-
-
 function Login() {
   const [email, setEmail] = useState('');
-  const [pin, setPin] = useState(''); // 1. Initialize state for PIN
+  const [pin, setPin] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate(); 
+
   const handleSignIn = () => {
     console.log('--- Sign In Attempt ---');
     console.log('Email:', email);
-    console.log('PIN:', pin); 
+    console.log('PIN:', pin);
     console.log('Remember Me:', rememberMe);
-    // TODO: Add  API call/authentication logic
 
+    if (email === "admin@weg.com" && pin === "1234") {
+      console.log('Log In Successful');
+      navigate('/dashboard'); 
+    } else {
+      console.log("Bad Credentials");
+      alert("Invalid email or PIN");
+    }
   };
+
   return (
     <>
       <div id="left">

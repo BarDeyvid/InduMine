@@ -1,0 +1,37 @@
+:root {
+  --bar-chart-size: 7%;
+  --logo-background: #6cccf8ee;
+  --left-background: #069ad7;
+  --right-background: #0d0d1a;
+  --content-box: #1e2e3f;
+  --right-title-size: 1.5rem;
+  --right-text-size: 1rem
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  gap: 10px;
+  margin: 0 0;
+  padding: 0;
+  text-align: center;
+  list-style: none;
+  justify-content: space-between;
+  align-items: flex-end;
+  display: flex;
+}
+
+header {
+    height: 5vh;
+    width: 100vw;
+    align-items: baseline;
+    position: fixed;
+    top: 0;
+    z-index: 1000;
+}
+
+header .navs {
+    height: 2vh;
+    width: fit-content;
+    font-size:small;
+}
