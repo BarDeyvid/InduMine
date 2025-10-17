@@ -16,7 +16,7 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate(); 
 
-  const BACKEND_URL = 'http://localhost:5000/api/auth/login';
+  const BACKEND_URL = 'hhttps://wegmine.onrender.com/api/auth/login';
 
   const handleSignIn = async () => {
     console.log('--- Sign In Attempt ---');
@@ -33,13 +33,13 @@ function Login() {
       
       const { token, user } = response.data;
 
-      // 2. Log In Successful - Salvar o token
       console.log('Log In Successful. Token received.');
       
-      // Salva o token no localStorage para manter a sessão
       localStorage.setItem('token', token); 
-      // Opcional: Salvar informações do usuário (ex: nome, cargo)
       localStorage.setItem('userRole', user.role); 
+      localStorage.setItem('userName', user.username); 
+
+      navigate('/dashboard');
 
       // 3. Redirecionar para o Dashboard
       navigate('/dashboard'); 
