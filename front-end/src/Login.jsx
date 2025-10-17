@@ -39,8 +39,6 @@ function Login() {
       localStorage.setItem('userRole', user.role); 
       localStorage.setItem('userName', user.username); 
 
-      navigate('/dashboard');
-
       // 3. Redirecionar para o Dashboard
       navigate('/dashboard'); 
 
