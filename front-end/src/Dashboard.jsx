@@ -1,4 +1,5 @@
-import { React, useState } from "react";
+import React, { useState, useEffect } from "react"; 
+import { useNavigate } from 'react-router-dom';
 import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import TextField from "@mui/material/TextField";
@@ -46,8 +47,25 @@ function Dashboard() {
         "Dublin"
     ];
     const [searchQuery, setSearchQuery] = useState("");
+    const [userInfo, setUserInfo] = useState({ name: 'Carregando...', cargo: '' });
+    const navigate = useNavigate();
     const dataFiltered = filterData(searchQuery, data);
 
+    useEffect(() => {
+        const userName = localStorage.getItem('userName');
+        const userRole = localStorage.getItem('userRole'); 
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            navigate('/');
+            return;
+        }
+
+        if (userName && userRole) {
+            setUserInfo({ name: userName, cargo: userRole });
+        }
+
+        }, [navigate]);
 
   return (
     <div>
@@ -80,7 +98,12 @@ function Dashboard() {
             </div>
             <hr style={{margin: 0}}/>
             <div>
-                <Button color="secondary"><div style={{alignItems: "baseline", paddingLeft: "4em", right: 0}}><h1 style={{margin: 0}}>Username</h1><h1 style={{margin: 0}}>UserCargo</h1></div></Button>
+                <Button color="secondary">
+                  <div style={{alignItems: "baseline", paddingLeft: "4em", right: 0}}>
+                    <h1 style={{margin: 0}}>{userInfo.name}</h1>
+                    <h1 style={{margin: 0}}>{userInfo.cargo}</h1> 
+                  </div>
+                </Button>
             </div>
         </header>
       <h1>Welcome to the Dashboard!</h1>
