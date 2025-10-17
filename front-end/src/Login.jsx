@@ -8,6 +8,7 @@ import PI from './Password_In';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Box from '@mui/material/Box';
+import axios from 'axios';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -15,18 +16,39 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate(); 
 
-  const handleSignIn = () => {
+  const BACKEND_URL = 'http://localhost:5000/api/auth/login';
+
+  const handleSignIn = async () => {
     console.log('--- Sign In Attempt ---');
     console.log('Email:', email);
     console.log('PIN:', pin);
     console.log('Remember Me:', rememberMe);
 
-    if (email === "admin@weg.com" && pin === "1234") {
-      console.log('Log In Successful');
+    try {
+      // 1. Enviar os dados para a API
+      const response = await axios.post(BACKEND_URL, {
+        email,
+        password: pin // O backend espera 'password', então usamos o valor do 'pin'
+      });
+      
+      const { token, user } = response.data;
+
+      // 2. Log In Successful - Salvar o token
+      console.log('Log In Successful. Token received.');
+      
+      // Salva o token no localStorage para manter a sessão
+      localStorage.setItem('token', token); 
+      // Opcional: Salvar informações do usuário (ex: nome, cargo)
+      localStorage.setItem('userRole', user.role); 
+
+      // 3. Redirecionar para o Dashboard
       navigate('/dashboard'); 
-    } else {
-      console.log("Bad Credentials");
-      alert("Invalid email or PIN");
+
+    } catch (error) {
+      // Tratar erros do servidor (ex: status 400 ou 500)
+      const errorMessage = error.response?.data?.msg || 'Erro ao conectar. Credenciais Inválidas.';
+      console.error("Login Failed:", errorMessage);
+      alert(errorMessage);
     }
   };
 
