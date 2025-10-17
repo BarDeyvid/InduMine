@@ -3,6 +3,7 @@ import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import TextField from "@mui/material/TextField";
 import Button from '@mui/material/Button';
+import "./Dashboard.css"
 
 function Dashboard() {
     const SearchBar = ({setSearchQuery}) => (
@@ -13,10 +14,11 @@ function Dashboard() {
         onInput={(e) => {
             setSearchQuery(e.target.value);
         }}
-        label="Search by Product ID or Model..."
+        label="Search by Product ID or Model"
         variant="outlined"
-        placeholder="Search..."
+        placeholder="Search"
         size="small"
+        sx={{ width: 250 }}
         />
         <IconButton type="submit" aria-label="search">
         <SearchIcon style={{ fill: "blue" }} />
@@ -52,15 +54,15 @@ function Dashboard() {
         <header>
             <h1>ProdDash</h1>
             <ul className="navs justify-center">
-            <ul>
-                <button type='button'>Overview</button>
-                <button type='button'>Technical Specs</button>
-                <button type='button'>Connectivity</button>
-                <button type='button'>Aesthetics</button>
-                <button type='button'>Accessories</button>
-                <button type='button'>Analytics</button>
-                <button type='button'>AI Intelligence</button>
-            </ul>
+                <div>
+                    <button type='button'>Overview</button>
+                    <button type='button'>Technical Specs</button>
+                    <button type='button'>Connectivity</button>
+                    <button type='button'>Aesthetics</button>
+                    <button type='button'>Accessories</button>
+                    <button type='button'>Analytics</button>
+                    <button type='button'>AI Intelligence</button>
+                </div>
                 <div>
                     <button type='button'>Market Trends</button>
                     <button type='button'>Quality Control</button>
@@ -70,24 +72,16 @@ function Dashboard() {
                     <button type='button'>Compliance</button>
                     <button type='button'>Live Monitoring</button>
                 </div>
-                <div className="rightside">
-                    <div
-      style={{
-        display: "flex",
-        alignSelf: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-        padding: 20
-      }}
-      >
-      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-    </div>
-                </div>
             </ul>
-            <div>
-                <Button color="secondary"><h1>Username</h1><h1>/UserCargo</h1></Button>
+            <div className="right-side">
+                <div style={{width: "fit-content",padding: 20}}>
+                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                </div>
             </div>
-            <hr />
+            <hr style={{margin: 0}}/>
+            <div>
+                <Button color="secondary"><div style={{alignItems: "baseline", paddingLeft: "4em", right: 0}}><h1 style={{margin: 0}}>Username</h1><h1 style={{margin: 0}}>UserCargo</h1></div></Button>
+            </div>
         </header>
       <h1>Welcome to the Dashboard!</h1>
       <p>This is your analytics dashboard.</p>
