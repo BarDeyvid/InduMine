@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const repoName = '/[WEGMine]'; 
+const repoName = '/WEGMine'; 
 
 export default defineConfig({
   plugins: [react()],
