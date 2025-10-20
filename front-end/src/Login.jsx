@@ -16,7 +16,7 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate(); 
 
-  const BACKEND_URL = 'hhttps://wegmine.onrender.com/api/auth/login';
+  const BACKEND_URL = 'https://wegmine.onrender.com/api/auth/login';
 
   const handleRegister = async () => {
     console.log("Registering");
