@@ -1,0 +1,176 @@
+:root {
+  --bar-chart-size: 7%;
+  --logo-background: #6cccf8ee;
+  --left-background: #069ad7;
+  --right-background: #0d0d1a;
+  --content-box: #1e2e3f;
+  --right-title-size: 1.5rem;
+  --right-text-size: 1rem
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  gap: 10px;
+  margin: 0 0;
+  padding: 0;
+  text-align: center;
+  list-style: none;
+  justify-content: space-between;
+  align-items: flex-end;
+  display: flex;
+}
+
+div#left{
+  background-color: var(--left-background);
+  height: 100vh;
+  width: 100vw;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em var(--logo-background));
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em var(--logo-background));
+}
+.title {
+  display: flex;
+  align-items: flex-end; /* Align children to the bottom */
+  margin-left: 13.3rem;
+  padding-top: 5.5em;
+}
+
+img.logo {
+  height: var(--bar-chart-size);
+  width: var(--bar-chart-size);
+  padding: 0;
+  margin-top: 2em;
+  border: 1px;
+  border-color: var(--logo-background);
+  border-style:double;
+  background-color: var(--logo-background);
+  border-radius: var(--bar-chart-size);
+}
+
+.title h1 {
+  margin: 0;
+  display: inline-block;
+  margin: 0 0 0.6em 0.7em;
+}
+.sub-title {
+  margin: 0 0 -0.2em -7.8em; 
+  padding: 0;
+  display: inline-block; 
+}
+
+.middle {
+  justify-content: baseline;
+  display: inline-block;
+}
+
+.middle h2 {
+  width: fit-content;
+}
+.middle ul {
+  padding-left: 0;
+  display: block;
+
+}
+
+.middle li {
+  list-style: none;
+  justify-content: start;
+  height: fit-content;
+  width: 20em;
+  align-items: flex-end;
+  display: flex;
+}
+
+.middle li h4 {
+  width: fit-content;
+  padding: 0;
+  margin: 0;
+  padding: 0 0 0.1em 0.6em;
+}
+
+.middle img {
+  height: var(--bar-chart-size);
+  width: var(--bar-chart-size);
+  padding: 0;
+  margin-top: 2em;
+  border: 1px;
+  border-color: var(--logo-background);
+  border-style:double;
+  background-color: var(--logo-background);
+  border-radius: var(--bar-chart-size);
+  display: block;
+}
+
+.contentbox {
+  margin-top: 23vh;
+  border: #5fc9faee;
+  background-color: var(--content-box);
+  border: 1px;
+  border-color: var(--logo-background);
+  border-radius: 5%;
+}
+
+div#right {
+  background-color: var(--right-background);
+  height: 100vh;
+}
+
+h1.rBT {
+  font-size: var(--right-title-size);
+  text-align: start;
+  padding-left: 1em;
+}
+
+h3.rNT {
+  font-size: var(--right-text-size);
+  text-align: start;
+  padding-left: 1em;
+}
+
+h4.rTN {
+  text-align: start;
+  padding-left: 1em;
+}
+
+input.rI {
+  align-items: start;
+  padding-left: 1em;
+}
+
+.MuiBox-root.css-1gyr8kh {
+    margin-left: 1vw;
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}

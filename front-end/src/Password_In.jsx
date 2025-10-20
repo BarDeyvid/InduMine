@@ -18,6 +18,7 @@ const PI = ({ onChange }) => {
       onChange={handleChange}
       length={4} 
       password={true}
+      TextFieldsProps={{ type: 'password' }}
     />
   );
 };
