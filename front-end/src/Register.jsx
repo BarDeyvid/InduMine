@@ -5,40 +5,42 @@ import TextField from '@mui/material/TextField';
 import bar_chart from './assets/bar_chart.svg';
 import './Register.css';
 import PI from './Password_In';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Box from '@mui/material/Box';
 import axios from 'axios';
 
 function Register() {
   const [email, setEmail] = useState('');
+  const [username, setUserName] = useState('');
+  const [role, setRole] = useState('');
   const [pin, setPin] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate(); 
 
-  const BACKEND_URL = 'hhttps://wegmine.onrender.com/api/auth/login';
+  const BACKEND_URL = 'https://wegmine.onrender.com/api/auth/register';
 
   const handleRegister = async () => {
     console.log('--- Register Attempt ---');
     console.log('Email:', email);
     console.log('PIN:', pin);
-    console.log('Remember Me:', rememberMe);
+    console.log('User Name:', username);
+    console.log('ROLE:', role)
 
     try {
       // 1. Enviar os dados para a API
       const response = await axios.post(BACKEND_URL, {
+        username,
         email,
-        password: pin // O backend espera 'password', então usamos o valor do 'pin'
+        password: pin, // O backend espera 'password', então usamos o valor do 'pin'
+        role: 'user'
       });
       
       const { token, user } = response.data;
 
-      console.log('Log In Successful. Token received.');
+      console.log('Register Successful. Token received.');
       
       localStorage.setItem('token', token); 
       localStorage.setItem('userRole', user.role); 
       localStorage.setItem('userName', user.username); 
-      navigate('/') 
+      navigate('/login') 
 
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
@@ -105,17 +107,17 @@ function Register() {
           </h3>
           <div style={{paddingLeft: 10, paddingRight: 30}}>
             <Box sx={{width: 500, maxWidth: '100%' }}>
+                <TextField fullWidth value={username} style={{marginBottom: '20px'}} onChange={(e) => setUserName(e.target.value)} label="Name" id="fullWidth" />
                 <TextField fullWidth value={email} onChange={(e) => setEmail(e.target.value)} label="E-mail" id="fullWidth" />
             </Box>
             <h4 className='rTN'>PIN</h4>
             <div>
-            <Box sx={{width: 500, maxWidth: '100%', paddingTop: '20px', paddingLeft: '30px'}}>
+            <Box sx={{width: 500, maxWidth: '100%', paddingLeft: '30px'}}>
                 <PI onChange={setPin}/>
-                <TextField fullWidth style={{marginTop: 20}} value={email} onChange={(e) => setEmail(e.target.value)} label="Role" id="fullWidth" />
             </Box>
           </div>
           </div>
-          <button onClick={handleRegister} type="button">Register</button>
+          <button onClick={handleRegister} style={{marginTop: '20px', marginBottom: '10px'}} type="button">Register</button>
           </div>
           <h4>
             By creating your account, you agree to our Terms of Service and Privacy Policy.
