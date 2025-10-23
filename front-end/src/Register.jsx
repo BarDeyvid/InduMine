@@ -40,7 +40,7 @@ function Register() {
       localStorage.setItem('token', token); 
       localStorage.setItem('userRole', user.role); 
       localStorage.setItem('userName', user.username); 
-      navigate('/login') 
+      navigate('/') 
 
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
