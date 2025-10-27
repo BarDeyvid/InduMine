@@ -44,6 +44,7 @@ function Login() {
       localStorage.setItem('token', token); 
       localStorage.setItem('userRole', user.role); 
       localStorage.setItem('userName', user.username); 
+      localStorage.setItem('isAuthenticated', 'true');
 
       // 3. Redirecionar para o Dashboard
       navigate('/dashboard'); 

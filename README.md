@@ -106,8 +106,8 @@ graph LR
 
 ### 1. Clone & Setup
 ```bash
-git clone <your-repo>
-cd <your-repo>
+git clone https://github.com/BarDeyvid/WEGMine.git
+cd WEGMine
 ```
 
 ### 2. Install Dependencies

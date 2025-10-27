@@ -20,9 +20,13 @@
 }
 
 .navbar {
-  border: 1px solid var(--logo-background);
-  border-radius: 5%;
+  width: 10vw;            /* fixed width for the sidebar */
   height: 100vh;
+  position: sticky;       /* or fixed if you prefer */
+  top: 0;
+  left: 0;
+  background-color: var(--logo-background);
+  box-shadow: 2px 0 5px rgba(0,0,0,.1);
 }
 
 .navs {
