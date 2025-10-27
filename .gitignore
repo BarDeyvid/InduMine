@@ -1,0 +1,4 @@
+.env
+chromedriver.exe
+node_modules/
+dist/
