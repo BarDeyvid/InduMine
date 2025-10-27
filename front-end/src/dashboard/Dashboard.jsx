@@ -71,8 +71,7 @@ function Dashboard() {
 
   return (
     <div>
-        <header>
-            <h1>ProdDash</h1>
+        <header style={{paddingLeft: '72em'}}>
             <div className="right-side">
                 <div style={{width: "fit-content",padding: 20}}>
                     <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />

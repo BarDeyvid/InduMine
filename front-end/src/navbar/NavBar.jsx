@@ -20,7 +20,7 @@ export default function NavBar() {
   const handleAnalytics = async () => {
     console.log("Jumping");
     try {
-      navigate('/dashboard')
+      navigate('/analytics')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
@@ -31,7 +31,7 @@ export default function NavBar() {
   const handleProducts = async () => {
     console.log("Jumping");
     try {
-      navigate('/dashboard')
+      navigate('/products')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
@@ -42,7 +42,7 @@ export default function NavBar() {
   const handleScrapers = async () => {
     console.log("Jumping");
     try {
-      navigate('/dashboard')
+      navigate('/scrapers')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
@@ -53,7 +53,7 @@ export default function NavBar() {
   const handleActivityLog = async () => {
     console.log("Jumping");
     try {
-      navigate('/dashboard')
+      navigate('/activitylog')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
@@ -64,7 +64,7 @@ export default function NavBar() {
   const handleSettings = async () => {
     console.log("Jumping");
     try {
-      navigate('/dashboard')
+      navigate('/settings')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
@@ -75,7 +75,8 @@ export default function NavBar() {
   const handleLogOut = async () => {
     console.log("Jumping");
     try {
-      navigate('/dashboard')
+      localStorage.removeItem('isAuthenticated');
+      navigate('/')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
