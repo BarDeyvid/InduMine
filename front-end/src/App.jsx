@@ -1,7 +1,8 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './Login';
-import Register from './Register';
-import Dashboard from './Dashboard';
+import Login from './auth/Login';
+import Register from './auth/Register';
+import Dashboard from './dashboard/Dashboard';
+import NavBar from './navbar/NavBar';
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/navbar" element={<NavBar />} />
       </Routes>
     </Router>
   );

@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import TextField from "@mui/material/TextField";
+import { BarChart } from '@mui/x-charts/BarChart';
 import Button from '@mui/material/Button';
 import "./Dashboard.css"
+import { LineChart } from "@mui/x-charts";
 
 function Dashboard() {
     const SearchBar = ({setSearchQuery}) => (
@@ -71,26 +73,6 @@ function Dashboard() {
     <div>
         <header>
             <h1>ProdDash</h1>
-            <ul className="navs justify-center">
-                <div>
-                    <button type='button'>Overview</button>
-                    <button type='button'>Technical Specs</button>
-                    <button type='button'>Connectivity</button>
-                    <button type='button'>Aesthetics</button>
-                    <button type='button'>Accessories</button>
-                    <button type='button'>Analytics</button>
-                    <button type='button'>AI Intelligence</button>
-                </div>
-                <div>
-                    <button type='button'>Market Trends</button>
-                    <button type='button'>Quality Control</button>
-                    <button type='button'>Supply Chain</button>
-                    <button type='button'>Benchmarking</button>
-                    <button type='button'>Predictive Maintenance</button>
-                    <button type='button'>Compliance</button>
-                    <button type='button'>Live Monitoring</button>
-                </div>
-            </ul>
             <div className="right-side">
                 <div style={{width: "fit-content",padding: 20}}>
                     <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
@@ -106,8 +88,33 @@ function Dashboard() {
                 </Button>
             </div>
         </header>
+
+        <div className="Shower">
+            <h3>
+                Showing'pretty number here' of 'actual numbers' products
+            </h3>
+            <Button onClick={console.log("Pretty PDF")}>
+                PDF 
+            </Button>
+        </div>
+
       <h1>Welcome to the Dashboard!</h1>
       <p>This is your analytics dashboard.</p>
+      <h2>Bar-Chart Testing Below!!!</h2>
+      <BarChart 
+      yAxis={[
+        {
+            id: 'barCategories',
+            data: ['bar A', 'bar B', 'bar C']
+        }
+        ]}
+        series={[
+            {
+                data: [19, 5, 3]
+            },
+        ]}
+        height={300}
+            />
     </div>
   );
 }

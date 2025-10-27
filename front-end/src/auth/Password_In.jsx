@@ -1,5 +1,6 @@
 import React, { useState } from 'react'; 
 import { MuiOtpInput } from 'mui-one-time-password-input';
+import './Auth.css'
 
 const PI = ({ onChange }) => { 
   const [otp, setOtp] = useState(''); 
@@ -13,13 +14,16 @@ const PI = ({ onChange }) => {
   };
 
   return (
+    <>
+    <h3 style={{display: 'flex'}}>PIN</h3>
     <MuiOtpInput
       value={otp}
       onChange={handleChange}
       length={4} 
       password={true}
-      TextFieldsProps={{ type: 'password' }}
+      TextFieldsProps={{type: 'password' }}
     />
+    </>
   );
 };
 

@@ -23,7 +23,7 @@
 
 header {
   border-bottom: 1px solid #e4e4e4;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   display: flex;
   background-color: #069ad7;
   position: fixed;
@@ -53,4 +53,34 @@ header hr {
   height: fit-content;
   display: block;
   padding: 0.5em 3em 0 3em;
+}
+
+.Shower {
+  background-color: #069ad7;
+  border-radius: 1.5em;
+  width: 100vw;
+  height: fit-content;
+  top: 0em;
+  padding-top: 0em;
+  display: block;
+}
+
+.Shower h3 {
+  height: fit-content;
+  width: fit-content;
+  align-items: start;
+  left: 0;
+  padding: 0.5em;
+  display: block;
+  font-size: medium;
+}
+
+.Shower Button {
+  height: fit-content;
+  width: fit-content;
+  align-items: end;
+  right: 0;
+  padding: 0.5em;
+  display: block;
+  font-size: medium;
 }

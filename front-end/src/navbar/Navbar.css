@@ -1,0 +1,38 @@
+:root {
+  --bar-chart-size: 7%;
+  --logo-background: #6cccf8ee;
+  --left-background: #069ad7;
+  --right-background: #0d0d1a;
+  --content-box: #1e2e3f;
+  --right-title-size: 1.5rem;
+  --right-text-size: 1rem
+}
+
+#root {
+  height: 100vh;
+  width: 11vw;
+  gap: 10px;
+  margin: 0 0;
+  padding: 0;
+  text-align: center;
+  list-style: none;
+  display: flex;
+}
+
+.navbar {
+  border: 1px solid var(--logo-background);
+  border-radius: 5%;
+  height: 100vh;
+}
+
+.navs {
+  text-align: start;
+}
+
+.signout {
+  display: flex;
+  bottom: 0;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+}
