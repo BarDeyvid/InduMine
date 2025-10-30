@@ -2,3 +2,5 @@
 chromedriver.exe
 node_modules/
 dist/
+
+.vs
