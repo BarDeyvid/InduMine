@@ -56,7 +56,7 @@ export default function App() {
 
           {/* Optional debugging NavBar exposure */}
           <Route path="/navbar" element={<NavBar />} />
-          <Route path="/WEGMine" element={<Login />} />
+          <Route path="/WEGMine" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>
