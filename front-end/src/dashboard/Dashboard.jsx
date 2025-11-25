@@ -1,11 +1,28 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useNavigate } from 'react-router-dom'; // 💡 CORREÇÃO: Removido o { data } incorreto.
+import { useNavigate } from 'react-router-dom';
 import SearchIcon from "@mui/icons-material/Search";
 import { BarChart } from '@mui/x-charts/BarChart';
 import Button from '@mui/material/Button';
 import "./Dashboard.css"
 import { LineChart } from "@mui/x-charts";
 import { TextField, IconButton } from "@mui/material";
+import styled from 'styled-components';
+
+const StyledHeader = styled.header`
+  background-color: ${props => props.theme.surface}; /* Fundo de superfície */
+  color: ${props => props.theme.text}; /* Cor do texto */
+  padding: 10px 20px;
+  display: flex;
+  justify-content: flex-end; /* Alinha o conteúdo à direita */
+  align-items: center;
+  gap: 20px;
+
+  /* Estiliza o hr */
+  hr {
+    border-color: ${props => props.theme.textSecondary};
+    opacity: 0.5;
+  }
+`;
 
 // Dados temporários (DUMMY) para usar enquanto a API carrega ou falha.
 const DUMMY_PRODUCTS = [
@@ -122,15 +139,14 @@ function Dashboard() {
 
     return (
         <div>
-            <header style={{paddingLeft: '72em'}}>
+            <StyledHeader style={{paddingLeft: '71vw'}}>
                 <div className="right-side">
-                    <div style={{width: "fit-content", padding: 20}}>
+                    <div style={{width: "fit-content", padding: 0}}>
                         <SearchBar 
                             value={searchQuery}
                             onChange={handleSearchChange}
                             onSubmit={handleSearchSubmit} 
                         />
-                        
                         {/* Exibe erro se houver */}
                         {loadingError && <p style={{ color: "orange", fontSize: "small" }}>Aviso: Erro ao carregar dados da API. Exibindo dados temporários.</p>}
 
@@ -170,13 +186,13 @@ function Dashboard() {
                 <hr style={{margin: 0}}/>
                 <div>
                     <Button color="secondary">
-                    <div style={{alignItems: "baseline", paddingLeft: "4em", right: 0}}>
-                        <h1 style={{margin: 0}}>{userInfo.name}</h1>
-                        <h1 style={{margin: 0}}>{userInfo.cargo}</h1> 
+                    <div style={{alignItems: "baseline", paddingLeft: "1em", right: 0}}>
+                        <h1 style={{margin: 0, fontSize: 14}}>{userInfo.name}</h1>
+                        <h1 style={{margin: 0, fontSize: 14}}>{userInfo.cargo}</h1> 
                     </div>
                     </Button>
                 </div>
-            </header>
+            </StyledHeader>
             
             <div className="Shower">
                 <h3>
@@ -189,21 +205,6 @@ function Dashboard() {
 
             <h1>Welcome to the Dashboard!</h1>
             <p>This is your analytics dashboard.</p>
-            <h2>Bar-Chart Testing Below!!!</h2>
-            <BarChart 
-            yAxis={[
-                {
-                    id: 'barCategories',
-                    data: ['bar A', 'bar B', 'bar C']
-                }
-                ]}
-                series={[
-                    {
-                        data: [19, 5, 3]
-                    },
-                ]}
-                height={300}
-                    />
         </div>
     );
 }

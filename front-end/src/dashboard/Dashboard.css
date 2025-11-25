@@ -1,6 +1,7 @@
 :root {
   --bar-chart-size: 7%;
   --logo-background: #6cccf8ee;
+  --secondary-background: #05ad16;
   --left-background: #069ad7;
   --right-background: #0d0d1a;
   --content-box: #1e2e3f;
@@ -25,7 +26,7 @@ header {
   border-bottom: 1px solid #e4e4e4;
   margin-bottom: 1rem;
   display: flex;
-  background-color: #069ad7;
+  background-color: var(--secondary-background);
   position: fixed;
   top: 0;
   left: 0;
@@ -56,7 +57,7 @@ header hr {
 }
 
 .Shower {
-  background-color: #069ad7;
+  background-color: var(--secondary-background);
   border-radius: 1.5em;
   width: 89vw;
   height: fit-content;

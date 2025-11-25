@@ -25,7 +25,7 @@
   position: sticky;       /* or fixed if you prefer */
   top: 0;
   left: 0;
-  background-color: var(--logo-background);
+  background-color: var(--secondary-background);
   box-shadow: 2px 0 5px rgba(0,0,0,.1);
 }
 
