@@ -64,8 +64,8 @@ function Dashboard() {
         .then((data) => {
             // Se o retorno da API for uma lista de objetos (ex: {id: 1, name: "Produto"}),
             // mapeamos para uma lista de strings para o filtro atual funcionar.
-            if (data && data.length > 0 && typeof data[0] === 'object' && data[0].name) {
-                 setApiProducts(data.map(item => item.name));
+            if (data && data.length > 0 && typeof data[0] === 'object' && data[0].final_search) {
+                 setApiProducts(data.map(item => item.final_search));
             } else {
                  setApiProducts(data); // Assume que a lista já é de strings
             }
@@ -208,4 +208,4 @@ function Dashboard() {
     );
 }
 
-export default Dashboard;
+export default Dashboard;   
