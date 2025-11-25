@@ -121,6 +121,7 @@ function Dashboard() {
                                 key={d} 
                                 onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                                 onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'}
+                                onClick={() => navigate("products/" + d.replace(/ /g, "_"))}
                                 > 
                                 {d}
                                 </div>
