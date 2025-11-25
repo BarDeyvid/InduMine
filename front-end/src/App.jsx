@@ -27,7 +27,7 @@ export default function App() {
         <Routes>
           {/* Public routes – wrapped in UnprotectedRoute */}
           <Route
-            path="/"
+            path="/login"
             element={
               <UnprotectedRoute>
                 <Login />
@@ -53,10 +53,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* Optional debugging NavBar exposure */}
-          <Route path="/navbar" element={<NavBar />} />
-          <Route path="/WEGMine" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>
