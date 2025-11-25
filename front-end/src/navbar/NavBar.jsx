@@ -1,8 +1,50 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components'; 
 import menuIcon from './assets/menu.svg';
-import './NavBar.css';
 import Button from '@mui/material/Button';
+
+const StyledNavBar = styled.div`
+  background-color: ${props => props.theme.surface}; /* Cor de fundo do tema */
+  color: ${props => props.theme.text}; /* Cor do texto do tema */
+  width: 250px;
+  min-height: 100vh;
+  padding: 20px 0;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  h1 {
+    color: ${props => props.theme.primary}; /* Usa a cor primária */
+    margin-bottom: 2rem;
+  }
+  
+  .navs {
+    list-style: none;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-grow: 1;
+  }
+  
+  .signout {
+    margin-top: auto; /* Empurra o logout para baixo */
+    padding-bottom: 20px;
+  }
+`;
+const NavButton = styled(Button)`
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 20px;
+  color: ${props => props.theme.text} !important; /* Cor do texto do tema */
+  
+  &:hover {
+    background-color: ${props => props.theme.surface}; /* Cor de superfície mais escura no hover */
+  }
+`;
 
 export default function NavBar() {
   const navigate = useNavigate(); 
@@ -75,34 +117,33 @@ export default function NavBar() {
   const handleLogOut = async () => {
     console.log("Jumping Loging");
     try {
-      localStorage.removeItem('isAuthenticated');
-      navigate('/login')
+      localStorage.removeItem('token'); 
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      navigate('/')
     } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
+      const errorMessage = error.response?.data?.msg || 'Erro ao desconectar.';
+      console.error("Logout Failed:", errorMessage);
       alert(errorMessage)
     }
   }
 
   return (
-    <>
-      <div className="navbar">
-        <h1>WEG Mine</h1>
-        <ul className="navs justify-center">
-                <div>
-                    <Button startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={handleDashboard} type='Button'>Dashboard</Button>
-                    <Button startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={handleAnalytics} type='Button'>Analytics</Button>
-                    <Button startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={handleProducts} type='Button'>Products</Button>
-                    <Button startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={handleScrapers} type='Button'>Scrapers</Button>
-                    <Button startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={handleActivityLog} type='Button'>Activity Log</Button>
-                    <Button style={{marginTop: '2em'}} startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={handleSettings} type='Button'>Settings</Button>
-                </div>
-                <div className='signout'>
-                    <Button type='Button' onClick={handleLogOut}>Logout</Button>
-                </div>
-            </ul>
-      </div>
-    </>
+    <StyledNavBar> 
+      <h1>WEG Mine</h1>
+      <ul className="navs justify-center">
+        <div>
+          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/dashboard')} type='Button'>Dashboard</NavButton>
+          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/analytics')} type='Button'>Analytics</NavButton>
+          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/products')} type='Button'>Products</NavButton>
+          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/scrapers')} type='Button'>Scrapers</NavButton>
+          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/activitylog')} type='Button'>Activity Log</NavButton>
+          <NavButton style={{marginTop: '2em'}} startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/settings')} type='Button'>Settings</NavButton>
+        </div>
+        <div className='signout'>
+          <Button variant="contained" color="error" onClick={handleLogOut}>Logout</Button>
+        </div>
+      </ul>
+    </StyledNavBar>
   )
 }
