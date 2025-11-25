@@ -48,7 +48,7 @@ function Login() {
             // localStorage.setItem('isAuthenticated', 'true'); // Linha removida
 
             // 3. Redirecionar para o Dashboard
-            navigate('/WEGMine');
+            navigate('/dashboard');
 
         } catch (error) {
             // Tratar erros do servidor (ex: status 400 ou 500)

@@ -73,10 +73,10 @@ export default function NavBar() {
     }
   }
   const handleLogOut = async () => {
-    console.log("Jumping");
+    console.log("Jumping Loging");
     try {
       localStorage.removeItem('isAuthenticated');
-      navigate('/')
+      navigate('/login')
     } catch (error) {
       // Tratar erros do servidor (ex: status 400 ou 500)
       const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';

@@ -1,40 +1,58 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
-import TextField from "@mui/material/TextField";
 import { BarChart } from '@mui/x-charts/BarChart';
 import Button from '@mui/material/Button';
 import "./Dashboard.css"
 import { LineChart } from "@mui/x-charts";
+import { TextField, IconButton } from "@mui/material";
 
-function Dashboard() {
-    const SearchBar = ({setSearchQuery}) => (
-    <form>
+const SearchBar = ({ value, onChange, onSubmit }) => {
+    return (
+        <form onSubmit={onSubmit} style={{ display: "flex", gap: "8px" }}>
         <TextField
-        id="search-bar"
-        className="text"
-        onInput={(e) => {
-            setSearchQuery(e.target.value);
-        }}
-        label="Search by Product ID or Model"
-        variant="outlined"
-        placeholder="Search"
-        size="small"
-        sx={{ width: 250 }}
+            id="search-bar"
+            value={value} // Controlado pelo estado do pai
+            onChange={onChange} // Passa o evento de volta para o pai
+            label="Search by Product ID or Model"
+            variant="outlined"
+            placeholder="Search"
+            size="small"
+            sx={{ width: 250 }}
         />
         <IconButton type="submit" aria-label="search">
-        <SearchIcon style={{ fill: "blue" }} />
+            <SearchIcon style={{ fill: "blue" }} />
         </IconButton>
-    </form>
+        </form>
     );
+};
+
+function Dashboard() {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [userInfo, setUserInfo] = useState({ name: 'Carregando...', cargo: '' });
+    const navigate = useNavigate();
+
+    // Função de tratamento de mudança (Live Filtering)
+    const handleSearchChange = useCallback((e) => {
+        // Atualiza searchQuery instantaneamente (live filtering)
+        setSearchQuery(e.target.value); 
+    }, []);
+    
+    // Função para tratamento de submissão
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        console.log("Busca submetida:", searchQuery);
+    };
+
+
     const filterData = (query, data) => {
         if (!query) {
             return data;
         } else {
-            return data.filter((d) => d.toLowerCase().includes(query));
+            const lowerCaseQuery = query.toLowerCase();
+            return data.filter((d) => d.toLowerCase().includes(lowerCaseQuery));
         }
-        };
+    };
 
     const data = [
         "Paris",
@@ -48,9 +66,7 @@ function Dashboard() {
         "Rio de Janeiro",
         "Dublin"
     ];
-    const [searchQuery, setSearchQuery] = useState("");
-    const [userInfo, setUserInfo] = useState({ name: 'Carregando...', cargo: '' });
-    const navigate = useNavigate();
+
     const dataFiltered = filterData(searchQuery, data);
 
     useEffect(() => {
@@ -73,8 +89,44 @@ function Dashboard() {
     <div>
         <header style={{paddingLeft: '72em'}}>
             <div className="right-side">
-                <div style={{width: "fit-content",padding: 20}}>
-                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                <div style={{width: "fit-content", padding: 20}}>
+                    {/* 💡 PASSANDO O VALOR E FUNÇÕES DO PAI */}
+                    <SearchBar 
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        onSubmit={handleSearchSubmit} 
+                    />
+                    
+                    {/* Bloco de exibição de resultados filtrados */}
+                    {searchQuery && dataFiltered.length > 0 && ( 
+                        <div style={{ 
+                            position: 'absolute', 
+                            zIndex: 10,          
+                            backgroundColor: 'white',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                            width: '250px',
+                            marginTop: '4px'
+                        }}>
+                            {dataFiltered.map((d) => (
+                                <div className="text"
+                                style={{
+                                    padding: '8px 12px',
+                                    fontSize: 16,
+                                    color: "blue",
+                                    cursor: 'pointer',
+                                    borderBottom: '1px solid #eee'
+                                }} 
+                                key={d} 
+                                onMouseOver={e => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                                onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'}
+                                > 
+                                {d}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
             <hr style={{margin: 0}}/>
@@ -119,23 +171,3 @@ function Dashboard() {
 }
 
 export default Dashboard;
-
-/*
-Maybe add to the search bar indexing:
-<div style={{ padding: 3 }}>
-    {dataFiltered.map((d) => (
-        <div className="text"
-        style={{
-            padding: 5,
-            justifyContent: "normal",
-            fontSize: 20,
-            color: "blue",
-            margin: 1,
-            width: "250px",
-            BorderColor: "green",
-            borderWidth: "10px"
-        }} key={d.id} > {d}
-        </div>
-    ))}
-</div>
-*/
