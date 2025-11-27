@@ -1,6 +1,5 @@
 import React, { useState } from 'react'; 
 import { MuiOtpInput } from 'mui-one-time-password-input';
-import './Auth.css'
 
 const PI = ({ onChange }) => { 
   const [otp, setOtp] = useState(''); 

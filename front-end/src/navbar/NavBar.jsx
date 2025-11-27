@@ -5,10 +5,18 @@ import menuIcon from './assets/menu.svg';
 import Button from '@mui/material/Button';
 
 const StyledNavBar = styled.div`
-  background-color: ${props => props.theme.surface}; /* Cor de fundo do tema */
-  color: ${props => props.theme.text}; /* Cor do texto do tema */
-  width: 250px;
-  min-height: 100vh;
+  background-color: ${props => props.theme.surface};
+  color: ${props => props.theme.text};
+  width: 10vw;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000; 
+  height: 100vh; 
+  min-height: 100vh; 
+  max-height: 100vh;
+
   padding: 20px 0;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   display: flex;

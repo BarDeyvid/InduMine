@@ -9,25 +9,6 @@
   --right-text-size: 1rem;
 }
 
-/* Dashboard Container to handle spacing */
-.dashboard-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: 20px;
-}
-
-/* Header Styles - applied via class to avoid conflict with other headers */
-.dashboard-header {
-  border-bottom: 1px solid #e4e4e4;
-  margin-bottom: 1rem;
-  display: flex;
-  justify-content: space-between; /* Spreads content apart */
-  align-items: center;
-  width: 100%;
-  padding: 0 20px; /* Internal padding */
-  box-sizing: border-box;
-}
 
 .right-side {
   display: flex;
@@ -54,7 +35,6 @@
 }
 
 .Shower Button {
-  background-color: white;
   color: var(--secondary-background);
   font-weight: bold;
 }
