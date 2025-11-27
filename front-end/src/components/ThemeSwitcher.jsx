@@ -1,6 +1,6 @@
 // src/components/ThemeSwitcher.jsx
 import React from 'react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/themeProvider';
 
 const ThemeSwitcher = () => {
   const { themeMode, toggleTheme } = useTheme();
