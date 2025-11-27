@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './auth/Login';
 import Register from './auth/Register';
 import Dashboard from './dashboard/Dashboard';
+import Products from './products/Products'
 import NavBar from './navbar/NavBar';
 import { ThemeProvider } from './context/themeProvider';
 
@@ -36,7 +37,7 @@ export default function AppRouter() {
                                         <Routes>
                                             <Route path="/dashboard" element={<Dashboard />} />
                                             <Route path="/analytics" element={<div>Analytics Page</div>} />
-                                            <Route path="/products" element={<div>Products Page</div>} />
+                                            <Route path="/products" element={<Products />} />
                                             <Route path="/scrapers" element={<div>Scrapers Page</div>} />
                                             <Route path="/activitylog" element={<div>Activity Log Page</div>} />
                                             <Route path="/settings" element={<div>Settings Page</div>} />

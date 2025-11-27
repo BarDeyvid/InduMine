@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
+import numpy as np
 from urllib.parse import unquote 
 import pandas as pd
 app = FastAPI()
@@ -25,7 +27,18 @@ data_series = df["final_search"].str.split("/", n=0).str[0]
 
 product_list = data_series.dropna().tolist()
 
+count = df["first_search"]
+
 # Example endpoint
 @app.get("/items")
 def get_items():
     return product_list
+
+
+@app.get("/total_rows")
+def get_count():
+    try:
+        counts = df.count().to_dict()
+        return counts
+    except Exception as e:
+        return {"error": str(e)}
