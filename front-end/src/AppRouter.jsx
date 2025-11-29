@@ -1,5 +1,5 @@
-// src/AppRouter.jsx
-import React from 'react';
+// src/AppRouter.jsx 
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './auth/Login';
 import Register from './auth/Register';
@@ -17,7 +17,18 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
+// Estes valores devem corresponder aos do seu componente NavBar/SidebarContainer
+const NAVBAR_WIDTH_OPEN = '250px';
+const NAVBAR_WIDTH_CLOSED = '60px';
+
+
 export default function AppRouter() {
+    const [isNavOpen, setIsNavOpen] = useState(false);
+    
+    const toggleNav = () => setIsNavOpen(!isNavOpen);
+    
+    const mainMarginLeft = isNavOpen ? NAVBAR_WIDTH_OPEN : NAVBAR_WIDTH_CLOSED;
+
     return (
         <ThemeProvider>
             <Router>
@@ -26,14 +37,25 @@ export default function AppRouter() {
                     <Route path="/" element={<Login />} />
                     <Route path="/register" element={<Register />} />
 
-                    {/* Rotas Protegidas */}
+                    {/* Rotas Protegidas (Layout) */}
                     <Route
                         path="*"
                         element={
                             <ProtectedRoute>
                                 <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-                                    <NavBar /> 
-                                    <main style={{ flexGrow: 1, padding: '20px' }}>
+                                    <NavBar 
+                                        isOpen={isNavOpen} 
+                                        setIsOpen={setIsNavOpen} // Se quiser que a NavBar controle
+                                        toggleNavbar={toggleNav} // Se a NavBar usar apenas a função
+                                    /> 
+                                    
+                                    <main style={{ 
+                                        flexGrow: 1, 
+                                        padding: '20px', 
+                                        // A margem esquerda empurra o conteúdo para fora da navbar
+                                        marginLeft: mainMarginLeft, 
+                                        transition: 'margin-left 0.3s ease' 
+                                    }}>
                                         <Routes>
                                             <Route path="/dashboard" element={<Dashboard />} />
                                             <Route path="/analytics" element={<div>Analytics Page</div>} />

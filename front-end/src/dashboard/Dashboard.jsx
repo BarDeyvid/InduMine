@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import SearchIcon from "@mui/icons-material/Search";
 import Button from '@mui/material/Button';
-import { TextField, IconButton } from "@mui/material";
 import styled from 'styled-components'
 import Header from "../components/Header"
 
@@ -14,9 +12,7 @@ const DUMMY_PRODUCTS = [
 const StyledPage = styled.div`
   background-color: ${props => props.theme.surface}; 
   color: ${props => props.theme.text}; 
-  
-  margin-left: 10vw; 
-  width: 90vw;
+  width: 100%;
   min-height: 100vh;
   box-sizing: border-box;
   display: flex; 
@@ -61,7 +57,6 @@ function Dashboard() {
     return (
         <StyledPage className="">
             <Header />
-            
             <div className="Shower">
                 <h3>Showing {TotalRows} of {TotalRows} products</h3>
                     <Button variant="contained" onClick={() => console.log("Pretty PDF")}>

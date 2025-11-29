@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import SearchIcon from "@mui/icons-material/Search";
 import Button from '@mui/material/Button';
@@ -9,14 +9,23 @@ import ThemeSwitcher from "../components/ThemeSwitcher";
 const StyledHeader = styled.header`
   background-color: ${props => props.theme.surface}; 
   color: ${props => props.theme.text}; 
-  padding: 10px 20px;
-  display: flex;
-  padding-left: 50vw;
+  
+  width: 100%; 
+  
+  padding: 10px 5vw 10px 20px; 
+  
+  box-sizing: border-box; 
+  display: flex; 
+  
+  justify-content: flex-end; 
+  
   align-items: center;
   gap: 20px;
 
+
   hr {
     border-color: ${props => props.theme.textSecondary};
+    height: 4vh;
   }
 `;
 

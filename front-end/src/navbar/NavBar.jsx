@@ -1,157 +1,148 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components'; 
-import menuIcon from './assets/menu.svg';
+import styled, { css } from 'styled-components';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen'; 
+import MenuIcon from '@mui/icons-material/Menu';
 
-const StyledNavBar = styled.div`
-  background-color: ${props => props.theme.surface};
-  color: ${props => props.theme.text};
-  width: 10vw;
 
+// --- Estilos ---
+const ToggleButtonContainer = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1000; 
-  height: 100vh; 
-  min-height: 100vh; 
-  max-height: 100vh;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001; 
+`;
 
-  padding: 20px 0;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+const NavList = styled.nav`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  
-  h1 {
-    color: ${props => props.theme.primary}; /* Usa a cor primária */
-    margin-bottom: 2rem;
-  }
-  
-  .navs {
-    list-style: none;
-    padding: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    flex-grow: 1;
-  }
-  
-  .signout {
-    margin-top: auto; /* Empurra o logout para baixo */
-    padding-bottom: 20px;
-  }
+  flex-grow: 1; 
+  width: 100%;
+  padding: 0 0.5rem; 
 `;
+
 const NavButton = styled(Button)`
+  color: ${props => props.theme.text} !important;
   width: 100%;
   justify-content: flex-start;
   padding: 10px 20px;
-  color: ${props => props.theme.text} !important; /* Cor do texto do tema */
+  margin: 0.2rem 0 !important;
+  transition: background-color 0.2s ease;
   
-  &:hover {
-    background-color: ${props => props.theme.surface}; /* Cor de superfície mais escura no hover */
+  .MuiButton-label {
+    opacity: ${props => (props.isOpen ? 1 : 0)};
+    transition: opacity 0.3s ease;
+  }
+  
+  ${props => !props.isOpen && css`
+    justify-content: center;
+    padding: 10px 0 !important;
+  `}
+`;
+
+const SidebarContainer = styled.div`
+  background-color: ${props => props.theme.surface};
+  color: ${props => props.theme.text};
+  height: 100vh;
+  position: fixed; 
+  top: 0;
+  left: 0;
+  transition: width 0.3s ease;
+  overflow-x: hidden; 
+  z-index: 1000;
+
+  /* Largura padrão */
+  width: ${props => (props.isOpen ? '250px' : '60px')}; 
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+  padding-top: 5rem; 
+
+  h1 {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+    white-space: nowrap;
+    opacity: ${props => (props.isOpen ? 1 : 0)};
+    transition: opacity 0.3s ease, margin 0.3s ease;
   }
 `;
 
-export default function NavBar() {
-  const navigate = useNavigate(); 
-  const handleDashboard = async () => {
-    console.log("Jumping");
-    try {
-      navigate('/dashboard')
-    } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
-      alert(errorMessage)
+const LogoutContainer = styled.div`
+  margin-top: auto;
+  padding: 1rem;
+  width: 100%;
+
+  button {
+    width: 100%;
+    .MuiButton-label {
+        opacity: ${props => (props.isOpen ? 1 : 0)};
+        transition: opacity 0.3s ease;
     }
   }
-  const handleAnalytics = async () => {
-    console.log("Jumping");
-    try {
-      navigate('/analytics')
-    } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
-      alert(errorMessage)
-    }
-  }
-  const handleProducts = async () => {
-    console.log("Jumping");
-    try {
-      navigate('/products')
-    } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
-      alert(errorMessage)
-    }
-  }
-  const handleScrapers = async () => {
-    console.log("Jumping");
-    try {
-      navigate('/scrapers')
-    } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
-      alert(errorMessage)
-    }
-  }
-  const handleActivityLog = async () => {
-    console.log("Jumping");
-    try {
-      navigate('/activitylog')
-    } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
-      alert(errorMessage)
-    }
-  }
-  const handleSettings = async () => {
-    console.log("Jumping");
-    try {
-      navigate('/settings')
-    } catch (error) {
-      // Tratar erros do servidor (ex: status 400 ou 500)
-      const errorMessage = error.response?.data?.msg || 'Erro ao conectar ao sistema.';
-      console.error("Jump Failed:", errorMessage);
-      alert(errorMessage)
-    }
-  }
-  const handleLogOut = async () => {
-    console.log("Jumping Loging");
-    try {
-      localStorage.removeItem('token'); 
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userName');
-      navigate('/')
-    } catch (error) {
-      const errorMessage = error.response?.data?.msg || 'Erro ao desconectar.';
-      console.error("Logout Failed:", errorMessage);
-      alert(errorMessage)
-    }
-  }
+`;
+
+export default function NavBar({ isOpen, toggleNavbar }) {
+  
+  const navigate = useNavigate();
+
+  const handleLogOut = () => {
+    localStorage.clear(); 
+    navigate('/');
+  };
+
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard' },
+    { name: 'Analytics', path: '/analytics' },
+    { name: 'Products', path: '/products' },
+    { name: 'Scrapers', path: '/scrapers' },
+    { name: 'Activity Log', path: '/activitylog' },
+    { name: 'Settings', path: '/settings' },
+  ];
 
   return (
-    <StyledNavBar> 
-      <h1>WEG Mine</h1>
-      <ul className="navs justify-center">
-        <div>
-          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/dashboard')} type='Button'>Dashboard</NavButton>
-          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/analytics')} type='Button'>Analytics</NavButton>
-          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/products')} type='Button'>Products</NavButton>
-          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/scrapers')} type='Button'>Scrapers</NavButton>
-          <NavButton startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/activitylog')} type='Button'>Activity Log</NavButton>
-          <NavButton style={{marginTop: '2em'}} startIcon={<img src={menuIcon} style={{width:'2em'}}/>} onClick={() => navigate('/settings')} type='Button'>Settings</NavButton>
-        </div>
-        <div className='signout'>
-          <Button variant="contained" color="error" onClick={handleLogOut}>Logout</Button>
-        </div>
-      </ul>
-    </StyledNavBar>
-  )
+    <>
+      <ToggleButtonContainer>
+        <IconButton 
+          onClick={toggleNavbar} // << Usa a prop
+          aria-label={isOpen ? "Fechar Menu" : "Abrir Menu"}
+          style={{ backgroundColor: 'white', color: 'black', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+        >
+          {isOpen ? <MenuOpenIcon /> : <MenuIcon />}
+        </IconButton>
+      </ToggleButtonContainer>
+      
+      <SidebarContainer isOpen={isOpen}> 
+        <h1>WEG Mine</h1>
+        
+        <NavList>
+          {navItems.map((item) => (
+            <NavButton
+              key={item.name}
+              isOpen={isOpen}
+              startIcon={<MenuIcon />} 
+              onClick={() => navigate(item.path)}
+              variant="text" 
+            >
+              {item.name}
+            </NavButton>
+          ))}
+        </NavList>
+
+        <LogoutContainer isOpen={isOpen}>
+          <Button 
+            variant="contained" 
+            color="error" 
+            onClick={handleLogOut}
+            startIcon={<MenuIcon />}
+          >
+            Logout
+          </Button>
+        </LogoutContainer>
+      </SidebarContainer>
+    </>
+  );
 }
