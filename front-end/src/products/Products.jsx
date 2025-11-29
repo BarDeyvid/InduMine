@@ -1,22 +1,16 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
-import SearchIcon from "@mui/icons-material/Search";
+import { useState, useCallback, useEffect } from "react";
 import Button from '@mui/material/Button';
-import { TextField, IconButton } from "@mui/material";
 import styled from 'styled-components';
-import ThemeSwitcher from "../components/ThemeSwitcher";
 import Header from "../components/Header"
 
 const StyledPage = styled.div`
   background-color: ${props => props.theme.surface}; 
   color: ${props => props.theme.text}; 
-  
-  margin-left: 10vw; /* Desloca para a direita da NavBar (10vw) */
-  width: 90vw; 
-  min-height: 100vh; 
-  box-sizing: border-box; 
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
   display: flex; 
-  flex-direction: column; 
+  flex-direction: column;
 
   hr {
     border-color: ${props => props.theme.textSecondary};
