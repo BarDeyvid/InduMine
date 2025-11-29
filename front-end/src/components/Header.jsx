@@ -6,6 +6,7 @@ import { TextField, IconButton, Avatar } from "@mui/material";
 import styled, { keyframes } from 'styled-components';
 import { useTheme } from '../context/themeProvider';
 import useAnimatedToggle from '../components/useAnimatedToggle';
+import UserSettings from './UserSettings'; 
 
 const StyledHeader = styled.header`
   background-color: ${props => props.theme.surface}; 
@@ -145,12 +146,32 @@ export default function Header() {
     const [apiProducts, setApiProducts] = useState(DUMMY_PRODUCTS); 
     const [loadingError, setLoadingError] = useState(null);
 
-    const userMenu = useAnimatedToggle(250);
-    const searchMenu = useAnimatedToggle(250);
+    const [email, setEmail] = useState('');
+    const [username, setUserName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [birthdate, setBirthdate] = useState('');
+
+    const [country, setCountry] = useState('');
+    const [gender, setGender] = useState('');
+
+    const saveChanges = useCallback(() => {
+        // Implement save changes logic here
+        console.log("Saving changes:", { email, username, phone, birthdate, country, gender });
+        // settingsMenu.close();
+    }, [email, username, phone, birthdate, country, gender]);
+
+    const userSubMenu = useAnimatedToggle(300);
+    const settingsMenu = useAnimatedToggle(300); 
+    const searchMenu = useAnimatedToggle(300);
 
     const handleLogOut = () => {
         localStorage.clear();
         navigate("/");
+    };
+
+    const handleOpenSettings = () => {
+        userSubMenu.close();
+        settingsMenu.open();
     };
 
     useEffect(() => {
@@ -257,7 +278,7 @@ export default function Header() {
         </div>
         <hr style={{ margin: 0 }} />
         <div>
-            <Button onClick={userMenu.toggle} color="secondary">
+            <Button onClick={userSubMenu.toggle} color="secondary">
             <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
                 <Avatar alt={userInfo.name} src="/static/images/avatar/1.jpg" />
                 <div style={{ display: "flex", flexDirection: "column", marginLeft: 8 }}>
@@ -267,12 +288,33 @@ export default function Header() {
             </div>
             </Button>
 
-            {userMenu.isOpen && (
-            <UserSubMenu ref={userMenu.ref} itsclosing={userMenu.isClosing}>
-                <Button>Configurações</Button>
+            {userSubMenu.isOpen && (
+            <UserSubMenu ref={userSubMenu.ref} itsclosing={userSubMenu.isClosing}>
+                <Button onClick={handleOpenSettings}>Configurações</Button>
                 <Button onClick={toggleTheme}>Trocar Tema</Button>
                 <Button onClick={handleLogOut}>Log Out</Button>
             </UserSubMenu>
+            )}
+
+            {settingsMenu.isOpen && (
+                <UserSettings
+                    ref={settingsMenu.ref}
+                    itsclosing={settingsMenu.isClosing}
+                    onClose={settingsMenu.close}
+                    email={email}
+                    setEmail={setEmail}
+                    username={username}
+                    setUserName={setUserName}
+                    phone={phone}
+                    setPhone={setPhone}
+                    birthdate={birthdate}
+                    setBirthdate={setBirthdate}
+                    country={country}
+                    setCountry={setCountry}
+                    gender={gender}
+                    setGender={setGender}
+                    saveChanges={saveChanges}
+                />
             )}
         </div>
         </StyledHeader>
