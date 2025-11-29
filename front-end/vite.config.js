@@ -17,4 +17,9 @@ export default defineConfig({
     // Forces Vite to pre-bundle these dependencies to avoid CommonJS/ESM mismatches
     include: ['react', 'react-dom', 'styled-components', '@mui/material', '@emotion/react', '@emotion/styled'],
   },
+  server: {
+    watch: {
+      usePolling: true
+    }
+  }
 })
