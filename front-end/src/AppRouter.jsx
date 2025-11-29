@@ -44,8 +44,8 @@ export default function AppRouter() {
                             <ProtectedRoute>
                                 <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                                     <NavBar 
-                                        isOpen={isNavOpen} 
-                                        setIsOpen={setIsNavOpen} // Se quiser que a NavBar controle
+                                        isopen={isNavOpen} 
+                                        setisopen={setIsNavOpen} // Se quiser que a NavBar controle
                                         toggleNavbar={toggleNav} // Se a NavBar usar apenas a função
                                     /> 
                                     
