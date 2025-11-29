@@ -7,7 +7,7 @@ const ThemeSwitcher = () => {
 
   return (
     <button onClick={toggleTheme}>
-      Mudar para Tema: {themeMode === 'light' ? 'Escuro 🌙' : 'Claro ☀️'}
+      {themeMode === 'light' ? '🌙' : '☀️'}
     </button>
   );
 };

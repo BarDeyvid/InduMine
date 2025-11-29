@@ -21,17 +21,17 @@ export default function AppRouter() {
     return (
         <ThemeProvider>
             <Router>
-                <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-                    <Routes>
-                        {/* Rotas Públicas */}
-                        <Route path="/" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                        
-                        {/* Rota Mestra Protegida */}
-                        <Route
-                            path="*"
-                            element={
-                                <ProtectedRoute>
+                <Routes>
+                    {/* Rotas Públicas */}
+                    <Route path="/" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+
+                    {/* Rotas Protegidas */}
+                    <Route
+                        path="*"
+                        element={
+                            <ProtectedRoute>
+                                <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
                                     <NavBar /> 
                                     <main style={{ flexGrow: 1, padding: '20px' }}>
                                         <Routes>
@@ -44,11 +44,11 @@ export default function AppRouter() {
                                             <Route path="*" element={<Navigate to="/dashboard" replace />} />
                                         </Routes>
                                     </main>
-                                </ProtectedRoute>
-                            }
-                        />
-                    </Routes>
-                </div>
+                                </div>
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
             </Router>
         </ThemeProvider>
     );

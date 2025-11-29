@@ -1,16 +1,16 @@
 // src/styles/theme.js
 export const lightTheme = {
   // Cores de Ação
-  primary: '#007bff',      // Azul Principal
-  secondary: '#6c757d',    // Cinza Secundário
+  primary: '#007bff',      
+  secondary: '#6c757d',   
 
   // Cores de Fundo
-  background: '#ffffff',   // Branco Puro
-  surface: '#f8f9fa',      // Cinza Claro para Cards/Elementos
+  background: '#ffffff',   
+  surface: '#f8f9fa',     
 
   // Cores de Texto
-  text: '#212529',         // Preto Escuro para o corpo do texto
-  textSecondary: '#6c757d', // Cinza para texto secundário/dicas
+  text: '#212529',        
+  textSecondary: '#6c757d',
 };
 
 export const darkTheme = {
@@ -26,5 +26,3 @@ export const darkTheme = {
   text: '#f8f9fa',
   textSecondary: '#adb5bd',
 };
-
-// Se você for usar apenas um tema, pode exportar o objeto diretamente.
