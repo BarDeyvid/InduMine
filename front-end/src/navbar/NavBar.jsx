@@ -32,11 +32,11 @@ const NavButton = styled(Button)`
   transition: background-color 0.2s ease;
   
   .MuiButton-label {
-    opacity: ${props => (props.isOpen ? 1 : 0)};
+    opacity: ${props => (props.isopen ? 1 : 0)};
     transition: opacity 0.3s ease;
   }
   
-  ${props => !props.isOpen && css`
+  ${props => !props.isopen && css`
     justify-content: center;
     padding: 10px 0 !important;
   `}
@@ -54,7 +54,7 @@ const SidebarContainer = styled.div`
   z-index: 1000;
 
   /* Largura padrão */
-  width: ${props => (props.isOpen ? '250px' : '60px')}; 
+  width: ${props => (props.isopen ? '250px' : '60px')}; 
 
   display: flex;
   flex-direction: column;
@@ -66,7 +66,7 @@ const SidebarContainer = styled.div`
     font-size: 1.2rem;
     margin: 1rem 0;
     white-space: nowrap;
-    opacity: ${props => (props.isOpen ? 1 : 0)};
+    opacity: ${props => (props.isopen ? 1 : 0)};
     transition: opacity 0.3s ease, margin 0.3s ease;
   }
 `;
@@ -79,20 +79,15 @@ const LogoutContainer = styled.div`
   button {
     width: 100%;
     .MuiButton-label {
-        opacity: ${props => (props.isOpen ? 1 : 0)};
+        opacity: ${props => (props.isopen ? 1 : 0)};
         transition: opacity 0.3s ease;
     }
   }
 `;
 
-export default function NavBar({ isOpen, toggleNavbar }) {
+export default function NavBar({ isopen, toggleNavbar }) {
   
   const navigate = useNavigate();
-
-  const handleLogOut = () => {
-    localStorage.clear(); 
-    navigate('/');
-  };
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard' },
@@ -100,7 +95,6 @@ export default function NavBar({ isOpen, toggleNavbar }) {
     { name: 'Products', path: '/products' },
     { name: 'Scrapers', path: '/scrapers' },
     { name: 'Activity Log', path: '/activitylog' },
-    { name: 'Settings', path: '/settings' },
   ];
 
   return (
@@ -108,21 +102,21 @@ export default function NavBar({ isOpen, toggleNavbar }) {
       <ToggleButtonContainer>
         <IconButton 
           onClick={toggleNavbar} // << Usa a prop
-          aria-label={isOpen ? "Fechar Menu" : "Abrir Menu"}
+          aria-label={isopen ? "Fechar Menu" : "Abrir Menu"}
           style={{ backgroundColor: 'white', color: 'black', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
         >
-          {isOpen ? <MenuOpenIcon /> : <MenuIcon />}
+          {isopen ? <MenuOpenIcon /> : <MenuIcon />}
         </IconButton>
       </ToggleButtonContainer>
       
-      <SidebarContainer isOpen={isOpen}> 
+      <SidebarContainer isopen={isopen}> 
         <h1>WEG Mine</h1>
         
         <NavList>
           {navItems.map((item) => (
             <NavButton
               key={item.name}
-              isOpen={isOpen}
+              isopen={isopen}
               startIcon={<MenuIcon />} 
               onClick={() => navigate(item.path)}
               variant="text" 
@@ -131,17 +125,6 @@ export default function NavBar({ isOpen, toggleNavbar }) {
             </NavButton>
           ))}
         </NavList>
-
-        <LogoutContainer isOpen={isOpen}>
-          <Button 
-            variant="contained" 
-            color="error" 
-            onClick={handleLogOut}
-            startIcon={<MenuIcon />}
-          >
-            Logout
-          </Button>
-        </LogoutContainer>
       </SidebarContainer>
     </>
   );
