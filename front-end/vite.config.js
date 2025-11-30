@@ -20,6 +20,7 @@ export default defineConfig({
   server: {
     watch: {
       usePolling: true
-    }
+    },
+    base: mode === 'deploy' ? '/WEGMine/' : '/',
   }
 })
