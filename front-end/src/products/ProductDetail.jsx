@@ -3,7 +3,8 @@ import React from 'react';
 import { useParams } from 'react-router-dom'; 
 import styled from 'styled-components';
 import Header from "../components/Header";
-
+import { Button } from '@mui/material';
+import { Link } from 'react-router-dom';
 const DUMMY_PRODUCTS = [
     { 
         id: 1, 
@@ -23,6 +24,7 @@ const DUMMY_PRODUCTS = [
             "Profundidade": "400mm",
             "Peso": "270kg"
         },
+        related_products: [2, 3],
         description: "Descrição detalhada do Produto 1. Um motor de alta potência e eficiência." 
     },
     { 
@@ -42,6 +44,7 @@ const DUMMY_PRODUCTS = [
             "Profundidade": "120mm",
             "Peso": "2.5kg"
         },
+        related_products: [1, 3],
         description: "Descrição detalhada do Produto 2. Inversor de frequência inteligente e compacto." 
     },
     { 
@@ -60,6 +63,7 @@ const DUMMY_PRODUCTS = [
             "Altura": "800mm",
             "Peso": "180kg"
         },
+        related_products: [1, 2],
         description: "Descrição detalhada do Produto 3. Gerador confiável para aplicações críticas." 
     },
     { id: 4, name: "Produto 4", photo: "../src/assets/dummyPhoto4.png", main_specs: {"Tipo": "Transformador de Força", "Classe de Isolamento": "F"}, dimension_specs: {}, description: "Descrição detalhada do Produto 4. Transformador de energia de baixo ruído." },
@@ -70,6 +74,36 @@ const DUMMY_PRODUCTS = [
     { id: 9, name: "Produto 9", photo: "../src/assets/dummyPhoto9.png", main_specs: {"Tipo": "Motor de Passo", "Precisão": "Alta"}, dimension_specs: {}, description: "Descrição detalhada do Produto 9. Motor de passo para automação precisa." },
     { id: 10, name: "Produto 10", photo: "../src/assets/dummyPhoto10.png", main_specs: {"Tensão": "Alta", "Indústria": "Pesada"}, dimension_specs: {}, description: "Descrição detalhada do Produto 10. Inversor de alta tensão para indústria pesada." },
 ];
+
+const SpecsTable = ({ specs, title }) => {
+    const specsArray = Object.entries(specs);
+    if (specsArray.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className='specs-section'>
+            <h3>{title}</h3>
+            <table className='specs-table'>
+                <thead>
+                    <tr>
+                        <th>Característica</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {specsArray.map(([key, value]) => (
+                        <tr key={key}>
+                            <td><strong>{key}</strong></td>
+                            <td>{value}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+
 
 const DetailWrapper = styled.div`
     background-color: ${props => props.theme.surface}; 
@@ -254,6 +288,7 @@ const DetailWrapper = styled.div`
             font-size: 1em;
             width: 100%;
             text-align: left;
+            height: fit-content;
         }
         
         .specs-list li:hover {
@@ -283,8 +318,26 @@ const DetailWrapper = styled.div`
             margin-top: 15px;
             margin-bottom: 10px;
         }
+        .specs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
 
+        .specs-table th, .specs-table td {
+            border: 1px solid ${props => props.theme.textSecondary}33;
+            padding: 8px;
+            text-align: left;
+        }
 
+        .specs-table th {
+            background-color: ${props => props.theme.surface};
+            color: ${props => props.theme.primary};
+        }
+
+        .specs-table tr:nth-child(even) {
+            background-color: ${props => props.theme.background};
+        }
 `;
 
 const SpecsList = ({ specs, title }) => {
@@ -328,6 +381,12 @@ function ProductDetail() {
                 </photoArea>
                 
                 <div className='Right-Div'>
+                    <div className="right-div-buttons">
+                        <Button>Dados Gerais</Button>
+                        <Button>Especificacoes Tecnicas</Button>
+                        <Button>Variantes</Button>
+                        <Button>Historico de Mudancas</Button>
+                    </div>
                     <section>
                         <h2>Descrição Geral</h2>
                         <p>{product.description}</p>
@@ -336,7 +395,7 @@ function ProductDetail() {
                     <section>
                         <h2>Especificações Técnicas</h2>
                         
-                        <SpecsList 
+                        <SpecsTable 
                             specs={product.main_specs || {}} 
                             title="Características" 
                         />
@@ -351,6 +410,38 @@ function ProductDetail() {
                             <p>Nenhuma especificação técnica disponível.</p>
                         )}
                         
+                        {Object.keys(product.related_products || {}).length > 0 && (
+                            <div className='related-products'>
+                                <h3>Produtos Relacionados</h3>
+                                <ul>
+                                    {product.related_products.map((relProdId) => {
+                                        const relProduct = DUMMY_PRODUCTS.find(p => p.id === relProdId);
+                                        if (!relProduct) return null;
+                                        return (
+                                            <li key={relProdId}>
+                                                <Link 
+                                                    to={`/products/${relProduct.id}`} 
+                                                    style={{ 
+                                                        textDecoration: 'none', 
+                                                        color: 'inherit',
+                                                        display: 'flex', 
+                                                        alignItems: 'center',
+                                                        width: '100%' 
+                                                    }}
+                                                >
+                                                    <img 
+                                                        src={relProduct.photo} 
+                                                        alt={relProduct.name} 
+                                                        style={{ width: '100px', borderRadius: '8px' }} 
+                                                    />
+                                                    <p>{relProduct.name}</p>
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
                     </section>
                 </div>
             </sides>
