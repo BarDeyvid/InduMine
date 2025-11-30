@@ -1,4 +1,4 @@
-# WEG Product Intelligence Platform
+# InduMine – Industrial Product Intelligence Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20-green.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -9,14 +9,25 @@
 
 ---
 
+## ⚠️ Disclaimer
+
+**InduMine é um projeto independente, educacional e de código aberto.  
+Não é afiliado, endossado ou associado à WEG S.A.**
+
+O scraper coleta **apenas dados técnicos públicos** do catálogo industrial disponível no site da empresa.  
+Nenhum dado proprietário, sigiloso, autenticado ou protegido é utilizado.
+
+---
+
 ## Overview
 
-A **full-stack data platform** that:
-- **Scrapes** WEG product catalog using **Selenium + Async Python**
-- **Cleans & pivots** data with **Pandas**
-- **Stores** structured data in **MongoDB**
-- **Serves** via **Node.js + Express REST API**
-- **Visualizes** in a **React + Vite dashboard** with auth, pagination, and live filtering
+InduMine é uma **plataforma full-stack de coleta, organização e visualização de dados industriais**, capaz de:
+
+- **Raspar** catálogos de produtos (ex.: motores, tintas, automação)
+- **Limpar e reorganizar** dados com **Pandas**
+- **Salvar** tudo em **MongoDB**
+- **Servir** via **Node.js + Express API**
+- **Visualizar** em um dashboard **React + Vite** com autenticação e filtros
 
 > **One source of truth. Zero data duplication.**
 
@@ -25,6 +36,7 @@ A **full-stack data platform** that:
 ## Project Structure
 
 ```
+
 .
 ├── api/
 │   └── back-end/               # Node.js API server
@@ -35,7 +47,7 @@ A **full-stack data platform** that:
 ├── dashboards/
 │   └── front-end/              # Legacy static demos
 ├── data/                       # Raw & processed outputs
-│   ├── weg_products_final.csv
+│   ├── industrial_products_final.csv
 │   └── grouped_products_final.csv
 ├── etl/                        # Extraction, Transform, Load
 │   ├── Miner.py                # Async Selenium scraper (core)
@@ -55,7 +67,8 @@ A **full-stack data platform** that:
 ├── .gitignore
 ├── LICENSE
 └── README.md
-```
+
+````
 
 ---
 
@@ -66,7 +79,7 @@ A **full-stack data platform** that:
 | **Scraping** | Python, Selenium, BeautifulSoup, AsyncIO |
 | **ETL**      | Pandas, CSV → MongoDB |
 | **Backend**  | Node.js, Express, Mongoose, CORS |
-| **Frontend** | React 18, Vite, Tailwind/CSS, React Query |
+| **Frontend** | React 18, Vite, Tailwind, React Query |
 | **Database** | MongoDB (flexible schema for dynamic specs) |
 | **Auth**     | JWT + LocalStorage |
 | **DevOps**   | Git, `.env`, logging, `tqdm`, driver pooling |
@@ -75,13 +88,13 @@ A **full-stack data platform** that:
 
 ## Features
 
-- **Resilient scraping** with driver pooling & retry logic
-- **Dynamic product spec extraction** (any field, any depth)
-- **Pivoted wide-format data** for easy querying
-- **Paginated API** (`/api/products?page=1&limit=50`)
-- **Secure auth flow** (Login → JWT → Protected dashboard)
-- **Live React table** with search, sort, and export
-- **Dark mode + WEG branding** ready
+- **Resilient scraping** with driver pooling & retry logic  
+- **Dynamic product spec extraction** (any field, any depth)  
+- **Pivoted wide-format data** for easy querying  
+- **Paginated API** (`/api/products?page=1&limit=50`)  
+- **Secure auth flow** (Login → JWT → Protected dashboard)  
+- **Live React table** with search, sort, and export  
+- **Dark mode + blue industrial branding**  
 
 ---
 
@@ -93,9 +106,9 @@ graph LR
     B --> C[MongoDB]
     C --> D[Node.js API]
     D --> E[React Dashboard]
-```
+````
 
-1. `Miner.py` → Crawls WEG catalog → Saves raw + pivoted CSVs
+1. `Miner.py` → Crawls the catalog → Saves raw + pivoted CSVs
 2. Data → **Upserted into MongoDB** (unique by `Product URL`)
 3. `server.js` → Serves `/api/products` with pagination
 4. React → Fetches, filters, displays in real time
@@ -105,12 +118,14 @@ graph LR
 ## Quick Start
 
 ### 1. Clone & Setup
+
 ```bash
-git clone https://github.com/BarDeyvid/WEGMine.git
-cd WEGMine
+git clone https://github.com/BarDeyvid/InduMine.git
+cd InduMine
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 # Backend
 cd api/back-end && npm install
@@ -119,18 +134,20 @@ cd api/back-end && npm install
 cd ../../front-end && npm install
 
 # Python ETL
-pip install -r requirements.txt  # (create if missing)
+pip install -r requirements.txt
 ```
 
 ### 3. Setup `.env`
+
 ```env
-MONGODB_URI=mongodb://localhost:27017/weg_scraper
+MONGODB_URI=mongodb://localhost:27017/indu_products
 JWT_SECRET=your_strong_secret_here
 CHROMEDRIVER_PATH=C:\chromedriver\chromedriver.exe
 PORT=5000
 ```
 
 ### 4. Run Pipeline
+
 ```bash
 # 1. Start MongoDB
 mongod
@@ -154,25 +171,25 @@ Visit: `http://localhost:5173`
 
 ## API Endpoints
 
-| Route | Method | Description |
-|------|--------|-------------|
-| `POST /api/auth/login` | POST | Get JWT |
-| `GET /api/products` | GET | Paginated products (`?page=1&limit=50`) |
+| Route                  | Method | Description                             |
+| ---------------------- | ------ | --------------------------------------- |
+| `POST /api/auth/login` | POST   | Get JWT                                 |
+| `GET /api/products`    | GET    | Paginated products (`?page=1&limit=50`) |
 
 ---
 
 ## Roadmap
 
-| Status | Feature |
-|---|--------|
-| Done | Async scraper with driver pool |
-| Done | Pandas pivot + MongoDB upsert |
-| Done | Node.js API with pagination |
-| Done | React dashboard with auth |
-| In Progress | Search & filter (by spec, voltage, type) |
-| In Progress | CSV/Excel export |
-| Planned | Scheduled scraper (cron/APScheduler) |
-| Planned | Deploy: Render (API) + Vercel (Frontend) |
+| Status      | Feature                                |
+| ----------- | -------------------------------------- |
+| Done        | Async scraper with driver pool         |
+| Done        | Pandas pivot + MongoDB upsert          |
+| Done        | Node.js API with pagination            |
+| Done        | React dashboard with auth              |
+| In Progress | Search & filter (specs, voltage, type) |
+| In Progress | CSV/Excel export                       |
+| Planned     | Scheduled scraper (cron/APScheduler)   |
+| Planned     | Deploy (Render API + Vercel frontend)  |
 
 ---
 
@@ -188,11 +205,11 @@ Visit: `http://localhost:5173`
 
 ## Author
 
-**Deyvid Barcelos**  
-*Robotics Enthusiast | Full-Stack Data | Web Scraper Extraordinaire*
+**Deyvid Barcelos**
+*Robotics & Data Ecosystems | Full-Stack Developer | Web Scraper Engineer*
 
-[![GitHub](https://img.shields.io/badge/GitHub-BarDeyvid-black?logo=github)](https://github.com/BarDeyvid)  
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Deyvid-blue?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/deyvid-barcelos/)
+[![GitHub](https://img.shields.io/badge/GitHub-BarDeyvid-black?logo=github)](https://github.com/BarDeyvid)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Deyvid-blue?logo=linkedin\&logoColor=white)](https://www.linkedin.com/in/deyvid-barcelos/)
 
 ---
 
@@ -202,7 +219,4 @@ Visit: `http://localhost:5173`
 
 ---
 
-> **"I don’t just collect data — I turn catalogs into intelligence."**  
-> — *Deyvid, 3 weeks in, 1 all-nighter to go*
-
----
+> **"I don’t just collect data — I turn catalogs into intelligence."**
