@@ -69,20 +69,14 @@ const SidebarContainer = styled.div`
     opacity: ${props => (props.isopen ? 1 : 0)};
     transition: opacity 0.3s ease, margin 0.3s ease;
   }
-`;
 
-const LogoutContainer = styled.div`
-  margin-top: auto;
-  padding: 1rem;
-  width: 100%;
-
-  button {
-    width: 100%;
-    .MuiButton-label {
-        opacity: ${props => (props.isopen ? 1 : 0)};
-        transition: opacity 0.3s ease;
+    // When Tiny, No text
+  ${props => !props.isopen && css`
+    h1 {
+      display: none;
+      padding-left: 10px;
     }
-  }
+  `};
 `;
 
 export default function NavBar({ isopen, toggleNavbar }) {
@@ -103,7 +97,7 @@ export default function NavBar({ isopen, toggleNavbar }) {
         <IconButton 
           onClick={toggleNavbar} // << Usa a prop
           aria-label={isopen ? "Fechar Menu" : "Abrir Menu"}
-          style={{ backgroundColor: 'white', color: 'black', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+          style={{ right: 9, backgroundColor: 'white', color: 'black', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
         >
           {isopen ? <MenuOpenIcon /> : <MenuIcon />}
         </IconButton>
@@ -121,7 +115,7 @@ export default function NavBar({ isopen, toggleNavbar }) {
               onClick={() => navigate(item.path)}
               variant="text" 
             >
-              {item.name}
+              <h1>{item.name}</h1>
             </NavButton>
           ))}
         </NavList>

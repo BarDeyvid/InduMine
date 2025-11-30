@@ -20,14 +20,11 @@ const dataset = [
 { month: 'Feb', london: 150, paris: 250 },
 ];
 
-
-
 const secondDummyDataset = [
 { id: 0, value: 82, label: "Ativos" },
 { id: 1, value: 10, label: "Em Revisao" },
 { id: 2, value: 8, label: "Descontinuados" },
 ];
-
 
 const StyledPage = styled.div`
   background-color: ${props => props.theme.surface}; 
@@ -44,21 +41,21 @@ const StyledPage = styled.div`
     }
 
     ul {
-        list-style: none; /* Removes bullets */
-        margin: 0;        /* Removes default margin */
-        padding: 0;       /* Removes default padding */
+        list-style: none;
+        margin: 0;        
+        padding: 0;       
         flex-direction: row;
         display: flex;
-        gap: 5vw;         /* Space between items */
+        gap: 5vw;         
         width: auto;
-        justify-content: center; /* Center items horizontally */
+        justify-content: center; 
     }
 
     /* Optional: Style individual list items */
     li {
-        margin: 0;        /* Reset margin */
-        padding: 2vw;       /* Reset padding */
-        text-align: center; /* Center text */
+        margin: 0;        
+        padding: 2vw;       
+        text-align: center; 
         border: 1px solid ${props => props.theme.textSecondary};
         border-radius: 16px;
         width: auto;
@@ -81,27 +78,131 @@ const StyledPage = styled.div`
     }
 
     .ChartContainer > ul { 
-        gap: 2vw; /* Reduced gap for a tighter fit */
+        gap: 2vw; 
     }
 
     .ChartContainer > ul > li {
-        padding: 1vw; /* Reduced padding on chart containers */
-        /* Make all three chart LIs equally sized */
+        padding: 1vw;
         flex-grow: 1; 
         flex-basis: 0; 
         min-width: 0; 
         max-width: 33%; 
     }
+    
+    .products.grid ul {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px; 
+        padding: 0;
+        margin: 0;
+    }
+    
+    .products.grid ul li {
+        display: flex;              
+        flex-direction: column;
+        align-items: center;       
+        justify-content: center; 
+        padding: 1rem;
+        }
+
+        .products.grid ul li img {
+        width: 100px;              
+        height: auto;
+        margin: 0 0 10px 0; 
+        border-radius: 8px;          
+        }
+
+        .products.grid ul li span {
+        text-align: center;
+        font-weight: bold;
+        }
+
+    .products.list ul {
+        display: flex;
+        flex-direction: column; 
+        gap: 8px;
+        padding: 0;
+        margin: 0;
+    }
+
+    .products.list ul li {
+        display: flex; 
+        align-items: center;
+        text-align: left;
+        padding: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .products.list ul li img {
+        width: 60px;         
+        height: auto;
+        margin-right: 20px; 
+        border-radius: 8px;
+    }
+
+    .products-header {
+        display: flex;
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 0 20px;
+        margin-bottom: 20px;
+    }
+
+    .list-info {
+        flex: 1; 
+        text-align: left;
+    }
+
+    .list-info h3, .list-info p {
+        margin: 0;
+    }
+
+    .list-info p {
+        font-size: 0.9em;
+        color: ${props => props.theme.textSecondary};
+    }
+    
+    .toggle-button {
+        padding: 8px 12px;
+        background-color: ${props => props.theme.primary};
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .toggle-button:hover {
+        background-color: ${props => props.theme.primaryDark};
+    }
+
 `;
 
+
 const DUMMY_PRODUCTS = [
-    "Paris", "London", "New York", "Tokyo", "Berlin", 
-    "Buenos Aires", "Cairo", "Canberra", "Rio de Janeiro", "Dublin"
+    { name: "Produto 1", photo: "../src/assets/dummyPhoto1.png", description: "Descrição detalhada do Produto 1. Um motor de alta potência e eficiência." },
+    { name: "Produto 2", photo: "../src/assets/dummyPhoto2.png", description: "Descrição detalhada do Produto 2. Inversor de frequência inteligente e compacto." },
+    { name: "Produto 3", photo: "../src/assets/dummyPhoto3.png", description: "Descrição detalhada do Produto 3. Gerador confiável para aplicações críticas." },
+    { name: "Produto 4", photo: "../src/assets/dummyPhoto4.png", description: "Descrição detalhada do Produto 4. Transformador de energia de baixo ruído." },
+    { name: "Produto 5", photo: "../src/assets/dummyPhoto5.png", description: "Descrição detalhada do Produto 5. Motor trifásico com proteção IP65." },
+    { name: "Produto 6", photo: "../src/assets/dummyPhoto6.png", description: "Descrição detalhada do Produto 6. Inversor solar para sistemas fotovoltaicos." },
+    { name: "Produto 7", photo: "../src/assets/dummyPhoto7.png", description: "Descrição detalhada do Produto 7. Gerador portátil a diesel." },
+    { name: "Produto 8", photo: "../src/assets/dummyPhoto8.png", description: "Descrição detalhada do Produto 8. Transformador de isolamento para segurança." },
+    { name: "Produto 9", photo: "../src/assets/dummyPhoto9.png", description: "Descrição detalhada do Produto 9. Motor de passo para automação precisa." },
+    { name: "Produto 10", photo: "../src/assets/dummyPhoto10.png", description: "Descrição detalhada do Produto 10. Inversor de alta tensão para indústria pesada." },
 ];
 
 function Products() {
     const [apiRows, setApiRows] = useState({});
     const [loadingError, setLoadingError] = useState(null);
+    // 1. New state for managing the product list view
+    const [productView, setProductView] = useState('grid');
+
+    // 2. Toggle function
+    const toggleProductView = useCallback(() => {
+        setProductView((prevView) => (prevView === 'grid' ? 'list' : 'grid'));
+    }, []);
 
     useEffect(() => {
         fetch("http://127.0.0.1:8000/total_rows")
@@ -144,56 +245,80 @@ function Products() {
             <hr style={{width: "90%", marginBottom: "20px"}}/>
 
             <div className="ChartContainer" style={{ padding: '0 20px', width: "auto", marginBottom: '40px' }}>
-                 <ul>
-                    <li style={{height: "fit-content", width: "auto"}}>
-                        <Typography>Produtos Por Categoria</Typography>
-                        <BarChart
-                            dataset={dummyDataset}
-                            xAxis={[{ dataKey: "categoria" }]}
-                            series={[{ dataKey: "valor" }]}
-                            height={200}
-                        />
-                    </li>
-                    <li style={{ height: "fit-content", width: "auto", listStyle: "none" }}>
-                        <Typography>Status dos Produtos</Typography>
-                        <PieChart
-                            series={[{ data: secondDummyDataset }]}
-                            width={200}
-                            height={200}
-                            sx={{
-                            "& ul": {
-                                marginLeft: '50px !important',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-start',
-                                gap: 1,
-                            },
-                            "& li": {
-                                padding: 1,
-                                borderRadius: 2,
-                            },
-                            }}
-                        />
+                    <ul>
+                        <li style={{height: "fit-content", width: "auto"}}>
+                            <Typography>Produtos Por Categoria</Typography>
+                            <BarChart
+                                dataset={dummyDataset}
+                                xAxis={[{ dataKey: "categoria" }]}
+                                series={[{ dataKey: "valor" }]}
+                                height={200}
+                            />
                         </li>
-                    <li style={{height: "fit-content", width: "auto"}}>
-                        <Typography>Atualizações Semanais</Typography>
-                        <LineChart
-                        xAxis={[{ scaleType:"band", data: ["Seg", "Ter", "Qua", "Qui", "Sex"] }]}
-                        series={[
-                            {
-                            data: [1,2, 5.5, 2, 8.5, 1.5, 5],
-                            },
-                        ]}
-                        height={200}
-                        />
-                    </li>
-                </ul>
+                        <li style={{ height: "fit-content", width: "auto", listStyle: "none" }}>
+                            <Typography>Status dos Produtos</Typography>
+                            <PieChart
+                                series={[{ data: secondDummyDataset }]}
+                                width={200}
+                                height={200}
+                                sx={{
+                                "& ul": {
+                                    marginLeft: '50px !important',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    gap: 1,
+                                },
+                                "& li": {
+                                    padding: 1,
+                                    borderRadius: 2,
+                                },
+                                }}
+                            />
+                            </li>
+                        <li style={{height: "fit-content", width: "auto"}}>
+                            <Typography>Atualizações Semanais</Typography>
+                            <LineChart
+                            xAxis={[{ scaleType:"band", data: ["Seg", "Ter", "Qua", "Qui", "Sex"] }]}
+                            series={[
+                                {
+                                data: [1,2, 5.5, 2, 8.5, 1.5, 5],
+                                },
+                            ]}
+                            height={200}
+                            />
+                        </li>
+                    </ul>
             </div>
-
             <hr style={{width: "90%", marginBottom: "20px"}}/>
+
+            <div className={`products ${productView}`}> 
+                <div className="products-header"> 
+                    <h2 style={{textAlign: "center"}}>Lista de Produtos</h2>
+                    <button onClick={toggleProductView} className="toggle-button">
+                        {productView === 'grid' ? 'Mudar para Vista em Coluna' : 'Mudar para Vista em Grade'}
+                    </button>
+                </div>
+                
+                <ul>
+                    {DUMMY_PRODUCTS.map((product, index) => (
+                        <li key={index}>
+                            <img src={product.photo} alt={product.name} />
+                            {productView === 'grid' ? (
+                                <span>{product.name}</span>
+                            ) : (
+                                <div className="list-info">
+                                    <h3>{product.name}</h3>
+                                    <p>{product.description}</p>
+                                </div>
+                            )}
+                        </li>
+                    ))}
+                    </ul>
+
+            </div>
         </StyledPage>
     );
 }
-
 
 export default Products;
