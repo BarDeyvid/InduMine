@@ -26,5 +26,5 @@ export default defineConfig(({ mode }) => ({
       usePolling: true,
     },
   },
-  base: mode === 'deploy' ? '/WEGMine/' : '/',
+  base: mode === 'deploy' ? '/InduMine/' : '/',
 }))

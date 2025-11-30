@@ -30,7 +30,7 @@ export default function AppRouter() {
 
   return (
     <ThemeProvider>
-      <Router basename={isDeploy ? '/WEGMine' : '/'}>
+      <Router basename={isDeploy ? '/InduMine' : '/'}>
         <Routes>
           {/* Rotas Públicas */}
           <Route path="/" element={<Login />} />

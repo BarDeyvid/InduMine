@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://bardeyvid.github.io/WEGMine/",
+  "homepage": "https://bardeyvid.github.io/InduMine/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
