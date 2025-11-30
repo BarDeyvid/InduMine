@@ -1,90 +1,31 @@
-// front-end/src/products/ProductDetail.jsx
+// front-end/src/categories/categoryDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom'; 
 import styled from 'styled-components';
 import Header from "../components/Header";
 import { Button } from '@mui/material';
 import { CheckCircleOutline, CancelOutlined, AccessTimeOutlined } from '@mui/icons-material';
+import SearchBar from '../components/SearchBar';
 
-const HISTORY_KEY = 'recentProducts';
+const HISTORY_KEY = 'recentcategories';
 
-const updateRecentProducts = (product) => {
+const updateRecentcategories = (category) => {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     
-    const filteredHistory = history.filter(item => item.id !== product.id);
+    const filteredHistory = history.filter(item => item.id !== category.id);
     
-    const newHistory = [product, ...filteredHistory];
+    const newHistory = [category, ...filteredHistory];
     
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory.slice(0, 5)));
 };
 
-const DUMMY_PRODUCTS = [
-    { 
-        id: 1, 
-        name: "Produto 1 - Motor de Alta Eficiência", 
-        photo: "../src/assets/dummyPhoto1.png", 
-        main_specs: {
-            "Potência": "75kW", 
-            "Frequência": "60Hz", 
-            "Polos": "4", 
-            "Tensão": "380-440V", 
-            "Rotação": "1800rpm", 
-            "Rendimento": "IE3 Premium",
-        },
-        dimension_specs: {
-            "Altura": "600mm",
-            "Largura": "300mm",
-            "Profundidade": "400mm",
-            "Peso": "270kg"
-        },
-        status: "Ativo",
-        related_products: [2, 3],
-        description: "Descrição detalhada do Produto 1. Um motor de alta potência e eficiência, ideal para aplicações industriais que exigem máxima performance e economia de energia." 
-    },
-    { 
-        id: 2, 
-        name: "Produto 2 - Inversor de Frequência Compacto", 
-        photo: "../src/assets/dummyPhoto2.png", 
-        main_specs: {
-            "Potência": "1.5kW", 
-            "Frequência": "50/60Hz", 
-            "Tensão de Entrada": "220V Monofásico", 
-            "Controle": "Vetor/V/F", 
-            "Proteção": "IP20"
-        }, 
-        dimension_specs: {
-            "Altura": "150mm",
-            "Largura": "80mm",
-            "Profundidade": "120mm",
-            "Peso": "2.5kg"
-        },
-        status: "Inativo",
-        related_products: [1, 3],
-        description: "Descrição detalhada do Produto 2. Inversor de frequência inteligente e compacto para controle preciso de motores de baixa potência." 
-    },
-    { 
-        id: 3, 
-        name: "Produto 3 - Gerador a Diesel 10kVA", 
-        photo: "../src/assets/dummyPhoto3.png", 
-        main_specs: {
-            "Potência Nominal": "10kVA", 
-            "Combustível": "Diesel", 
-            "Nível de Ruído": "70 dB @ 7m", 
-            "Partida": "Elétrica"
-        }, 
-        dimension_specs: {
-            "Comprimento": "1200mm",
-            "Largura": "600mm",
-            "Altura": "800mm",
-            "Peso": "180kg"
-        },
-        status: "Em Revisao",
-        related_products: [1, 2],
-        description: "Descrição detalhada do Produto 3. Gerador confiável para aplicações críticas, garantindo energia ininterrupta." 
-    },
-    { id: 4, name: "Produto 4", photo: "../src/assets/dummyPhoto4.png", main_specs: {"Tipo": "Transformador de Força", "Classe de Isolamento": "F"}, dimension_specs: {}, status: "Ativo", related_products: [], description: "Descrição detalhada do Produto 4." },
-    { id: 5, name: "Produto 5", photo: "../src/assets/dummyPhoto5.png", main_specs: {"Proteção": "IP65", "Fases": "Trifásico"}, dimension_specs: {}, status: "Ativo", related_products: [], description: "Descrição detalhada do Produto 5." },
-    { id: 6, name: "Produto 6", photo: "../src/assets/dummyPhoto6.png", main_specs: {"Aplicação": "Solar Fotovoltaico", "MPPT": "Duplo"}, dimension_specs: {}, status: "Ativo", related_products: [], description: "Descrição detalhada do Produto 6." },
+const DUMMY_Categories = [
+    { id: 1, name: "Motores", photo: "../src/assets/dummyPhoto1.png", status: "Ativo", description: "Motores elétricos e de combustão" },
+    { id: 2, name: "Inversores", photo: "../src/assets/dummyPhoto2.png", status: "Inativo", description: "Inversores de frequência e conversores" },
+    { id: 3, name: "Geradores", photo: "../src/assets/dummyPhoto3.png", status: "Ativo", description: "Geradores a diesel e gasolina" },
+    { id: 4, name: "Transformadores", photo: "../src/assets/dummyPhoto4.png", status: "Em Revisao", description: "Transformadores de força e isolamento" },
+    { id: 5, name: "Motores Trifásicos", photo: "../src/assets/dummyPhoto5.png", status: "Ativo", description: "Motores com proteção IP65" },
+    { id: 6, name: "Inversores Solares", photo: "../src/assets/dummyPhoto6.png", status: "Ativo", description: "Inversores para sistemas fotovoltaicos" },
 ];
 
 const DetailWrapper = styled.div`
@@ -95,7 +36,8 @@ const DetailWrapper = styled.div`
     box-sizing: border-box;
     display: flex; 
     flex-direction: column;
-    padding-bottom: 50px;
+    align-items: center;
+    padding-bottom: 40px;
 `;
 
 const Sides = styled.div`
@@ -107,6 +49,34 @@ const Sides = styled.div`
     @media (max-width: 1024px) {
         flex-direction: column;
         padding: 0 20px;
+    }
+`;
+
+const MainContainer = styled.div`
+    width: 90%;
+    max-width: 1200px;
+    margin-top: 20px;
+
+    h1 {
+        font-size: 2.2em;
+        color: ${props => props.theme.primary};
+        margin: 20px 0 10px 0;
+        border-bottom: 2px solid ${props => props.theme.textSecondary}20;
+        padding-bottom: 5px;
+    }
+
+    h2 {
+        font-size: 1.5em;
+        color: ${props => props.theme.text};
+        margin: 30px 0 15px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        width: 100%;
+        padding: 0 10px;
     }
 `;
 
@@ -268,7 +238,7 @@ const SpecsListStyle = styled.ul`
     }
 `;
 
-const RelatedProductItem = styled(Link)`
+const RelatedcategoryItem = styled(Link)`
     display: flex; 
     align-items: center;
     padding: 15px;
@@ -351,7 +321,7 @@ const StatusChip = styled.span`
     }}
 `;
 
-const ProductStatus = ({ status }) => {
+const CategoryStatus = ({ status }) => {
     let icon, label;
     
     switch (status.toLowerCase()) {
@@ -430,64 +400,64 @@ const SpecsList = ({ specs, title }) => {
     );
 };
 
-const GeneralDataSection = ({ product }) => (
+const GeneralDataSection = ({ category }) => (
     <section>
         <h2>Descrição Geral</h2>
-        <p>{product.description}</p>
+        <p>{category.description}</p>
         
         <SpecsList 
-            specs={product.main_specs || {}} 
+            specs={category.main_specs || {}} 
             title="Especificações Principais" 
         />
 
         <SpecsList 
-            specs={product.dimension_specs || {}} 
+            specs={category.dimension_specs || {}} 
             title="Dimensões e Peso" 
         />
 
-        {Object.keys(product.main_specs).length === 0 && 
-         Object.keys(product.dimension_specs).length === 0 && (
-             <p>Nenhuma especificação técnica disponível para esta seção.</p>
-        )}
+        {Object.keys(category.main_specs || {}).length === 0 && 
+            Object.keys(category.dimension_specs || {}).length === 0 && (
+                <p>Nenhuma especificação técnica disponível para esta seção.</p>
+            )}
     </section>
 );
 
-const FullSpecsSection = ({ product }) => (
+const FullSpecsSection = ({ category }) => (
     <section>
         <SpecsTable 
-            specs={{...product.main_specs, ...product.dimension_specs}} 
+            specs={{...category.main_specs, ...category.dimension_specs}} 
             title="Todas as Especificações Técnicas" 
         />
-        {(Object.keys(product.main_specs).length === 0 && 
-         Object.keys(product.dimension_specs).length === 0) && (
-            <p>Nenhuma especificação técnica detalhada disponível.</p>
-        )}
+        {(Object.keys(category.main_specs || {}).length === 0 && 
+            Object.keys(category.dimension_specs || {}).length === 0) && (
+                <p>Nenhuma especificação técnica detalhada disponível.</p>
+            )}
     </section>
 );
 
 
-const RelatedProductsSection = ({ product, DUMMY_PRODUCTS }) => (
+const RelatedcategoriesSection = ({ category, DUMMY_Categories }) => (
     <section>
         <h2>Produtos Relacionados</h2>
-        {product.related_products && product.related_products.length > 0 ? (
-            <div className='products-list'>
-                {product.related_products.map((relProdId) => {
-                    const relProduct = DUMMY_PRODUCTS.find(p => p.id === relProdId);
-                    if (!relProduct) return null;
+        {category.related_categories && category.related_categories.length > 0 ? (
+            <div className='categories-list'>
+                {category.related_categories.map((relCatId) => {
+                    const relcategory = DUMMY_Categories.find(p => p.id === relCatId);
+                    if (!relcategory) return null;
                     return (
-                        <RelatedProductItem 
-                            key={relProdId} 
-                            to={`/products/${relProduct.id}`}
+                        <RelatedcategoryItem 
+                            key={relCatId} 
+                            to={`/categories/${relcategory.id}`}
                         >
                             <img 
-                                src={relProduct.photo} 
-                                alt={relProduct.name} 
+                                src={relcategory.photo} 
+                                alt={relcategory.name} 
                             />
                             <div>
-                                <h3>{relProduct.name}</h3>
-                                <p>{relProduct.description.substring(0, 80)}...</p>
+                                <h3>{relcategory.name}</h3>
+                                <p>{relcategory.description.substring(0, 80)}...</p>
                             </div>
-                        </RelatedProductItem>
+                        </RelatedcategoryItem>
                     );
                 })}
             </div>
@@ -498,46 +468,46 @@ const RelatedProductsSection = ({ product, DUMMY_PRODUCTS }) => (
 );
 
 
-function ProductDetail() {
-    const { productId } = useParams(); 
-    const numericProductId = parseInt(productId);
-    const product = DUMMY_PRODUCTS.find(p => p.id === numericProductId);
+function CategoryDetail() {
+    const { categoryId } = useParams(); 
+    const numericcategoryId = parseInt(categoryId);
+    const category = DUMMY_Categories.find(p => p.id === numericcategoryId);
     
     const [activeTab, setActiveTab] = useState('general');
 
     useEffect(() => {
-        if (product) {
+        if (category) {
             const activityData = {
-                id: product.id,
-                name: product.name,
-                status: product.status,
+                id: category.id,
+                name: category.name,
+                status: category.status,
                 timestamp: new Date().toISOString()
             };
-            updateRecentProducts(activityData);
+            updateRecentcategories(activityData);
         }
-    }, [product]);
+    }, [category]);
 
-    if (!product) {
-        return <DetailWrapper><Header /><h1>Produto não encontrado!</h1></DetailWrapper>;
+    if (!category) {
+        return <DetailWrapper><Header /><h1>Categoria não encontrada!</h1></DetailWrapper>;
     }
     
     const renderContent = () => {
         switch (activeTab) {
             case 'general':
-                return <GeneralDataSection product={product} />;
+                return <GeneralDataSection category={category} />;
             case 'specs':
                 return (
                     <>
-                        <FullSpecsSection product={product} />
-                        <RelatedProductsSection product={product} DUMMY_PRODUCTS={DUMMY_PRODUCTS} />
+                        <FullSpecsSection category={category} />
+                        <RelatedcategoriesSection category={category} DUMMY_Categories={DUMMY_Categories} />
                     </>
                 );
             case 'variants':
-                return <section><h2>Variantes do Produto</h2><p>Conteúdo sobre as diferentes versões do **{product.name}**...</p></section>;
+                return <section><h2>Variantes do Produto</h2><p>Conteúdo sobre as diferentes versões do **{category.name}**...</p></section>;
             case 'history':
-                return <section><h2>Histórico de Mudanças</h2><p>Registro de alterações, versões e atualizações para o **{product.name}**...</p></section>;
+                return <section><h2>Histórico de Mudanças</h2><p>Registro de alterações, versões e atualizações para o **{category.name}**...</p></section>;
             default:
-                return <GeneralDataSection product={product} />;
+                return <GeneralDataSection category={category} />;
         }
     };
 
@@ -545,54 +515,15 @@ function ProductDetail() {
         setActiveTab(tabName);
     };
 
-
     return (
         <DetailWrapper>
             <Header />
-            <Sides>
-                <PhotoArea>
-                    <h1>{product.name}</h1>
-                    <ProductStatus status={product.status} />
-                    <img 
-                        src={product.photo} 
-                        alt={product.name} 
-                    />
-                </PhotoArea>
-                
-                <RightContent>
-                    <div className="right-div-buttons">
-                        <Button 
-                            onClick={() => handleTabChange('general')}
-                            className={activeTab === 'general' ? 'active' : ''}
-                        >
-                            Dados Gerais
-                        </Button>
-                        <Button 
-                            onClick={() => handleTabChange('specs')}
-                            className={activeTab === 'specs' ? 'active' : ''}
-                        >
-                            Especificações & Relacionados
-                        </Button>
-                        <Button 
-                            onClick={() => handleTabChange('variants')}
-                            className={activeTab === 'variants' ? 'active' : ''}
-                        >
-                            Variantes
-                        </Button>
-                        <Button 
-                            onClick={() => handleTabChange('history')}
-                            className={activeTab === 'history' ? 'active' : ''}
-                        >
-                            Histórico
-                        </Button>
-                    </div>
-                    
-                    {renderContent()}
-
-                </RightContent>
-            </Sides>
+                <MainContainer>
+                    <h1>Dashboard - Visão Geral do Catálogo</h1>
+                    <SearchBar width={"100%"} style={{ marginBottom: '30px' }} />
+                </MainContainer>
         </DetailWrapper>
     );
 }
 
-export default ProductDetail;
+export default CategoryDetail;
