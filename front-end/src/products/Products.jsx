@@ -5,6 +5,7 @@ import Header from "../components/Header"
 import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
+import { Link } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
 
 const dummyDataset = [
@@ -181,25 +182,23 @@ const StyledPage = styled.div`
 
 
 const DUMMY_PRODUCTS = [
-    { name: "Produto 1", photo: "../src/assets/dummyPhoto1.png", description: "Descrição detalhada do Produto 1. Um motor de alta potência e eficiência." },
-    { name: "Produto 2", photo: "../src/assets/dummyPhoto2.png", description: "Descrição detalhada do Produto 2. Inversor de frequência inteligente e compacto." },
-    { name: "Produto 3", photo: "../src/assets/dummyPhoto3.png", description: "Descrição detalhada do Produto 3. Gerador confiável para aplicações críticas." },
-    { name: "Produto 4", photo: "../src/assets/dummyPhoto4.png", description: "Descrição detalhada do Produto 4. Transformador de energia de baixo ruído." },
-    { name: "Produto 5", photo: "../src/assets/dummyPhoto5.png", description: "Descrição detalhada do Produto 5. Motor trifásico com proteção IP65." },
-    { name: "Produto 6", photo: "../src/assets/dummyPhoto6.png", description: "Descrição detalhada do Produto 6. Inversor solar para sistemas fotovoltaicos." },
-    { name: "Produto 7", photo: "../src/assets/dummyPhoto7.png", description: "Descrição detalhada do Produto 7. Gerador portátil a diesel." },
-    { name: "Produto 8", photo: "../src/assets/dummyPhoto8.png", description: "Descrição detalhada do Produto 8. Transformador de isolamento para segurança." },
-    { name: "Produto 9", photo: "../src/assets/dummyPhoto9.png", description: "Descrição detalhada do Produto 9. Motor de passo para automação precisa." },
-    { name: "Produto 10", photo: "../src/assets/dummyPhoto10.png", description: "Descrição detalhada do Produto 10. Inversor de alta tensão para indústria pesada." },
+    { id: 1, name: "Produto 1", photo: "../src/assets/dummyPhoto1.png", description: "Descrição detalhada do Produto 1. Um motor de alta potência e eficiência." },
+    { id: 2, name: "Produto 2", photo: "../src/assets/dummyPhoto2.png", description: "Descrição detalhada do Produto 2. Inversor de frequência inteligente e compacto." },
+    { id: 3, name: "Produto 3", photo: "../src/assets/dummyPhoto3.png", description: "Descrição detalhada do Produto 3. Gerador confiável para aplicações críticas." },
+    { id: 4, name: "Produto 4", photo: "../src/assets/dummyPhoto4.png", description: "Descrição detalhada do Produto 4. Transformador de energia de baixo ruído." },
+    { id: 5, name: "Produto 5", photo: "../src/assets/dummyPhoto5.png", description: "Descrição detalhada do Produto 5. Motor trifásico com proteção IP65." },
+    { id: 6, name: "Produto 6", photo: "../src/assets/dummyPhoto6.png", description: "Descrição detalhada do Produto 6. Inversor solar para sistemas fotovoltaicos." },
+    { id: 7, name: "Produto 7", photo: "../src/assets/dummyPhoto7.png", description: "Descrição detalhada do Produto 7. Gerador portátil a diesel." },
+    { id: 8, name: "Produto 8", photo: "../src/assets/dummyPhoto8.png", description: "Descrição detalhada do Produto 8. Transformador de isolamento para segurança." },
+    { id: 9, name: "Produto 9", photo: "../src/assets/dummyPhoto9.png", description: "Descrição detalhada do Produto 9. Motor de passo para automação precisa." },
+    { id: 10, name: "Produto 10", photo: "../src/assets/dummyPhoto10.png", description: "Descrição detalhada do Produto 10. Inversor de alta tensão para indústria pesada." },
 ];
 
 function Products() {
     const [apiRows, setApiRows] = useState({});
     const [loadingError, setLoadingError] = useState(null);
-    // 1. New state for managing the product list view
     const [productView, setProductView] = useState('grid');
 
-    // 2. Toggle function
     const toggleProductView = useCallback(() => {
         setProductView((prevView) => (prevView === 'grid' ? 'list' : 'grid'));
     }, []);
@@ -303,19 +302,30 @@ function Products() {
                 <ul>
                     {DUMMY_PRODUCTS.map((product, index) => (
                         <li key={index}>
-                            <img src={product.photo} alt={product.name} />
-                            {productView === 'grid' ? (
-                                <span>{product.name}</span>
-                            ) : (
-                                <div className="list-info">
-                                    <h3>{product.name}</h3>
-                                    <p>{product.description}</p>
-                                </div>
-                            )}
+                            <Link 
+                                to={`/products/${product.id}`} 
+                                style={{ 
+                                    textDecoration: 'none', 
+                                    color: 'inherit',
+                                    display: 'flex', 
+                                    flexDirection: productView === 'grid' ? 'column' : 'row',
+                                    alignItems: 'center',
+                                    width: '100%' 
+                                }}
+                            >
+                                <img src={product.photo} alt={product.name} />
+                                {productView === 'grid' ? (
+                                    <span>{product.name}</span>
+                                ) : (
+                                    <div className="list-info">
+                                        <h3>{product.name}</h3>
+                                        <p>{product.description}</p>
+                                    </div>
+                                )}
+                            </Link>
                         </li>
                     ))}
-                    </ul>
-
+                </ul>
             </div>
         </StyledPage>
     );
