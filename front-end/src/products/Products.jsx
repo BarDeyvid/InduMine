@@ -178,10 +178,10 @@ function Products() {
                     <li style={{height: "fit-content", width: "auto"}}>
                         <Typography>Atualizações Semanais</Typography>
                         <LineChart
-                        xAxis={[{ data: [1, 2, 3, 5, 8, 10] }]}
+                        xAxis={[{ scaleType:"band", data: ["Seg", "Ter", "Qua", "Qui", "Sex"] }]}
                         series={[
                             {
-                            data: [2, 5.5, 2, 8.5, 1.5, 5],
+                            data: [1,2, 5.5, 2, 8.5, 1.5, 5],
                             },
                         ]}
                         height={200}
@@ -189,6 +189,8 @@ function Products() {
                     </li>
                 </ul>
             </div>
+
+            <hr style={{width: "90%", marginBottom: "20px"}}/>
         </StyledPage>
     );
 }
