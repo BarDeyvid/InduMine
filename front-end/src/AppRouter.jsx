@@ -8,7 +8,6 @@ import Products from './products/Products';
 import ProductDetail from './products/ProductDetail';
 import NavBar from './navbar/NavBar';
 import { ThemeProvider } from './context/themeProvider';
-import WEGMine from './WEGMine'; 
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token');
@@ -26,57 +25,52 @@ export default function AppRouter() {
   const toggleNav = () => setIsNavOpen(!isNavOpen);
   const mainMarginLeft = isNavOpen ? NAVBAR_WIDTH_OPEN : NAVBAR_WIDTH_CLOSED;
 
+  // Detecta se está em deploy
   const isDeploy = import.meta.env.MODE === 'deploy' || import.meta.env.VITE_DEPLOY === 'true';
-
-  const routerProps = isDeploy ? { basename: '/WEGMine' } : {};
-
-  const content = (
-    <Routes>
-      {/* Rotas Públicas */}
-      <Route path="/" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-
-      {/* Rotas Protegidas */}
-      <Route
-        path="*"
-        element={
-          <ProtectedRoute>
-            <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-              <NavBar
-                isopen={isNavOpen}
-                setisopen={setIsNavOpen}
-                toggleNavbar={toggleNav}
-              />
-              <main
-                style={{
-                  flexGrow: 1,
-                  padding: '20px',
-                  marginLeft: mainMarginLeft,
-                  transition: 'margin-left 0.3s ease',
-                }}
-              >
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/analytics" element={<div>Analytics Page</div>} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/products/:productId" element={<ProductDetail />} />
-                  <Route path="/scrapers" element={<div>Scrapers Page</div>} />
-                  <Route path="/activitylog" element={<div>Activity Log Page</div>} />
-                  <Route path="/settings" element={<div>Settings Page</div>} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </main>
-            </div>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
-  );
 
   return (
     <ThemeProvider>
-      <Router {...routerProps}>
-        {isDeploy ? <WEGMine>{content}</WEGMine> : content}
+      <Router basename={isDeploy ? '/WEGMine' : '/'}>
+        <Routes>
+          {/* Rotas Públicas */}
+          <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Rotas Protegidas */}
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute>
+                <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+                  <NavBar
+                    isopen={isNavOpen}
+                    setisopen={setIsNavOpen}
+                    toggleNavbar={toggleNav}
+                  />
+                  <main
+                    style={{
+                      flexGrow: 1,
+                      padding: '20px',
+                      marginLeft: mainMarginLeft,
+                      transition: 'margin-left 0.3s ease',
+                    }}
+                  >
+                    <Routes>
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/analytics" element={<div>Analytics Page</div>} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/products/:productId" element={<ProductDetail />} />
+                      <Route path="/scrapers" element={<div>Scrapers Page</div>} />
+                      <Route path="/activitylog" element={<div>Activity Log Page</div>} />
+                      <Route path="/settings" element={<div>Settings Page</div>} />
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
       </Router>
     </ThemeProvider>
   );
