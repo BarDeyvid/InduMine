@@ -1,10 +1,11 @@
 // front-end/src/products/ProductDetail.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom'; 
 import styled from 'styled-components';
 import Header from "../components/Header";
 import { Button } from '@mui/material';
 import { Link } from 'react-router-dom';
+
 const DUMMY_PRODUCTS = [
     { 
         id: 1, 
@@ -113,26 +114,26 @@ const DetailWrapper = styled.div`
     box-sizing: border-box;
     display: flex; 
     flex-direction: column;
-
-  hr {
+    
+    hr {
         border-color: ${props => props.theme.textSecondary};
         opacity: 0.5;
         }
 
         ul {
             list-style: none;
-            margin: 0;         
-            padding: 0;         
+            margin: 0; 
+            padding: 0; 
             flex-direction: row;
             display: flex;
-            gap: 5vw;           
+            gap: 5vw; 
             width: auto;
             justify-content: center; 
         }
 
         li {
-            margin: 0;          
-            padding: 2vw;           
+            margin: 0; 
+            padding: 2vw; 
             text-align: center; 
             border: 1px solid ${props => props.theme.textSecondary};
             border-radius: 16px;
@@ -176,18 +177,18 @@ const DetailWrapper = styled.div`
         }
         
         .products.grid ul li {
-            display: flex;                
+            display: flex; 
             flex-direction: column;
-            align-items: center;          
+            align-items: center; 
             justify-content: center; 
             padding: 1rem;
             }
 
             .products.grid ul li img {
-            width: 100px;                 
+            width: 100px; 
             height: auto;
             margin: 0 0 10px 0; 
-            border-radius: 8px;           
+            border-radius: 8px; 
             }
 
             .products.grid ul li span {
@@ -213,7 +214,7 @@ const DetailWrapper = styled.div`
         }
 
         .products.list ul li img {
-            width: 60px;          
+            width: 60px; 
             height: auto;
             margin-right: 20px; 
             border-radius: 8px;
@@ -224,6 +225,7 @@ const DetailWrapper = styled.div`
             gap: 5vw;
             margin-top: 20px;
             flex-direction: row;
+            padding: 0 20px; 
             }
 
         .products-header {
@@ -268,9 +270,9 @@ const DetailWrapper = styled.div`
             background-color: ${props => props.theme.background};
             border-radius: 8px;
             padding: 20px;
-            align-items: center;
             height: fit-content;
             flex-direction: column;
+            flex: 1;
         } 
         
         .specs-list {
@@ -289,12 +291,11 @@ const DetailWrapper = styled.div`
             width: 100%;
             text-align: left;
             height: fit-content;
-        }
-        
-        .specs-list li:hover {
-            box-shadow: none; 
-            transform: none; 
-            transition: none;
+            box-shadow: none !important; 
+            transform: none !important; 
+            transition: none !important;
+            border: none !important;
+            padding: 5px 0 !important;
         }
 
         .specs-list li:last-child {
@@ -338,6 +339,29 @@ const DetailWrapper = styled.div`
         .specs-table tr:nth-child(even) {
             background-color: ${props => props.theme.background};
         }
+        
+        .right-div-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        /* Estilização para o botão ativo */
+        .right-div-buttons .MuiButton-root {
+            text-transform: none; /* Para manter o texto normal */
+            border-radius: 4px;
+            color: ${props => props.theme.text};
+            background-color: transparent;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .right-div-buttons .MuiButton-root.active {
+            color: ${props => props.theme.primary};
+            border-bottom: 3px solid ${props => props.theme.primary};
+            font-weight: bold;
+            background-color: ${props => props.theme.background}; 
+        }
 `;
 
 const SpecsList = ({ specs, title }) => {
@@ -361,20 +385,116 @@ const SpecsList = ({ specs, title }) => {
     );
 };
 
+const GeneralDataSection = ({ product }) => (
+    <section>
+        <h2>Descrição Geral</h2>
+        <p>{product.description}</p>
+        
+        <h2>Especificações Técnicas</h2>
+        <SpecsTable 
+            specs={product.main_specs || {}} 
+            title="Características Principais" 
+        />
+
+        <SpecsList 
+            specs={product.dimension_specs || {}} 
+            title="Dimensões e Peso" 
+        />
+
+        {Object.keys(product.main_specs).length === 0 && 
+         Object.keys(product.dimension_specs).length === 0 && (
+             <p>Nenhuma especificação técnica disponível.</p>
+         )}
+    </section>
+);
+
+const RelatedProductsSection = ({ product, DUMMY_PRODUCTS }) => (
+    <section className='related-products'>
+        {Object.keys(product.related_products || {}).length > 0 ? (
+            <>
+                <h2>Produtos Relacionados</h2>
+                <ul className='products-list'>
+                    {product.related_products.map((relProdId) => {
+                        const relProduct = DUMMY_PRODUCTS.find(p => p.id === relProdId);
+                        if (!relProduct) return null;
+                        return (
+                            <li key={relProdId} style={{ padding: '10px 0' }}>
+                                <Link 
+                                    to={`/products/${relProduct.id}`} 
+                                    style={{ 
+                                        textDecoration: 'none', 
+                                        color: 'inherit',
+                                        display: 'flex', 
+                                        alignItems: 'center',
+                                        width: '100%' 
+                                    }}
+                                >
+                                    <img 
+                                        src={relProduct.photo} 
+                                        alt={relProduct.name} 
+                                        style={{ width: '80px', borderRadius: '8px', marginRight: '15px' }} 
+                                    />
+                                    <div className='list-info'>
+                                        <h3>{relProduct.name}</h3>
+                                        <p>{relProduct.description.substring(0, 50)}...</p>
+                                    </div>
+                                </Link>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </>
+        ) : (
+            <h2>Nenhum Produto Relacionado Encontrado</h2>
+        )}
+    </section>
+);
+
+
 function ProductDetail() {
     const { productId } = useParams(); 
     const numericProductId = parseInt(productId);
-
     const product = DUMMY_PRODUCTS.find(p => p.id === numericProductId);
 
+    // 1. Estado para rastrear a aba ativa
+    const [activeTab, setActiveTab] = useState('general');
     if (!product) {
         return <DetailWrapper><Header /><h1>Produto não encontrado!</h1></DetailWrapper>;
     }
+    
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'general':
+                return <GeneralDataSection product={product} />;
+            case 'specs':
+                return (
+                    <section>
+                        <h2>Especificações Técnicas Detalhadas</h2>
+                        <SpecsTable 
+                            specs={{...product.main_specs, ...product.dimension_specs}} 
+                            title="Todas as Especificações" 
+                        />
+                        <RelatedProductsSection product={product} DUMMY_PRODUCTS={DUMMY_PRODUCTS} />
+                    </section>
+                );
+            case 'variants':
+                return <section><h2>Variantes do Produto</h2><p>Conteúdo sobre as diferentes versões do {product.name}...</p></section>;
+            case 'history':
+                return <section><h2>Histórico de Mudanças</h2><p>Registro de alterações, versões e atualizações para o {product.name}...</p></section>;
+            default:
+                return <GeneralDataSection product={product} />;
+        }
+    };
+
+    const handleTabChange = (tabName) => {
+        setActiveTab(tabName);
+    };
+
 
     return (
         <DetailWrapper>
             <Header />
-                <sides>
+            <sides>
                 <photoArea>
                     <h1>Detalhes do Produto: {product.name}</h1>
                     <img src={product.photo} alt={product.name} style={{ width: '200px', borderRadius: '8px' }}/>
@@ -382,67 +502,34 @@ function ProductDetail() {
                 
                 <div className='Right-Div'>
                     <div className="right-div-buttons">
-                        <Button>Dados Gerais</Button>
-                        <Button>Especificacoes Tecnicas</Button>
-                        <Button>Variantes</Button>
-                        <Button>Historico de Mudancas</Button>
+                        <Button 
+                            onClick={() => handleTabChange('general')}
+                            className={activeTab === 'general' ? 'active' : ''}
+                        >
+                            Dados Gerais
+                        </Button>
+                        <Button 
+                            onClick={() => handleTabChange('specs')}
+                            className={activeTab === 'specs' ? 'active' : ''}
+                        >
+                            Especificações Técnicas
+                        </Button>
+                        <Button 
+                            onClick={() => handleTabChange('variants')}
+                            className={activeTab === 'variants' ? 'active' : ''}
+                        >
+                            Variantes
+                        </Button>
+                        <Button 
+                            onClick={() => handleTabChange('history')}
+                            className={activeTab === 'history' ? 'active' : ''}
+                        >
+                            Histórico de Mudanças
+                        </Button>
                     </div>
-                    <section>
-                        <h2>Descrição Geral</h2>
-                        <p>{product.description}</p>
-                    </section>
                     
-                    <section>
-                        <h2>Especificações Técnicas</h2>
-                        
-                        <SpecsTable 
-                            specs={product.main_specs || {}} 
-                            title="Características" 
-                        />
+                    {renderContent()}
 
-                        <SpecsList 
-                            specs={product.dimension_specs || {}} 
-                            title="Dimensões e Peso" 
-                        />
-
-                        {Object.keys(product.main_specs).length === 0 && 
-                         Object.keys(product.dimension_specs).length === 0 && (
-                            <p>Nenhuma especificação técnica disponível.</p>
-                        )}
-                        
-                        {Object.keys(product.related_products || {}).length > 0 && (
-                            <div className='related-products'>
-                                <h3>Produtos Relacionados</h3>
-                                <ul>
-                                    {product.related_products.map((relProdId) => {
-                                        const relProduct = DUMMY_PRODUCTS.find(p => p.id === relProdId);
-                                        if (!relProduct) return null;
-                                        return (
-                                            <li key={relProdId}>
-                                                <Link 
-                                                    to={`/products/${relProduct.id}`} 
-                                                    style={{ 
-                                                        textDecoration: 'none', 
-                                                        color: 'inherit',
-                                                        display: 'flex', 
-                                                        alignItems: 'center',
-                                                        width: '100%' 
-                                                    }}
-                                                >
-                                                    <img 
-                                                        src={relProduct.photo} 
-                                                        alt={relProduct.name} 
-                                                        style={{ width: '100px', borderRadius: '8px' }} 
-                                                    />
-                                                    <p>{relProduct.name}</p>
-                                                </Link>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-                    </section>
                 </div>
             </sides>
         </DetailWrapper>
