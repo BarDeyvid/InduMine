@@ -54,12 +54,21 @@ function Login() {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSignIn();
+  };
+
   return (
     <StyledLogin>
       <div className="contentbox">
         <h1>InduMine</h1>
         <h3>Sign in</h3>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box 
+          component="form" 
+          onSubmit={handleSubmit} 
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+        >
           <TextField
             fullWidth
             variant="outlined"
@@ -67,6 +76,7 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
             label="E-mail"
             autoComplete="email"
+            required 
           />
           <TextField
             fullWidth
@@ -76,28 +86,29 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
             label="Password"
             autoComplete="current-password"
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      disableRipple
-                      sx={{
-                        backgroundColor: 'transparent',
-                        color: 'inherit',
-                        '&:hover': { backgroundColor: 'transparent' },
-                      }}
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
+            required 
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                    disableRipple
+                    sx={{
+                      backgroundColor: 'transparent',
+                      color: 'inherit',
+                      '&:hover': { backgroundColor: 'transparent' },
+                    }}
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
           />
-          <Button variant="contained" onClick={handleSignIn}>Sign In</Button>
+          <Button variant="contained" type="submit">Sign In</Button>
+        </Box>
+        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <h3>Don't have an account?</h3>
           <Button onClick={handleRegister}>Sign up</Button>
         </Box>

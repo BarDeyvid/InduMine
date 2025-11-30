@@ -1,4 +1,4 @@
-// front-end/src/products/Products.jsx
+// front-end/src/Categories/Categories.jsx
 import { useState, useCallback, useEffect } from "react";
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
@@ -9,13 +9,13 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Inventory, Category, Update, CheckCircle, ViewModule, ViewList } from '@mui/icons-material';
 
-const DUMMY_PRODUCTS = [
-    { id: 1, name: "Motor AC Premium", photo: "../src/assets/dummyPhoto1.png", description: "Motor de alta potência, série 4000." },
-    { id: 2, name: "Inversor Série Z", photo: "../src/assets/dummyPhoto2.png", description: "Inversor de frequência inteligente e compacto." },
-    { id: 3, name: "Gerador Diesel", photo: "../src/assets/dummyPhoto3.png", description: "Gerador confiável para aplicações críticas." },
-    { id: 4, name: "Transformador IS-T", photo: "../src/assets/dummyPhoto4.png", description: "Transformador de energia de baixo ruído." },
-    { id: 5, name: "Motor Trifásico IP65", photo: "../src/assets/dummyPhoto5.png", description: "Motor com proteção avançada contra poeira e água." },
-    { id: 6, name: "Inversor Solar PV", photo: "../src/assets/dummyPhoto6.png", description: "Inversor para sistemas fotovoltaicos on-grid." },
+const DUMMY_Categories = [
+    { id: 1, name: "Motores", photo: "../src/assets/dummyPhoto1.png", description: "Motores elétricos e de combustão" },
+    { id: 2, name: "Inversores", photo: "../src/assets/dummyPhoto2.png", description: "Inversores de frequência e conversores" },
+    { id: 3, name: "Geradores", photo: "../src/assets/dummyPhoto3.png", description: "Geradores a diesel e gasolina" },
+    { id: 4, name: "Transformadores", photo: "../src/assets/dummyPhoto4.png", description: "Transformadores de força e isolamento" },
+    { id: 5, name: "Motores Trifásicos", photo: "../src/assets/dummyPhoto5.png", description: "Motores com proteção IP65" },
+    { id: 6, name: "Inversores Solares", photo: "../src/assets/dummyPhoto6.png", description: "Inversores para sistemas fotovoltaicos" },
 ];
 
 const dummyDataset = [
@@ -135,7 +135,7 @@ const ChartGrid = styled.div`
     }
 `;
 
-const ProductHeader = styled.div`
+const CategoryHeader = styled.div`
     display: flex;
     justify-content: space-between; 
     align-items: center; 
@@ -160,7 +160,7 @@ const ToggleButton = styled.button`
     }
 `;
 
-const ProductList = styled.ul`
+const CategoryList = styled.ul`
     list-style: none;
     padding: 0;
     margin: 0;
@@ -170,7 +170,7 @@ const ProductList = styled.ul`
     gap: 15px;
 `;
 
-const ProductItem = styled(Link)`
+const CategoryItem = styled(Link)`
     display: flex;
     align-items: center;
     text-decoration: none;
@@ -216,7 +216,7 @@ const ProductItem = styled(Link)`
     }
 `;
 
-const ProductCardGrid = styled(ProductItem)`
+const CategoryCardGrid = styled(CategoryItem)`
     flex-direction: column;
     text-align: center;
     
@@ -230,18 +230,18 @@ const ProductCardGrid = styled(ProductItem)`
     }
     
     .list-info p {
-        display: none; /* Descrição longa oculta na grade */
+        display: none; 
     }
 `;
 
-function Products() {
+function Categories() {
     const [apiRows, setApiRows] = useState({});
     const [loadingError, setLoadingError] = useState(null);
-    const [productView, setProductView] = useState('grid');
-    const TotalRows = DUMMY_PRODUCTS.length; 
+    const [CategoryView, setCategoryView] = useState('grid');
+    const TotalRows = DUMMY_Categories.length; 
 
-    const toggleProductView = useCallback(() => {
-        setProductView((prevView) => (prevView === 'grid' ? 'list' : 'grid'));
+    const toggleCategoryView = useCallback(() => {
+        setCategoryView((prevView) => (prevView === 'grid' ? 'list' : 'grid'));
     }, []);
 
     useEffect(() => {
@@ -257,7 +257,7 @@ function Products() {
             <Header />
             <MainContainer>
                 
-                <h1>Catálogo de Produtos e Análise</h1>
+                <h1>Catálogo de Categorias</h1>
                 
                 <h2>Visão Geral Estatística</h2>
                 <InfoCardContainer>
@@ -265,7 +265,7 @@ function Products() {
                         <Inventory className="icon" />
                         <div className="data">
                             <div className="value">{TotalRows}</div>
-                            <div className="title">Total de Produtos</div>
+                            <div className="title">Total de Categorias</div>
                         </div>
                     </InfoCard>
                     <InfoCard>
@@ -295,7 +295,7 @@ function Products() {
                 <h2>Gráficos de Distribuição</h2>
                 <ChartGrid>
                     <div>
-                        <Typography variant="h6">Produtos Por Categoria</Typography>
+                        <Typography variant="h6">Produtos por Categorias</Typography>
                         <BarChart
                             dataset={dummyDataset}
                             xAxis={[{ dataKey: "categoria", scaleType: 'band' }]}
@@ -305,13 +305,13 @@ function Products() {
                         />
                     </div>
                         <div>
-                        <Typography variant="h6">Status dos Produtos</Typography>
+                        <Typography variant="h6">Status das Categorias</Typography>
                         <PieChart
                             series={[{ data: secondDummyDataset, innerRadius: 30, outerRadius: 80, paddingAngle: 5 }]}
                             width={300}
                             height={240}
                             margin={{ top: 10, bottom: 10, left: 100, right: 0 }}
-                             sx={{
+                                sx={{
                                 "*": {
                                     padding: 0,
                                     margin: 0,
@@ -346,32 +346,32 @@ function Products() {
                 </ChartGrid>
                 
                 <hr/>
-                <ProductHeader> 
-                    <h2>Lista Detalhada de Produtos</h2>
-                    <ToggleButton onClick={toggleProductView}>
-                        {productView === 'grid' ? <ViewList /> : <ViewModule />}
-                        {productView === 'grid' ? 'Mudar para Vista em Coluna' : 'Mudar para Vista em Grade'}
+                <CategoryHeader> 
+                    <h2>Lista Detalhada de Categorias</h2>
+                    <ToggleButton onClick={toggleCategoryView}>
+                        {CategoryView === 'grid' ? <ViewList /> : <ViewModule />}
+                        {CategoryView === 'grid' ? 'Mudar para Vista em Coluna' : 'Mudar para Vista em Grade'}
                     </ToggleButton>
-                </ProductHeader>
+                </CategoryHeader>
                 
-                <ProductList $view={productView}>
-                    {DUMMY_PRODUCTS.map((product) => {
-                        const ItemComponent = productView === 'grid' ? ProductCardGrid : ProductItem;
+                <CategoryList $view={CategoryView}>
+                    {DUMMY_Categories.map((Category) => {
+                        const ItemComponent = CategoryView === 'grid' ? CategoryCardGrid : CategoryItem;
                         return (
-                            <ItemComponent key={product.id} to={`/products/${product.id}`}>
-                                <img src={product.photo} alt={product.name} />
+                            <ItemComponent key={Category.id} to={`/categories/${Category.id}`}>
+                                <img src={Category.photo} alt={Category.name} />
                                 <div className="list-info">
-                                    <h3>{product.name}</h3>
-                                    <p>{product.description}</p>
+                                    <h3>{Category.name}</h3>
+                                    <p>{Category.description}</p>
                                 </div>
                             </ItemComponent>
                         );
                     })}
-                </ProductList>
+                </CategoryList>
                 
             </MainContainer>
         </StyledPage>
     );
 }
 
-export default Products;
+export default Categories;

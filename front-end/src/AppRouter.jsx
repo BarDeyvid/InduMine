@@ -6,6 +6,8 @@ import Register from './auth/Register';
 import Dashboard from './dashboard/Dashboard';
 import Products from './products/Products';
 import ProductDetail from './products/ProductDetail';
+import Categories from './categories/Categories';
+import CategoryDetail from './categories/CategoryDetail';
 import NavBar from './navbar/NavBar';
 import { ThemeProvider } from './context/themeProvider';
 
@@ -25,7 +27,6 @@ export default function AppRouter() {
   const toggleNav = () => setIsNavOpen(!isNavOpen);
   const mainMarginLeft = isNavOpen ? NAVBAR_WIDTH_OPEN : NAVBAR_WIDTH_CLOSED;
 
-  // Detecta se está em deploy
   const isDeploy = import.meta.env.MODE === 'deploy' || import.meta.env.VITE_DEPLOY === 'true';
 
   return (
@@ -57,7 +58,8 @@ export default function AppRouter() {
                   >
                     <Routes>
                       <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/analytics" element={<div>Analytics Page</div>} />
+                      <Route path="/categories" element={<Categories />} />
+                      <Route path="/categories/:categoryId" element={<CategoryDetail />} />
                       <Route path="/products" element={<Products />} />
                       <Route path="/products/:productId" element={<ProductDetail />} />
                       <Route path="/scrapers" element={<div>Scrapers Page</div>} />
