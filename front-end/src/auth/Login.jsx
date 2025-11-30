@@ -57,7 +57,7 @@ function Login() {
   return (
     <StyledLogin>
       <div className="contentbox">
-        <h1>WEGMine</h1>
+        <h1>InduMine</h1>
         <h3>Sign in</h3>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
