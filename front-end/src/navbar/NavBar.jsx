@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import Button from '@mui/material/Button';
@@ -9,15 +9,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
-
-const DUMMY_CATEGORIES = [
-    { id: 1, name: "Motores", photo: "../src/assets/dummyPhoto1.png", description: "Motores elétricos e de combustão" },
-    { id: 2, name: "Inversores", photo: "../src/assets/dummyPhoto2.png", description: "Inversores de frequência e conversores" },
-    { id: 3, name: "Geradores", photo: "../src/assets/dummyPhoto3.png", description: "Geradores a diesel e gasolina" },
-    { id: 4, name: "Transformadores", photo: "../src/assets/dummyPhoto4.png", description: "Transformadores de força e isolamento" },
-    { id: 5, name: "Motores Trifásicos", photo: "../src/assets/dummyPhoto5.png", description: "Motores com proteção IP65" },
-    { id: 6, name: "Inversores Solares", photo: "../src/assets/dummyPhoto6.png", description: "Inversores para sistemas fotovoltaicos" },
-];
+import { api } from '../services/api';
 
 const ToggleButtonContainer = styled.div`
     position: fixed;
@@ -66,7 +58,6 @@ const SublistToggleButton = styled(IconButton)`
     padding: 5px !important;
     z-index: 2; 
 
-    /* Rotaciona o ícone quando a sublista estiver aberta */
     transform: rotate(${props => (props.$islistopen ? '90deg' : '0deg')});
     transition: transform 0.3s ease;
 `;
@@ -120,6 +111,23 @@ const SidebarContainer = styled.div`
 export default function NavBar({ isopen, toggleNavbar }) {
     const navigate = useNavigate();
     const [isCategoryListOpen, setIsCategoryListOpen] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const data = await api.getCategories(1, 20);
+                setCategories(data.categories || []);
+            } catch (error) {
+                console.error('Erro ao buscar categorias:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCategories();
+    }, []);
 
     const navItems = [
         { name: 'Dashboard', path: '/dashboard' },
@@ -136,8 +144,8 @@ export default function NavBar({ isopen, toggleNavbar }) {
         setIsCategoryListOpen(!isCategoryListOpen);
     };
 
-    const handleSubCategoryClick = (categoryName) => {
-        navigate(`/categories/${categoryName.toLowerCase().replace(/\s/g, '-')}`);
+    const handleSubCategoryClick = (categoryId, categoryName) => {
+        navigate(`/categories/${categoryId}`);
     };
 
     return (
@@ -160,9 +168,9 @@ export default function NavBar({ isopen, toggleNavbar }) {
                         <NavItemContainer key={item.name} $isopen={isopen}>
                             <NavButton
                                 component={item.hasSublist ? 'div' : 'button'}
-                                $isopen={isopen} // 1. Solução para erro de transient prop
+                                $isopen={isopen}
                                 startIcon={<MenuIcon />}
-                                onClick={() => handleNavigation(item.path)}
+                                onClick={() => !item.hasSublist && handleNavigation(item.path)}
                                 variant="text"
                                 style={{ zIndex: 1 }}
                             >
@@ -171,7 +179,7 @@ export default function NavBar({ isopen, toggleNavbar }) {
                                     <SublistToggleButton
                                         onClick={handleToggleCategoryList}
                                         aria-label={isCategoryListOpen ? "Fechar Subcategorias" : "Abrir Subcategorias"}
-                                        $islistopen={isCategoryListOpen} 
+                                        $islistopen={isCategoryListOpen}
                                     >
                                         <ChevronRightIcon />
                                     </SublistToggleButton>
@@ -180,15 +188,25 @@ export default function NavBar({ isopen, toggleNavbar }) {
 
                             {item.hasSublist && isCategoryListOpen && isopen && (
                                 <SubCategoryList component="div" disablePadding>
-                                    {DUMMY_CATEGORIES.map((category) => (
-                                        <ListItemButton 
-                                            key={category.id} 
-                                            onClick={() => handleSubCategoryClick(category.name)}
-                                            style={{ minHeight: '40px' }} 
-                                        >
-                                            <ListItemText primary={category.name} />
+                                    {loading ? (
+                                        <ListItemButton>
+                                            <ListItemText primary="Carregando..." />
                                         </ListItemButton>
-                                    ))}
+                                    ) : categories.length > 0 ? (
+                                        categories.map((category) => (
+                                            <ListItemButton 
+                                                key={category.id} 
+                                                onClick={() => handleSubCategoryClick(category.id, category.name)}
+                                                style={{ minHeight: '40px' }} 
+                                            >
+                                                <ListItemText primary={category.name} />
+                                            </ListItemButton>
+                                        ))
+                                    ) : (
+                                        <ListItemButton>
+                                            <ListItemText primary="Nenhuma categoria" />
+                                        </ListItemButton>
+                                    )}
                                 </SubCategoryList>
                             )}
                         </NavItemContainer>

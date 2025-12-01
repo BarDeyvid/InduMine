@@ -6,27 +6,16 @@ import Header from "../components/Header";
 import { Button } from '@mui/material';
 import { CheckCircleOutline, CancelOutlined, AccessTimeOutlined } from '@mui/icons-material';
 import SearchBar from '../components/SearchBar';
+import { api } from '../services/api';
 
 const HISTORY_KEY = 'recentcategories';
 
 const updateRecentcategories = (category) => {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    
     const filteredHistory = history.filter(item => item.id !== category.id);
-    
     const newHistory = [category, ...filteredHistory];
-    
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory.slice(0, 5)));
 };
-
-const DUMMY_Categories = [
-    { id: 1, name: "Motores", photo: "../src/assets/dummyPhoto1.png", status: "Ativo", description: "Motores elétricos e de combustão" },
-    { id: 2, name: "Inversores", photo: "../src/assets/dummyPhoto2.png", status: "Inativo", description: "Inversores de frequência e conversores" },
-    { id: 3, name: "Geradores", photo: "../src/assets/dummyPhoto3.png", status: "Ativo", description: "Geradores a diesel e gasolina" },
-    { id: 4, name: "Transformadores", photo: "../src/assets/dummyPhoto4.png", status: "Em Revisao", description: "Transformadores de força e isolamento" },
-    { id: 5, name: "Motores Trifásicos", photo: "../src/assets/dummyPhoto5.png", status: "Ativo", description: "Motores com proteção IP65" },
-    { id: 6, name: "Inversores Solares", photo: "../src/assets/dummyPhoto6.png", status: "Ativo", description: "Inversores para sistemas fotovoltaicos" },
-];
 
 const DetailWrapper = styled.div`
     background-color: ${props => props.theme.surface}; 
@@ -68,7 +57,7 @@ const MainContainer = styled.div`
     }
 `;
 
-const RelatedcategoryItem = styled(Link)`
+const RelatedCategoryItem = styled(Link)`
     display: flex; 
     align-items: center;
     padding: 15px;
@@ -110,73 +99,214 @@ const RelatedcategoryItem = styled(Link)`
     }
 `;
 
-const RelatedcategoriesSection = ({ category, DUMMY_Categories }) => (
-    <section>
-        <h2>Produtos Relacionados</h2>
-        {category.related_categories && category.related_categories.length > 0 ? (
-            <div className='categories-list'>
-                {category.related_categories.map((relCatId) => {
-                    const relcategory = DUMMY_Categories.find(p => p.id === relCatId);
-                    if (!relcategory) return null;
-                    return (
-                        <RelatedcategoryItem 
-                            key={relCatId} 
-                            to={`/categories/${relcategory.id}`}
-                        >
-                            <img 
-                                src={relcategory.photo} 
-                                alt={relcategory.name} 
-                            />
-                            <div>
-                                <h3>{relcategory.name}</h3>
-                                <p>{relcategory.description.substring(0, 80)}...</p>
-                            </div>
-                        </RelatedcategoryItem>
-                    );
-                })}
-            </div>
-        ) : (
-            <p>Nenhum produto relacionado encontrado.</p>
-        )}
-    </section>
-);
+const ProductItem = styled(Link)`
+    display: flex; 
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background-color: ${props => props.theme.surface}; 
+    border-radius: 8px;
+    text-decoration: none; 
+    color: inherit;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 
+    &:hover {
+        background-color: ${props => props.theme.surfaceHover}; 
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    img {
+        width: 80px; 
+        height: auto;
+        border-radius: 6px;
+        margin-right: 15px; 
+    }
+    
+    div {
+        flex: 1; 
+    }
+    
+    h3 {
+        margin: 0;
+        color: ${props => props.theme.primary};
+        font-size: 1.1em;
+    }
+    
+    p {
+        margin: 5px 0 0 0;
+        font-size: 0.85em;
+        color: ${props => props.theme.textSecondary};
+    }
+`;
+
+const ProductGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+`;
+
+const ProductCard = styled(Link)`
+    background-color: ${props => props.theme.surface};
+    border-radius: 8px;
+    padding: 15px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin-bottom: 10px;
+    }
+
+    h3 {
+        margin: 0 0 8px 0;
+        color: ${props => props.theme.primary};
+        font-size: 1em;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.85em;
+        color: ${props => props.theme.textSecondary};
+        flex-grow: 1;
+    }
+
+    .specs {
+        margin-top: 10px;
+        font-size: 0.8em;
+        color: ${props => props.theme.textSecondary};
+    }
+`;
 
 function CategoryDetail() {
     const { categoryId } = useParams(); 
-    const numericcategoryId = parseInt(categoryId);
-    const category = DUMMY_Categories.find(p => p.id === numericcategoryId);
-    
-    useEffect(() => {
-        if (category) {
-            const activityData = {
-                id: category.id,
-                name: category.name,
-                status: category.status,
-                timestamp: new Date().toISOString()
-            };
-            updateRecentcategories(activityData);
-        }
-    }, [category]);
+    const [category, setCategory] = useState(null);
+    const [products, setProducts] = useState([]);
+    const [relatedCategories, setRelatedCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    if (!category) {
-        return <DetailWrapper><Header /><h1>Categoria não encontrada!</h1></DetailWrapper>;
+    useEffect(() => {
+        const fetchCategoryData = async () => {
+            try {
+                setLoading(true);
+                const data = await api.getCategoryDetail(categoryId);
+                
+                if (data.error) {
+                    setError(data.error);
+                } else {
+                    setCategory(data);
+                    setProducts(data.products || []);
+                    setRelatedCategories(data.related_categories || []);
+                    
+                    // Atualizar histórico
+                    const activityData = {
+                        id: data.id,
+                        name: data.name,
+                        status: "Ativo",
+                        timestamp: new Date().toISOString(),
+                        type: "category"
+                    };
+                    updateRecentcategories(activityData);
+                }
+            } catch (err) {
+                console.error('Erro ao buscar detalhes da categoria:', err);
+                setError('Erro ao carregar dados da categoria');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (categoryId) {
+            fetchCategoryData();
+        }
+    }, [categoryId]);
+
+    if (loading) {
+        return <DetailWrapper><Header /><h1>Carregando...</h1></DetailWrapper>;
     }
+
+    if (error || !category) {
+        return <DetailWrapper><Header /><h1>{error || 'Categoria não encontrada!'}</h1></DetailWrapper>;
+    }
+
     return (
         <DetailWrapper>
             <Header />
-                <MainContainer>
+            <MainContainer>
+                <div>
+                    <h1>{category.name}</h1>
+                    <p>{category.description}</p>
+                    <p><strong>{category.product_count || 0} produtos nesta categoria</strong></p>
+                    <SearchBar width={"100%"} style={{ marginBottom: '30px' }} />
+                </div>
+                
+                <hr />
+                
+                <div>
+                    <h2>Produtos nesta Categoria ({products.length})</h2>
+                    {products.length > 0 ? (
+                        <ProductGrid>
+                            {products.map((product) => (
+                                <ProductCard key={product.id} to={`/products/${product.id}`}>
+                                    <img src={product.photo} alt={product.name} />
+                                    <h3>{product.name}</h3>
+                                    <p>{product.description.substring(0, 100)}...</p>
+                                    {product.main_specs && Object.keys(product.main_specs).length > 0 && (
+                                        <div className="specs">
+                                            <strong>Especificações:</strong>
+                                            <ul>
+                                                {Object.entries(product.main_specs).slice(0, 2).map(([key, value]) => (
+                                                    <li key={key}>{key}: {value}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </ProductCard>
+                            ))}
+                        </ProductGrid>
+                    ) : (
+                        <p>Nenhum produto encontrado nesta categoria.</p>
+                    )}
+                </div>
+                
+                <hr />
+                
+                {relatedCategories.length > 0 && (
                     <div>
-                        <h1>{category.name}</h1>
-                        <p>{category.description}</p>
-                        <SearchBar width={"100%"} style={{ marginBottom: '30px' }} />
+                        <h2>Categorias Relacionadas</h2>
+                        <div>
+                            {relatedCategories.map((relCat) => (
+                                <RelatedCategoryItem key={relCat.id} to={`/categories/${relCat.id}`}>
+                                    <img 
+                                        src={`../src/assets/dummyPhoto${relCat.id % 6 + 1}.png`} 
+                                        alt={relCat.name} 
+                                    />
+                                    <div>
+                                        <h3>{relCat.name}</h3>
+                                        <p>{relCat.description}</p>
+                                    </div>
+                                </RelatedCategoryItem>
+                            ))}
+                        </div>
                     </div>
-                    <hr />
-                    <div>
-                        <h2>Filtros</h2>
-                        
-                    </div>
-                </MainContainer>
+                )}
+                
+            </MainContainer>
         </DetailWrapper>
     );
 }

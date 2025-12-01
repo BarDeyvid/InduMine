@@ -4,18 +4,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
-import { Category, History, Warning, AutoAwesomeMosaic } from '@mui/icons-material';
+import { Category, History, Warning, AutoAwesomeMosaic, Inventory } from '@mui/icons-material';
+import { api, handleApiError } from '../services/api';
 
 const HISTORY_KEY = 'recentProducts';
-
-const DUMMY_CATEGORIES = [
-    { id: 1, name: "Motores", photo: "../src/assets/dummyPhoto1.png", description: "Motores elétricos e de combustão" },
-    { id: 2, name: "Inversores", photo: "../src/assets/dummyPhoto2.png", description: "Inversores de frequência e conversores" },
-    { id: 3, name: "Geradores", photo: "../src/assets/dummyPhoto3.png", description: "Geradores a diesel e gasolina" },
-    { id: 4, name: "Transformadores", photo: "../src/assets/dummyPhoto4.png", description: "Transformadores de força e isolamento" },
-    { id: 5, name: "Motores Trifásicos", photo: "../src/assets/dummyPhoto5.png", description: "Motores com proteção IP65" },
-    { id: 6, name: "Inversores Solares", photo: "../src/assets/dummyPhoto6.png", description: "Inversores para sistemas fotovoltaicos" },
-];
 
 const StyledPage = styled.div`
     background-color: ${props => props.theme.background}; 
@@ -203,7 +195,7 @@ const ActivityTableStyle = styled.table`
         background-color: ${props => props.theme.primaryDark};
     }
     
-    td:nth-child(4) { /* Coluna Status */
+    td:nth-child(4) {
         font-weight: bold;
     }
     
@@ -215,52 +207,84 @@ const ActivityTableStyle = styled.table`
 
 function Dashboard() {
     const navigate = useNavigate();
-    const [loadingError, setLoadingError] = useState(null);
-    const [apiRows, setApiRows] = useState({}); 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [stats, setStats] = useState({
+        totalCategories: 0,
+        totalProducts: 0,
+        activeProductsPercentage: 0,
+        updatesToday: 0
+    });
+    const [categories, setCategories] = useState([]);
     const [recentProducts, setRecentProducts] = useState([]);
+    const [recentCategories, setRecentCategories] = useState([]);
 
     useEffect(() => {
-        try {
-            const historyJson = localStorage.getItem(HISTORY_KEY);
-            if (historyJson) {
-                setRecentProducts(JSON.parse(historyJson));
-            }
-        } catch (e) {
-            console.error("Erro ao ler histórico do localStorage:", e);
-        }
-    }, []);
-
-    useEffect(() => {
-        const initialApiRows = DUMMY_CATEGORIES.reduce((acc, cat) => {
-            acc[cat.name] = Math.floor(Math.random() * 50) + 10; // Mock data count
-            return acc;
-        }, {});
-        setApiRows(initialApiRows);
-
-
-        /*
-        fetch("http://127.0.0.1:8000/total_rows")
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                
+                // Verificar saúde da API primeiro
+                try {
+                    await api.health();
+                } catch (healthError) {
+                    setError('API não está respondendo. Verifique se o servidor está rodando.');
+                    setLoading(false);
+                    return;
                 }
-                return response.json();
-            })
-            .then((data) => {
-                setApiRows(data); 
-                setLoadingError(null);
-            })
-            .catch((err) => {
-                console.error("Erro ao buscar dados da API.", err);
-                setLoadingError("Falha ao conectar com a API de dados. Usando dados estáticos.");
-                // Opcional: manter o mock data se a API falhar
-                setApiRows(initialApiRows);
-            });
-        */
-    }, []);
-    
-    const totalProducts = Object.values(apiRows).reduce((sum, count) => sum + count, 0);
+                
+                // Buscar estatísticas
+                const statsData = await api.getDashboardStats();
+                setStats({
+                    totalCategories: statsData.total_categories,
+                    totalProducts: statsData.total_products,
+                    activeProductsPercentage: statsData.active_products_percentage,
+                    updatesToday: statsData.updates_today
+                });
+                
+                // Buscar categorias
+                const categoriesData = await api.getCategories(1, 12);
+                setCategories(categoriesData.categories || []);
+                
+                // Ler histórico do localStorage
+                try {
+                    const productsHistory = localStorage.getItem('recentProducts') || '[]';
+                    const categoriesHistory = localStorage.getItem('recentcategories') || '[]';
+                    
+                    setRecentProducts(JSON.parse(productsHistory));
+                    setRecentCategories(JSON.parse(categoriesHistory));
+                } catch (e) {
+                    console.error("Erro ao ler histórico:", e);
+                }
+                
+                setError(null);
+            } catch (err) {
+                console.error('Erro ao buscar dados do dashboard:', err);
+                const apiError = handleApiError(err);
+                setError(apiError.message || 'Erro ao carregar dados da API');
+            } finally {
+                setLoading(false);
+            }
+        };
 
+        fetchDashboardData();
+    }, []);
+
+    const combinedHistory = [
+        ...recentProducts.map(item => ({ ...item, type: 'product' })),
+        ...recentCategories.map(item => ({ ...item, type: 'category' }))
+    ].slice(0, 10);
+
+    if (loading) {
+        return (
+            <StyledPage>
+                <Header />
+                <MainContainer>
+                    <h1>Carregando...</h1>
+                </MainContainer>
+            </StyledPage>
+        );
+    }
 
     return (
         <StyledPage>
@@ -272,76 +296,102 @@ function Dashboard() {
                 
                 <h2><AutoAwesomeMosaic /> Visão Geral do Catálogo</h2>
                 <InfoCardsContainer>
-                    {loadingError ? (
+                    {error ? (
                         <InfoCard className="error-card">
                             <Warning className="icon" />
                             <div className="value">ERRO</div>
-                            <div className="title">{loadingError}</div>
+                            <div className="title">{error}</div>
+                        </InfoCard>
+                    ) : loading ? (
+                        <InfoCard>
+                            <div className="value">...</div>
+                            <div className="title">Carregando...</div>
                         </InfoCard>
                     ) : (
-                        <InfoCard>
-                            <Category className="icon" />
-                            <div className="value">{Object.keys(apiRows).length}</div>
-                            <div className="title">Categorias Registradas</div>
-                        </InfoCard>
+                        <>
+                            <InfoCard>
+                                <Category className="icon" />
+                                <div className="value">{stats.totalCategories}</div>
+                                <div className="title">Categorias Registradas</div>
+                            </InfoCard>
+                            
+                            <InfoCard>
+                                <Inventory className="icon" />
+                                <div className="value">{stats.totalProducts.toLocaleString()}</div>
+                                <div className="title">Total de Produtos</div>
+                            </InfoCard>
+                            
+                            <InfoCard>
+                                <History className="icon" />
+                                <div className="value">{stats.activeProductsPercentage}%</div>
+                                <div className="title">Status Ativo</div>
+                            </InfoCard>
+
+                            <InfoCard>
+                                <History className="icon" />
+                                <div className="value">{stats.updatesToday}</div>
+                                <div className="title">Atualizações Hoje</div>
+                            </InfoCard>
+                        </>
                     )}
-                    
-                    <InfoCard>
-                        <History className="icon" />
-                        <div className="value">{recentProducts.length}</div>
-                        <div className="title">Produtos Acessados Recentemente</div>
-                    </InfoCard>
-                    
-                    <InfoCard>
-                        <History className="icon" />
-                        <div className="value">{totalProducts}</div>
-                        <div className="title">Total de Produtos (Est.)</div>
-                    </InfoCard>
-                    
                 </InfoCardsContainer>
+
                 
                 <h2><Category /> Acesso Rápido por Categoria</h2>
                 <CategoryGrid>
-                    {DUMMY_CATEGORIES.map((category) => (
+                    {categories.map((category) => (
                         <CategoryCard key={category.id} to={`/categories/${category.id}`}>
                             <img src={category.photo} alt={category.name} />
                             <h3>{category.name}</h3>
-                            <p>{apiRows[category.name] || 0} Produtos</p>
+                            <p>{category.product_count || 0} Produtos</p>
                         </CategoryCard>
                     ))}
                 </CategoryGrid>
 
-                <h2><History /> Produtos Acessados Recentemente</h2>
+                <h2><History /> Itens Acessados Recentemente</h2>
                 <ActivityTableStyle>
                     <thead>
                         <tr>
                             <th>Nome</th>
-                            <th>ID</th> 
-                            <th>Último Acesso</th> 
+                            <th>Tipo</th>
+                            <th>Último Acesso</th>
                             <th>Status</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {recentProducts.map((item, index) => (
+                        {combinedHistory.map((item, index) => (
                             <tr key={index}>
                                 <td>{item.name}</td>
-                                <td>{item.id}</td>
+                                <td>{item.type === 'product' ? 'Produto' : 'Categoria'}</td>
                                 <td>
-                                    {item.timestamp ? new Date(item.timestamp).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : 'N/A'}
+                                    {item.timestamp ? new Date(item.timestamp).toLocaleTimeString('pt-BR', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                    }) : 'N/A'}
                                 </td>
-                                <td>{item.status}</td> 
+                                <td>{item.status || 'Ativo'}</td>
                                 <td>
-                                    <button onClick={() => navigate(`/products/${item.id}`)}>Ver Detalhes</button>
+                                    <button onClick={() => navigate(
+                                        item.type === 'product' 
+                                            ? `/products/${item.id}`
+                                            : `/categories/${item.id}`
+                                    )}>
+                                        Ver Detalhes
+                                    </button>
                                 </td>
                             </tr>
                         ))}
-                        {recentProducts.length === 0 && (
-                            <tr className="empty-row"><td colSpan="5">Nenhum produto acessado recentemente. Navegue para ver o histórico aqui.</td></tr>
+                        {combinedHistory.length === 0 && (
+                            <tr className="empty-row">
+                                <td colSpan="5">
+                                    Nenhum item acessado recentemente. Navegue para ver o histórico aqui.
+                                </td>
+                            </tr>
                         )}
                     </tbody>
                 </ActivityTableStyle>
-
             </MainContainer>
         </StyledPage>
     );
