@@ -8,29 +8,7 @@ import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Inventory, Category, Update, CheckCircle, ViewModule, ViewList } from '@mui/icons-material';
-
-const DUMMY_Categories = [
-    { id: 1, name: "Motores", photo: "../src/assets/dummyPhoto1.png", description: "Motores elétricos e de combustão" },
-    { id: 2, name: "Inversores", photo: "../src/assets/dummyPhoto2.png", description: "Inversores de frequência e conversores" },
-    { id: 3, name: "Geradores", photo: "../src/assets/dummyPhoto3.png", description: "Geradores a diesel e gasolina" },
-    { id: 4, name: "Transformadores", photo: "../src/assets/dummyPhoto4.png", description: "Transformadores de força e isolamento" },
-    { id: 5, name: "Motores Trifásicos", photo: "../src/assets/dummyPhoto5.png", description: "Motores com proteção IP65" },
-    { id: 6, name: "Inversores Solares", photo: "../src/assets/dummyPhoto6.png", description: "Inversores para sistemas fotovoltaicos" },
-];
-
-const dummyDataset = [
-    { categoria: "Motores", valor: 50 },
-    { categoria: "Inversores", valor: 30 },
-    { categoria: "Geradores", valor: 20 },
-    { categoria: "Transf.", valor: 15 },
-    { categoria: "Outros", valor: 10 },
-];
-
-const secondDummyDataset = [
-    { id: 0, value: 82, label: "Ativos" },
-    { id: 1, value: 10, label: "Em Revisao" },
-    { id: 2, value: 8, label: "Descontinuados" },
-];
+import { api } from '../services/api';
 
 const StyledPage = styled.div`
     background-color: ${props => props.theme.background}; 
@@ -230,27 +208,89 @@ const CategoryCardGrid = styled(CategoryItem)`
     }
     
     .list-info p {
-        display: none; 
+        display: none;
     }
 `;
 
 function Categories() {
-    const [apiRows, setApiRows] = useState({});
-    const [loadingError, setLoadingError] = useState(null);
-    const [CategoryView, setCategoryView] = useState('grid');
-    const TotalRows = DUMMY_Categories.length; 
+    const [categories, setCategories] = useState([]);
+    const [stats, setStats] = useState({
+        totalCategories: 0,
+        activePercentage: 82,
+        updatesToday: 4
+    });
+    const [chartData, setChartData] = useState({
+        byCategory: [],
+        byStatus: [],
+        weeklyUpdates: []
+    });
+    const [categoryView, setCategoryView] = useState('grid');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const toggleCategoryView = useCallback(() => {
         setCategoryView((prevView) => (prevView === 'grid' ? 'list' : 'grid'));
     }, []);
 
     useEffect(() => {
-        const mockApiData = { "Motores": 50, "Inversores": 30, "Geradores": 20, "Transformadores": 15, "Outros": 10 };
-        setApiRows(mockApiData);
-        
-        // setLoadingError("Falha ao carregar dados de status da API.");
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                
+                // Buscar categorias
+                const categoriesData = await api.getCategories(1, 100);
+                setCategories(categoriesData.categories || []);
+                
+                // Buscar estatísticas do dashboard
+                const statsData = await api.getDashboardStats();
+                setStats({
+                    totalCategories: statsData.total_categories,
+                    activePercentage: statsData.active_products_percentage,
+                    updatesToday: statsData.updates_today
+                });
+                
+                // Configurar dados dos gráficos
+                if (statsData.chart_data) {
+                    setChartData({
+                        byCategory: statsData.chart_data.by_category,
+                        byStatus: statsData.chart_data.by_status,
+                        weeklyUpdates: statsData.chart_data.weekly_updates
+                    });
+                }
+                
+                setError(null);
+            } catch (err) {
+                console.error('Erro ao buscar dados:', err);
+                setError('Erro ao carregar dados da API');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
+    if (loading) {
+        return (
+            <StyledPage>
+                <Header />
+                <MainContainer>
+                    <h1>Carregando...</h1>
+                </MainContainer>
+            </StyledPage>
+        );
+    }
+
+    if (error) {
+        return (
+            <StyledPage>
+                <Header />
+                <MainContainer>
+                    <h1>Erro: {error}</h1>
+                </MainContainer>
+            </StyledPage>
+        );
+    }
 
     return (
         <StyledPage>
@@ -264,28 +304,28 @@ function Categories() {
                     <InfoCard>
                         <Inventory className="icon" />
                         <div className="data">
-                            <div className="value">{TotalRows}</div>
+                            <div className="value">{categories.length}</div>
                             <div className="title">Total de Categorias</div>
                         </div>
                     </InfoCard>
                     <InfoCard>
                         <CheckCircle className="icon" />
                         <div className="data">
-                            <div className="value">{secondDummyDataset.find(d => d.label === "Ativos")?.value}%</div>
+                            <div className="value">{stats.activePercentage}%</div>
                             <div className="title">Status Ativo</div>
                         </div>
                     </InfoCard>
                     <InfoCard>
                         <Category className="icon" />
                         <div className="data">
-                            <div className="value">{Object.keys(apiRows).length}</div>
+                            <div className="value">{categories.length}</div>
                             <div className="title">Categorias</div>
                         </div>
                     </InfoCard>
                     <InfoCard>
                         <Update className="icon" />
                         <div className="data">
-                            <div className="value">4</div>
+                            <div className="value">{stats.updatesToday}</div>
                             <div className="title">Atualizações Hoje</div>
                         </div>
                     </InfoCard>
@@ -296,52 +336,45 @@ function Categories() {
                 <ChartGrid>
                     <div>
                         <Typography variant="h6">Produtos por Categorias</Typography>
-                        <BarChart
-                            dataset={dummyDataset}
-                            xAxis={[{ dataKey: "categoria", scaleType: 'band' }]}
-                            series={[{ dataKey: "valor", label: "Contagem", color: '#4CAF50' }]}
-                            height={240}
-                            width={300}
-                        />
+                        {chartData.byCategory.length > 0 ? (
+                            <BarChart
+                                dataset={chartData.byCategory}
+                                xAxis={[{ dataKey: "categoria", scaleType: 'band' }]}
+                                series={[{ dataKey: "valor", label: "Contagem", color: '#4CAF50' }]}
+                                height={240}
+                                width={300}
+                            />
+                        ) : (
+                            <p>Sem dados disponíveis</p>
+                        )}
                     </div>
-                        <div>
+                    <div>
                         <Typography variant="h6">Status das Categorias</Typography>
-                        <PieChart
-                            series={[{ data: secondDummyDataset, innerRadius: 30, outerRadius: 80, paddingAngle: 5 }]}
-                            width={300}
-                            height={240}
-                            margin={{ top: 10, bottom: 10, left: 100, right: 0 }}
-                                sx={{
-                                "*": {
-                                    padding: 0,
-                                    margin: 0,
-                                    gap: 0,
-                                    left: 0,
-                                    right: "auto",
-                                },
-                                "& ul": {
-                                    paddingRight: 15,
-                                    display: 'flexbox',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                    gap: 1,
-                                },
-                                "& li": {
-                                    padding: 1,
-                                    borderRadius: 2,
-                                },
-                                }}/>
+                        {chartData.byStatus.length > 0 ? (
+                            <PieChart
+                                series={[{ data: chartData.byStatus, innerRadius: 30, outerRadius: 80, paddingAngle: 5 }]}
+                                width={300}
+                                height={240}
+                                margin={{ top: 10, bottom: 10, left: 100, right: 0 }}
+                            />
+                        ) : (
+                            <p>Sem dados disponíveis</p>
+                        )}
                     </div>
-                        <div>
+                    <div>
                         <Typography variant="h6">Atualizações Semanais (Qtd.)</Typography>
-                        <LineChart
-                            xAxis={[{ scaleType: "band", data: ["Seg", "Ter", "Qua", "Qui", "Sex"] }]}
-                            series={[
-                                { data: [1, 3, 5, 2, 8], label: "Novos Registros", color: '#2196F3' },
-                            ]}
-                            height={240}
-                            width={300}
-                        />
+                        {chartData.weeklyUpdates.length > 0 ? (
+                            <LineChart
+                                xAxis={[{ scaleType: "band", data: chartData.weeklyUpdates.map(d => d.day) }]}
+                                series={[
+                                    { data: chartData.weeklyUpdates.map(d => d.updates), label: "Novos Registros", color: '#2196F3' },
+                                ]}
+                                height={240}
+                                width={300}
+                            />
+                        ) : (
+                            <p>Sem dados disponíveis</p>
+                        )}
                     </div>
                 </ChartGrid>
                 
@@ -349,20 +382,21 @@ function Categories() {
                 <CategoryHeader> 
                     <h2>Lista Detalhada de Categorias</h2>
                     <ToggleButton onClick={toggleCategoryView}>
-                        {CategoryView === 'grid' ? <ViewList /> : <ViewModule />}
-                        {CategoryView === 'grid' ? 'Mudar para Vista em Coluna' : 'Mudar para Vista em Grade'}
+                        {categoryView === 'grid' ? <ViewList /> : <ViewModule />}
+                        {categoryView === 'grid' ? 'Mudar para Vista em Coluna' : 'Mudar para Vista em Grade'}
                     </ToggleButton>
                 </CategoryHeader>
                 
-                <CategoryList $view={CategoryView}>
-                    {DUMMY_Categories.map((Category) => {
-                        const ItemComponent = CategoryView === 'grid' ? CategoryCardGrid : CategoryItem;
+                <CategoryList $view={categoryView}>
+                    {categories.map((category) => {
+                        const ItemComponent = categoryView === 'grid' ? CategoryCardGrid : CategoryItem;
                         return (
-                            <ItemComponent key={Category.id} to={`/categories/${Category.id}`}>
-                                <img src={Category.photo} alt={Category.name} />
+                            <ItemComponent key={category.id} to={`/categories/${category.id}`}>
+                                <img src={category.photo} alt={category.name} />
                                 <div className="list-info">
-                                    <h3>{Category.name}</h3>
-                                    <p>{Category.description}</p>
+                                    <h3>{category.name}</h3>
+                                    <p>{category.description}</p>
+                                    <p><strong>{category.product_count || 0} produtos</strong></p>
                                 </div>
                             </ItemComponent>
                         );
