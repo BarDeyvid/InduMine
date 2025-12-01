@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
-url = "https://www.weg.net/catalog/weg/BR/pt/Tintas-e-Vernizes/c/TV"
+url = "
+https://www.weg.net/catalog/weg/BR/pt/Tintas-e-Vernizes/c/TV"
 
 #quotes = soup.find_all("div", attrs={"class": "product-tile-row"})
 #authors = soup.find_all("a", attrs={"class": "xtt-url-categories"})
