@@ -17,6 +17,7 @@ from selenium.common.exceptions import WebDriverException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tqdm.asyncio import tqdm_asyncio
+import re
 
 # ------------------------------------------------------------------
 # Configuration
@@ -81,6 +82,65 @@ class ScrapeResult(NamedTuple):
     scraped_rows: list[list[str]]
 
 
+def extract_tech_specs(soup: BeautifulSoup, url: str) -> list[list[str]]:
+    """
+    Extracts technical specifications from the product datasheet section 
+    and returns a list of [URL, Feature, Value] rows.
+    """
+    scraped_data = []
+    
+    # 1. Find the main datasheet tab content
+    datasheet_div = soup.find('div', id='datasheet')
+    if not datasheet_div:
+        return scraped_data
+
+    # Helper function to process standard key-value tables (Frame, Output, Features, etc.)
+    def process_key_value_tables(container):
+        rows = []
+        # Find all data tables with the key-value structure
+        for table in container.find_all('table', class_='table-striped'):
+            # Skip the efficiency and power factor tables, which have a different structure
+            if table.find_previous_sibling('h4', string=lambda t: t in ['Efficiency', 'Power factor']):
+                continue
+                
+            for tr in table.find_all('tr'):
+                th = tr.find('th')
+                td = tr.find('td')
+                if th and td:
+                    feature = th.get_text(strip=True).replace(':', '') 
+                    value = td.get_text(strip=True)
+                    if feature and value:
+                        # Normalize feature name: remove trailing superscripts (like Rotation¹)
+                        feature = re.sub(r'¹|²|³|⁴', '', feature).strip()
+                        rows.append([url, feature, value])
+        return rows
+
+    # Extract data from 'Electric Motors' and 'Features' sections
+    scraped_data.extend(process_key_value_tables(datasheet_div))
+
+    # --- Extract data from 'Efficiency' and 'Power factor' tables (structured differently) ---
+    
+    # Loop over Efficiency and Power factor sections
+    for section_title, prefix in [('Efficiency', 'Efficiency'), ('Power factor', 'Power factor')]:
+        section = datasheet_div.find('h4', string=section_title)
+        if section:
+            # Find the table right after the section title
+            table = section.find_next_sibling('table', class_='table-striped')
+            if table:
+                # Headers (e.g., 50%, 75%, 100%)
+                headers = [th.get_text(strip=True) for th in table.select('tbody tr:first-child th') if th.get_text(strip=True)]
+                # Values
+                data_row = table.select_one('tbody tr:nth-child(2)') 
+                if data_row:
+                    values = [td.get_text(strip=True) for td in data_row.find_all('td')]
+                    
+                    # Combine headers and values, e.g., "Efficiency @ 50%"
+                    for header, value in zip(headers, values):
+                        feature = f"{prefix} @ {header}"
+                        scraped_data.append([url, feature, value])
+
+    return scraped_data
+
 # ------------------------------------------------------------------
 # Synchronous worker (runs inside a thread) - FIXED FOR LINK LOSS
 # ------------------------------------------------------------------
@@ -109,7 +169,7 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
         wait_selector = (
             "a.xtt-url-categories, div.product-info-specs, "
             "td.product-code, a.btn.btn-primary.btn-sm.btn-block, "
-            "#productMenuContent"
+            "#productMenuContent, section.product-row-techspecs" # <-- Adicionado novo seletor de espera
         )
         
         # 2. Attempt to wait for key elements. This part might timeout.
@@ -154,17 +214,30 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
     if not soup:
         return ScrapeResult(next_urls=[], scraped_rows=[])
 
-    # --- Data Extraction Logic ---
-    rows = []
-    specs_table = soup.select_one("div.product-info-specs table.table")
-    if specs_table:
+    # ------------------------------------------------------------------ #
+    # --- Prioriza nova estrutura ---                                    #
+    # ------------------------------------------------------------------ #
+    scraped_rows = []
+    
+    # 1. Check for the NEW product page structure (Detailed Specs from previous steps, including Name and Code)
+    if soup.find('section', class_='product-row-techspecs'):
+        logging.info(f"Product page (new structure) detected: {url}. Scraping technical specs.")
+        # Chamada para a função auxiliar extract_tech_specs, que inclui Nome e Código
+        scraped_rows = extract_tech_specs(soup, url)
+    
+    # 2. Fallback check for the OLD/alternative product page structure
+    elif soup.select_one("div.product-info-specs table.table"):
+        specs_table = soup.select_one("div.product-info-specs table.table")
         for tr in specs_table.find_all("tr"):
             th, td = tr.find("th"), tr.find("td")
             if th and td:
-                rows.append([url, th.get_text(strip=True), td.get_text(strip=True)])
-        if rows:
-            logging.info(f"Found {len(rows)} specs on {url}")
-            return ScrapeResult(next_urls=[], scraped_rows=rows)
+                scraped_rows.append([url, th.get_text(strip=True), td.get_text(strip=True)])
+
+    # If product data was found in either structure, return it immediately (comportamento original mantido)
+    if scraped_rows:
+        logging.info(f"Found {len(scraped_rows)} total specs on {url}")
+        return ScrapeResult(next_urls=[], scraped_rows=scraped_rows)
+
 
     # Navigation page. Find all possible links.
     next_urls = []
@@ -192,11 +265,12 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
             full_url = urljoin(BASE_URL, href)
             next_urls.append(full_url)
             
+    next_urls = list(set([u for u in next_urls if u != url])) 
+
     if next_urls:
         logging.info(f"Found {len(next_urls)} sub-links on {url}")
-
-    return ScrapeResult(next_urls=list(set(next_urls)), scraped_rows=[])
-
+        
+    return ScrapeResult(next_urls=next_urls, scraped_rows=[])
 
 # ------------------------------------------------------------------
 # Async dispatcher
