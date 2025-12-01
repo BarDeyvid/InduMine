@@ -519,8 +519,16 @@ function CategoryDetail() {
         <DetailWrapper>
             <Header />
                 <MainContainer>
-                    <h1>Dashboard - Visão Geral do Catálogo</h1>
-                    <SearchBar width={"100%"} style={{ marginBottom: '30px' }} />
+                    <div>
+                        <h1>{category.name}</h1>
+                        <p>{category.description}</p>
+                        <SearchBar width={"100%"} style={{ marginBottom: '30px' }} />
+                    </div>
+                    <hr />
+                    <div>
+                        <h2>Filtros</h2>
+                        
+                    </div>
                 </MainContainer>
         </DetailWrapper>
     );

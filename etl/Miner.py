@@ -27,9 +27,9 @@ START_URL = "https://www.weg.net/institutional/BR/en/"
 
 OUTPUT_FILE = Path("data/weg_products_final.csv")
 CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe" 
-WAIT_TIMEOUT = 15
+WAIT_TIMEOUT = 30
 MAX_WORKERS = 8 # Maximum concurrent threads (tasks)
-MAX_DRIVERS = 4 # Maximum concurrent drivers (Pool size)
+MAX_DRIVERS = 8 # Increased to match workers for better flow
 
 
 # ------------------------------------------------------------------
@@ -166,10 +166,12 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
         # Start page load
         driver.get(url)
 
+        # UPDATED: Added 'ul.pagination' to the wait selector
         wait_selector = (
             "a.xtt-url-categories, div.product-info-specs, "
             "td.product-code, a.btn.btn-primary.btn-sm.btn-block, "
-            "#productMenuContent, section.product-row-techspecs" # <-- Adicionado novo seletor de espera
+            "#productMenuContent, section.product-row-techspecs, "
+            "ul.pagination" 
         )
         
         # 2. Attempt to wait for key elements. This part might timeout.
@@ -264,7 +266,14 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
         if href and href.strip() != "#":
             full_url = urljoin(BASE_URL, href)
             next_urls.append(full_url)
-            
+    
+    pagination_links = soup.select("ul.pagination a[data-href]")
+    for a in pagination_links:
+        data_href = a.get("data-href")
+        if data_href:
+            full_pag_url = urljoin(BASE_URL, data_href)
+            next_urls.append(full_pag_url)
+
     next_urls = list(set([u for u in next_urls if u != url])) 
 
     if next_urls:
@@ -360,9 +369,10 @@ async def main() -> None:
     if final_rows:
         try:
             df = pd.read_csv(OUTPUT_FILE)
+            df = df.drop_duplicates(subset=["Product URL"])
             pivoted_df = df.pivot_table(index="Product URL", columns="Feature", values="Value", aggfunc='first')
             pivoted_df.reset_index(inplace=True)
-            pivoted_output_file = "grouped_products_final.csv"
+            pivoted_output_file = r"data\grouped_products_final.csv"
             pivoted_df.to_csv(pivoted_output_file, index=False)
             logging.info(f"Pivoted data saved to '{pivoted_output_file}'.")
         except Exception as e:
