@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Search as SearchIcon, Close } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://weg-product-api.onrender.com';
 
 const SearchContainer = styled.div`
   position: relative;
