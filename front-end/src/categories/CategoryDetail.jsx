@@ -192,6 +192,94 @@ const ProductCard = styled(Link)`
     }
 `;
 
+// Add responsive styles
+const ResponsiveCategory = styled.div`
+  /* Mobile Responsiveness */
+  @media (max-width: 768px) {
+    ${MainContainer} {
+      width: 95%;
+      padding: 0 10px;
+      
+      h1 {
+        font-size: 1.8em;
+      }
+      
+      h2 {
+        font-size: 1.3em;
+      }
+    }
+    
+    ${ProductGrid} {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    ${ProductCard} {
+      padding: 12px;
+      
+      img {
+        height: 120px;
+      }
+      
+      h3 {
+        font-size: 0.95em;
+      }
+      
+      p {
+        font-size: 0.8em;
+      }
+      
+      .specs {
+        font-size: 0.75em;
+        
+        ul {
+          padding-left: 15px;
+          margin: 5px 0;
+        }
+      }
+    }
+    
+    ${RelatedCategoryItem}, ${ProductItem} {
+      padding: 12px;
+      
+      img {
+        width: 60px;
+        margin-right: 10px;
+      }
+      
+      h3 {
+        font-size: 1em;
+      }
+      
+      p {
+        font-size: 0.8em;
+      }
+    }
+  }
+  
+  /* Tablet Responsiveness */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    ${MainContainer} {
+      width: 95%;
+    }
+    
+    ${ProductGrid} {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  /* Very small phones */
+  @media (max-width: 480px) {
+    ${ProductGrid} {
+      grid-template-columns: 1fr;
+    }
+    
+    ${SearchBar} {
+      width: 100% !important;
+    }
+  }
+`;
+
 function CategoryDetail() {
     const { categoryId } = useParams(); 
     const [category, setCategory] = useState(null);
