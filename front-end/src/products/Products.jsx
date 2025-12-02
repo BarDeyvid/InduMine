@@ -152,42 +152,44 @@ const ViewToggleGroup = styled.div`
     }
 `;
 
+
 const ToggleButton = styled.button`
-    padding: 10px 15px;
-    background-color: ${props => props.$active ? props.theme.primary : props.theme.surface};
-    color: ${props => props.$active ? 'white' : props.theme.text};
-    border: 1px solid ${props => props.theme.primary}${props.$active ? 'ff' : '40'};
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 0.9em;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    min-width: 100px;
-    justify-content: center;
-    
-    &:hover {
-        background-color: ${props => props.$active ? props.theme.primary : props.theme.surfaceHover};
+  padding: 10px 15px;
+  background-color: ${({ theme, $active }) => ($active ? theme.primary : theme.surface)};
+  color: ${({ theme, $active }) => ($active ? 'white' : theme.text)};
+  border: 1px solid ${({ theme, $active }) => `${theme.primary}${$active ? 'ff' : '40'}`};
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  justify-content: center;
+
+  &:hover {
+    background-color: ${({ theme, $active }) => ($active ? theme.primary : theme.surfaceHover)};
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+    min-width: 90px;
+    font-size: 0.85em;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px;
+    min-width: auto;
+    flex: 1;
+
+    span {
+      display: none;
     }
-    
-    @media (max-width: 768px) {
-        padding: 8px 12px;
-        min-width: 90px;
-        font-size: 0.85em;
-    }
-    
-    @media (max-width: 480px) {
-        padding: 8px;
-        min-width: auto;
-        flex: 1;
-        
-        span {
-            display: none;
-        }
-    }
+  }
 `;
+
 
 const ProductList = styled.div`
     display: grid;
