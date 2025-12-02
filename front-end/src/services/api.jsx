@@ -1,5 +1,5 @@
 // front-end/src/services/api.js
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://weg-product-api.onrender.com/api';
 
 export const api = {
     // Verificar saúde da API
