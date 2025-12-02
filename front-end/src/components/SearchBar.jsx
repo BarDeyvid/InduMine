@@ -15,9 +15,9 @@ const SearchContainer = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 12px 50px 12px 20px;
+  padding: 12px 0px 12px 0px;
   border: 2px solid ${props => props.theme.primary};
-  border-radius: 25px;
+  border-radius: 20px;
   font-size: 16px;
   outline: none;
   transition: all 0.3s ease;
@@ -30,13 +30,15 @@ const SearchInput = styled.input`
 
   &::placeholder {
     color: ${props => props.theme.textSecondary};
+    position: absolute;
+    left: 10px;
   }
 `;
 
 const SearchIconContainer = styled.div`
   position: absolute;
   right: 15px;
-  top: 50%;
+  top: 55%;
   transform: translateY(-50%);
   color: ${props => props.theme.primary};
   cursor: pointer;
@@ -89,7 +91,7 @@ const ResultItem = styled(Link)`
 
   .result-info {
     flex: 1;
-    min-width: 0; /* Permite que o texto seja truncado */
+    min-width: 0; 
   }
 
   .result-title {
@@ -179,7 +181,7 @@ function SearchBar({ width, style, placeholder = "Buscar produtos ou categorias.
         setShowResults(false);
         setError(null);
       }
-    }, 500); // Aumentado para 500ms para reduzir requisições
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
