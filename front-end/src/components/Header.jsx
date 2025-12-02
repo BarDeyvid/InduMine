@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { Button, Avatar } from "@mui/material";
-import { Settings, Brightness4, Logout, ChevronRight } from '@mui/icons-material';
+import { Settings, Brightness4, Logout, ChevronRight, Menu as MenuIcon, Search } from '@mui/icons-material';
 import { useTheme } from '../context/themeProvider';
 import useAnimatedToggle from '../components/useAnimatedToggle';
 import SearchBar from "../components/SearchBar";
@@ -22,42 +22,90 @@ const StyledHeader = styled.header`
     background-color: ${props => props.theme.surface}; 
     color: ${props => props.theme.text}; 
     width: 100%; 
-    padding: 10px 5vw; 
+    padding: 12px 20px; 
     box-sizing: border-box; 
     display: flex; 
     justify-content: space-between; 
     align-items: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
-    flex-wrap: wrap; /* Permite quebrar linha no mobile */
+    flex-wrap: wrap;
     gap: 15px;
+    min-height: 70px;
 
     .logo-placeholder {
-        font-size: 1.5em;
+        font-size: 1.4em;
         font-weight: bold;
         color: ${props => props.theme.primary};
-        margin-left: 40px; /* Espaço para o botão do menu hamburger */
+        flex-shrink: 0;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         padding: 10px 15px;
+    }
+    
+    @media (max-width: 768px) {
+        padding: 8px 12px;
+        gap: 10px;
+        min-height: 60px;
         
         .logo-placeholder {
             font-size: 1.2em;
-            margin-left: 50px;
+            order: 1;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .logo-placeholder {
+            font-size: 1.1em;
         }
     }
 `;
 
-const SearchArea = styled.div`
-    width: 25vw;
-
+const HeaderControls = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    justify-content: flex-end;
+    
     @media (max-width: 768px) {
-        order: 3; /* Joga a busca para baixo no mobile */
+        order: 2;
+        flex: none;
+        width: auto;
+    }
+`;
+
+const SearchArea = styled.div`
+    width: 35vw;
+    max-width: 400px;
+    margin: 0 auto;
+
+    @media (max-width: 1024px) {
+        width: 40vw;
+    }
+    
+    @media (max-width: 768px) {
+        order: 3;
         width: 100%;
-        margin-top: 5px;
+        margin-top: 10px;
+        max-width: 100%;
+        display: ${props => props.$showSearch ? 'block' : 'none'};
+    }
+`;
+
+const MobileSearchToggle = styled(Button)`
+    && {
+        display: none;
+        min-width: 40px;
+        padding: 8px;
+        border-radius: 50%;
+        
+        @media (max-width: 768px) {
+            display: flex;
+        }
     }
 `;
 
@@ -66,12 +114,13 @@ const UserProfileSection = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 `;
 
 const UserAvatarButton = styled(Button)`
     && {
         color: ${props => props.theme.text};
-        padding: 4px 8px;
+        padding: 6px 12px;
         border-radius: 50px;
         display: flex;
         align-items: center;
@@ -80,6 +129,10 @@ const UserAvatarButton = styled(Button)`
         
         &:hover {
             background-color: ${props => props.theme.surfaceHover};
+        }
+        
+        @media (max-width: 768px) {
+            padding: 4px 8px;
         }
     }
 `;
@@ -91,8 +144,33 @@ const UserInfo = styled.div`
     margin-right: 8px;
     text-align: left;
 
-    @media (max-width: 600px) {
-        display: none; /* Esconde texto em telas muito pequenas */
+    span:first-child {
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    span:last-child {
+        font-size: 12px;
+        opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+        span:first-child {
+            max-width: 80px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        display: ${props => props.$hideOnMobile ? 'none' : 'flex'};
+        
+        span:first-child {
+            max-width: 60px;
+            font-size: 13px;
+        }
     }
 `;
 
@@ -112,20 +190,65 @@ const UserSubMenu = styled.div`
     overflow: hidden;
     animation: ${({ $isclosing }) => $isclosing ? slideUp : slideDown} 0.3s ease-out forwards;
 
+    @media (max-width: 480px) {
+        width: 220px;
+        right: -10px;
+    }
+
     button {
         color: ${({ theme }) => theme.text};
         width: 100%;
         justify-content: flex-start;
-        padding: 15px; /* Aumentado touch target */
+        padding: 12px 15px; /* Aumentado touch target */
         border-radius: 0;
         text-transform: none;
         display: flex;
         align-items: center;
         gap: 10px;
+        font-size: 0.95em;
+        min-height: 48px;
         
         &:hover {
             background-color: ${({ theme }) => theme.primary};
             color: white;
+        }
+        
+        @media (max-width: 480px) {
+            padding: 10px 12px;
+            min-height: 44px;
+            font-size: 0.9em;
+        }
+    }
+`;
+
+const MenuToggleIcon = styled(ChevronRight)`
+    transform: ${props => (props.$isopen ? 'rotate(-90deg)' : 'rotate(90deg)')};
+    transition: transform 0.3s;
+    font-size: 1.2em;
+    
+    @media (max-width: 768px) {
+        margin-left: 0;
+    }
+`;
+
+const MobileMenuContainer = styled.div`
+    display: none;
+    
+    @media (max-width: 768px) {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        z-index: 999;
+        animation: fadeIn 0.3s ease-out;
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     }
 `;
@@ -133,6 +256,7 @@ const UserSubMenu = styled.div`
 export default function Header() {
     const [userInfo, setUserInfo] = useState({ name: "Usuário", cargo: "Visitante" });
     const navigate = useNavigate();
+    const [showMobileSearch, setShowMobileSearch] = useState(false);
 
     const [email, setEmail] = useState('');
     const [username, setUserName] = useState('');
@@ -170,65 +294,105 @@ export default function Header() {
         }
         
         if (userName && userRole) {
-            setUserInfo({ name: userName, cargo: userRole });
+            setUserInfo({ 
+                name: userName, 
+                cargo: userRole.length > 20 ? userRole.substring(0, 20) + '...' : userRole 
+            });
         }
     }, [navigate]);
     
     const { toggleTheme } = useTheme();
 
+    const toggleMobileSearch = () => {
+        setShowMobileSearch(!showMobileSearch);
+    };
+
+    const handleSearchClick = () => {
+        if (window.innerWidth <= 768) {
+            setShowMobileSearch(true);
+        }
+    };
+
     return (
-        <StyledHeader>
-            <div className="logo-placeholder">InduMine</div>
+        <>
+            <StyledHeader>
+                <div className="logo-placeholder">InduMine</div>
 
-            <SearchArea>
-                <SearchBar width="100%" placeholder="Buscar..." /> 
-            </SearchArea>
+                <HeaderControls>
+                    <SearchArea $showSearch={showMobileSearch}>
+                        <SearchBar 
+                            width="100%" 
+                            placeholder="Buscar..." 
+                            onClick={handleSearchClick}
+                        /> 
+                    </SearchArea>
+                    
+                    <MobileSearchToggle onClick={toggleMobileSearch}>
+                        <Search />
+                    </MobileSearchToggle>
+                    
+                    <UserProfileSection>
+                        <UserAvatarButton onClick={userSubMenu.toggle}>
+                            <Avatar 
+                                alt={userInfo.name} 
+                                src="/static/images/avatar/1.jpg" 
+                                sx={{ 
+                                    width: 36, 
+                                    height: 36,
+                                    '@media (max-width: 768px)': {
+                                        width: 32,
+                                        height: 32
+                                    }
+                                }} 
+                            />
+                            <UserInfo $hideOnMobile={showMobileSearch}>
+                                <span>{userInfo.name}</span>
+                                <span>{userInfo.cargo}</span>
+                            </UserInfo>
+                            <MenuToggleIcon $isopen={userSubMenu.isOpen}/>
+                        </UserAvatarButton>
 
-            <UserProfileSection>
-                <UserAvatarButton onClick={userSubMenu.toggle}>
-                    <Avatar alt={userInfo.name} src="/static/images/avatar/1.jpg" sx={{ width: 32, height: 32 }} />
-                    <UserInfo>
-                        <span style={{ fontSize: 14, fontWeight: "bold" }}>{userInfo.name}</span>
-                        <span style={{ fontSize: 12, opacity: 0.8 }}>{userInfo.cargo}</span>
-                    </UserInfo>
-                    <ChevronRight style={{ transform: userSubMenu.isOpen ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.3s' }}/>
-                </UserAvatarButton>
+                        {userSubMenu.isOpen && (
+                            <UserSubMenu ref={userSubMenu.ref} $isclosing={userSubMenu.isClosing}>
+                                <Button onClick={handleOpenSettings}>
+                                    <Settings /> Configurações
+                                </Button>
+                                <Button onClick={toggleTheme}>
+                                    <Brightness4 /> Trocar Tema
+                                </Button>
+                                <Button onClick={handleLogOut}>
+                                    <Logout /> Sair
+                                </Button>
+                            </UserSubMenu>
+                        )}
 
-                {userSubMenu.isOpen && (
-                    <UserSubMenu ref={userSubMenu.ref} $isclosing={userSubMenu.isClosing}>
-                        <Button onClick={handleOpenSettings}>
-                            <Settings /> Configurações
-                        </Button>
-                        <Button onClick={toggleTheme}>
-                            <Brightness4 /> Trocar Tema
-                        </Button>
-                        <Button onClick={handleLogOut}>
-                            <Logout /> Sair
-                        </Button>
-                    </UserSubMenu>
+                        {settingsMenu.isOpen && (
+                            <UserSettings
+                                ref={settingsMenu.ref}
+                                itsclosing={settingsMenu.isClosing}
+                                onClose={settingsMenu.close}
+                                email={email}
+                                setEmail={setEmail}
+                                username={username}
+                                setUserName={setUserName}
+                                phone={phone}
+                                setPhone={setPhone}
+                                birthdate={birthdate}
+                                setBirthdate={setBirthdate}
+                                country={country}
+                                setCountry={setCountry}
+                                gender={gender}
+                                setGender={setGender}
+                                saveChanges={saveChanges}
+                            />
+                        )}
+                    </UserProfileSection>
+                </HeaderControls>
+                
+                {showMobileSearch && (
+                    <MobileMenuContainer onClick={() => setShowMobileSearch(false)} />
                 )}
-
-                {settingsMenu.isOpen && (
-                    <UserSettings
-                        ref={settingsMenu.ref}
-                        itsclosing={settingsMenu.isClosing}
-                        onClose={settingsMenu.close}
-                        email={email}
-                        setEmail={setEmail}
-                        username={username}
-                        setUserName={setUserName}
-                        phone={phone}
-                        setPhone={setPhone}
-                        birthdate={birthdate}
-                        setBirthdate={setBirthdate}
-                        country={country}
-                        setCountry={setCountry}
-                        gender={gender}
-                        setGender={setGender}
-                        saveChanges={saveChanges}
-                    />
-                )}
-            </UserProfileSection>
-        </StyledHeader>
+            </StyledHeader>
+        </>
     );
 }
