@@ -1,5 +1,5 @@
 // front-end/src/products/Products.jsx
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import Header from "../components/Header";
@@ -7,37 +7,14 @@ import Typography from '@mui/material/Typography';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
-import { Inventory, Category, Update, CheckCircle, ViewModule, ViewList } from '@mui/icons-material';
-
-const DUMMY_PRODUCTS = [
-    { id: 1, name: "Motor AC Premium", photo: "../src/assets/dummyPhoto1.png", description: "Motor de alta potência, série 4000." },
-    { id: 2, name: "Inversor Série Z", photo: "../src/assets/dummyPhoto2.png", description: "Inversor de frequência inteligente e compacto." },
-    { id: 3, name: "Gerador Diesel", photo: "../src/assets/dummyPhoto3.png", description: "Gerador confiável para aplicações críticas." },
-    { id: 4, name: "Transformador IS-T", photo: "../src/assets/dummyPhoto4.png", description: "Transformador de energia de baixo ruído." },
-    { id: 5, name: "Motor Trifásico IP65", photo: "../src/assets/dummyPhoto5.png", description: "Motor com proteção avançada contra poeira e água." },
-    { id: 6, name: "Inversor Solar PV", photo: "../src/assets/dummyPhoto6.png", description: "Inversor para sistemas fotovoltaicos on-grid." },
-];
-
-const dummyDataset = [
-    { categoria: "Motores", valor: 50 },
-    { categoria: "Inversores", valor: 30 },
-    { categoria: "Geradores", valor: 20 },
-    { categoria: "Transf.", valor: 15 },
-    { categoria: "Outros", valor: 10 },
-];
-
-const secondDummyDataset = [
-    { id: 0, value: 82, label: "Ativos" },
-    { id: 1, value: 10, label: "Em Revisao" },
-    { id: 2, value: 8, label: "Descontinuados" },
-];
+import { Inventory, ViewModule, ViewList } from '@mui/icons-material';
+import { CircularProgress } from '@mui/material';
+import { api } from '../services/api';
 
 const StyledPage = styled.div`
     background-color: ${props => props.theme.background}; 
     color: ${props => props.theme.text}; 
-    width: 100%;
     min-height: 100vh;
-    box-sizing: border-box;
     display: flex; 
     flex-direction: column;
     align-items: center;
@@ -49,66 +26,9 @@ const MainContainer = styled.div`
     max-width: 1200px; 
     margin-top: 20px;
 
-    h1 {
-        font-size: 2.5em;
-        color: ${props => props.theme.primary};
-        margin: 20px 0 10px 0;
-        text-align: center;
-    }
-    
-    h2 {
-        font-size: 1.5em;
-        color: ${props => props.theme.text};
-        margin: 30px 0 15px 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    hr {
-        border-color: ${props => props.theme.textSecondary};
-        opacity: 0.2;
-        margin: 40px 0;
-    }
-`;
-
-const InfoCardContainer = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-`;
-
-const InfoCard = styled.div`
-    background-color: ${props => props.theme.surface}; 
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    .icon {
-        color: ${props => props.theme.primary};
-        font-size: 3rem;
-        flex-shrink: 0;
-    }
-
-    .data {
-        text-align: right;
-    }
-
-    .value {
-        font-size: 2em;
-        font-weight: bold;
-        color: ${props => props.theme.text};
-        margin: 0;
-    }
-
-    .title {
-        font-size: 0.9em;
-        color: ${props => props.theme.textSecondary};
-        margin: 0;
+    @media (max-width: 768px) {
+        width: 95%;
+        padding: 0 10px;
     }
 `;
 
@@ -116,21 +36,26 @@ const ChartGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
+    margin-bottom: 30px;
 
     & > div {
         background-color: ${props => props.theme.surface};
         padding: 15px;
         border-radius: 12px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        min-height: 280px;
         display: flex;
         flex-direction: column;
         align-items: center;
+        overflow: hidden; /* Evita que o gráfico quebre o container */
+    }
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr; /* 1 por linha no mobile */
         
-        & .MuiTypography-root {
-            color: ${props => props.theme.primary};
-            font-weight: bold;
-            margin-bottom: 10px;
+        /* Ajuste para o gráfico caber na tela do celular */
+        .MuiChartsSurface-root {
+            width: 100% !important;
+            max-width: 85vw; 
         }
     }
 `;
@@ -139,7 +64,9 @@ const ProductHeader = styled.div`
     display: flex;
     justify-content: space-between; 
     align-items: center; 
-    margin: 20px 0 20px 0;
+    margin: 20px 0;
+    flex-wrap: wrap;
+    gap: 15px;
 `;
 
 const ToggleButton = styled.button`
@@ -148,15 +75,14 @@ const ToggleButton = styled.button`
     color: white;
     border: none;
     border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
 
-    &:hover {
-        background-color: ${props => props.theme.primaryDark};
-        transform: translateY(-1px);
+    @media (max-width: 480px) {
+        width: 100%;
+        justify-content: center;
     }
 `;
 
@@ -164,209 +90,165 @@ const ProductList = styled.ul`
     list-style: none;
     padding: 0;
     margin: 0;
-    display: ${props => (props.$view === 'grid' ? 'grid' : 'flex')};
-    grid-template-columns: ${props => (props.$view === 'grid' ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr')};
-    flex-direction: ${props => (props.$view === 'list' ? 'column' : 'initial')};
+    display: grid;
+    /* Grid dinâmico baseado na view e tamanho da tela */
+    grid-template-columns: ${props => (props.$view === 'grid' 
+        ? 'repeat(auto-fill, minmax(200px, 1fr))' 
+        : '1fr')};
     gap: 15px;
+
+    @media (max-width: 480px) {
+        /* No mobile muito pequeno, grid vira 2 colunas pequenas ou 1 grande */
+        grid-template-columns: ${props => (props.$view === 'grid' 
+            ? 'repeat(2, 1fr)' 
+            : '1fr')};
+    }
 `;
 
 const ProductItem = styled(Link)`
     display: flex;
+    flex-direction: ${props => props.$view === 'grid' ? 'column' : 'row'};
     align-items: center;
     text-decoration: none;
     color: inherit;
     background-color: ${props => props.theme.surface};
-    border: 1px solid ${props => props.theme.textSecondary}20;
     border-radius: 10px;
     padding: 15px;
-    transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-    &:hover {
-        box-shadow: 0 4px 12px ${props => props.theme.primary}30;
-        transform: translateY(-2px);
-    }
+    text-align: ${props => props.$view === 'grid' ? 'center' : 'left'};
 
     img {
-        width: 60px; 
-        height: auto;
-        margin-right: 15px; 
-        border-radius: 6px;
-        flex-shrink: 0;
+        width: ${props => props.$view === 'grid' ? '100px' : '80px'};
+        height: ${props => props.$view === 'grid' ? '100px' : '80px'};
+        object-fit: cover;
+        margin-right: ${props => props.$view === 'grid' ? '0' : '15px'};
+        margin-bottom: ${props => props.$view === 'grid' ? '10px' : '0'};
+        border-radius: 8px;
     }
 
-    .list-info {
-        flex: 1; 
-        text-align: left;
-    }
+    .list-info h3 { margin: 0 0 5px 0; font-size: 1em; }
+    .list-info p { margin: 0; font-size: 0.8em; color: ${props => props.theme.textSecondary}; }
 
-    .list-info h3 {
-        margin: 0 0 5px 0;
-        font-size: 1.1em;
-        color: ${props => props.theme.primary};
-    }
-
-    .list-info p {
-        margin: 0;
-        font-size: 0.85em;
-        color: ${props => props.theme.textSecondary};
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-`;
-
-const ProductCardGrid = styled(ProductItem)`
-    flex-direction: column;
-    text-align: center;
-    
-    img {
-        width: 100px;
-        margin: 0 0 10px 0;
-    }
-
-    .list-info {
-        text-align: center;
-    }
-    
-    .list-info p {
-        display: none; /* Descrição longa oculta na grade */
+    @media (max-width: 480px) {
+        /* Ajuste fino para lista em mobile */
+        img {
+            width: ${props => props.$view === 'grid' ? '100%' : '60px'};
+            height: auto;
+            max-width: ${props => props.$view === 'grid' ? '120px' : '60px'};
+        }
     }
 `;
 
 function Products() {
-    const [apiRows, setApiRows] = useState({});
-    const [loadingError, setLoadingError] = useState(null);
+    const [products, setProducts] = useState([]);
+    const [stats, setStats] = useState({
+        totalProducts: 0,
+        totalCategories: 0,
+        activePercentage: 0,
+        updatesToday: 0
+    });
+    const [chartData, setChartData] = useState({
+        byCategory: [],
+        byStatus: [],
+        weeklyUpdates: []
+    });
+    
     const [productView, setProductView] = useState('grid');
-    const TotalRows = DUMMY_PRODUCTS.length; 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const toggleProductView = useCallback(() => {
         setProductView((prevView) => (prevView === 'grid' ? 'list' : 'grid'));
     }, []);
 
     useEffect(() => {
-        const mockApiData = { "Motores": 50, "Inversores": 30, "Geradores": 20, "Transformadores": 15, "Outros": 10 };
-        setApiRows(mockApiData);
-        
-        // setLoadingError("Falha ao carregar dados de status da API.");
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                
+                // 1. Buscar Lista de Produtos (paginação inicial de 50)
+                const productsData = await api.getProducts(1, 50);
+                setProducts(productsData.products || []);
+                
+                // 2. Buscar Estatísticas do Dashboard para os Gráficos
+                const statsData = await api.getDashboardStats();
+                setStats({
+                    totalProducts: statsData.total_products,
+                    totalCategories: statsData.total_categories,
+                    activePercentage: statsData.active_products_percentage,
+                    updatesToday: statsData.updates_today
+                });
+                
+                // CORREÇÃO AQUI: Mapear os dados que vêm em snake_case para camelCase
+                if (statsData.chart_data) {
+                    setChartData({
+                        byCategory: statsData.chart_data.by_category || [],
+                        byStatus: statsData.chart_data.by_status || [],
+                        weeklyUpdates: statsData.chart_data.weekly_updates || []
+                    });
+                }
+
+                setError(null);
+            } catch (err) {
+                console.error("Erro ao carregar dados dos produtos:", err);
+                setError("Erro ao conectar com o servidor. Verifique se a API está online.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
+    if (loading) return <StyledPage><Header /><CircularProgress style={{marginTop: 50}}/></StyledPage>;
 
     return (
         <StyledPage>
             <Header />
             <MainContainer>
+                <h1>Produtos</h1>
                 
-                <h1>Catálogo de Produtos e Análise</h1>
-                
-                <h2>Visão Geral Estatística</h2>
-                <InfoCardContainer>
-                    <InfoCard>
-                        <Inventory className="icon" />
-                        <div className="data">
-                            <div className="value">{TotalRows}</div>
-                            <div className="title">Total de Produtos</div>
-                        </div>
-                    </InfoCard>
-                    <InfoCard>
-                        <CheckCircle className="icon" />
-                        <div className="data">
-                            <div className="value">{secondDummyDataset.find(d => d.label === "Ativos")?.value}%</div>
-                            <div className="title">Status Ativo</div>
-                        </div>
-                    </InfoCard>
-                    <InfoCard>
-                        <Category className="icon" />
-                        <div className="data">
-                            <div className="value">{Object.keys(apiRows).length}</div>
-                            <div className="title">Categorias</div>
-                        </div>
-                    </InfoCard>
-                    <InfoCard>
-                        <Update className="icon" />
-                        <div className="data">
-                            <div className="value">4</div>
-                            <div className="title">Atualizações Hoje</div>
-                        </div>
-                    </InfoCard>
-                </InfoCardContainer>
-                
-                <hr/>
-                <h2>Gráficos de Distribuição</h2>
                 <ChartGrid>
                     <div>
-                        <Typography variant="h6">Produtos Por Categoria</Typography>
+                        <Typography variant="subtitle1">Categorias</Typography>
                         <BarChart
-                            dataset={dummyDataset}
+                            dataset={chartData.byCategory}
                             xAxis={[{ dataKey: "categoria", scaleType: 'band' }]}
-                            series={[{ dataKey: "valor", label: "Contagem", color: '#4CAF50' }]}
-                            height={240}
+                            series={[{ dataKey: "valor", label: "Qtd" }]}
+                            height={250}
                             width={300}
+                            slotProps={{ legend: { hidden: true } }}
                         />
                     </div>
-                        <div>
-                        <Typography variant="h6">Status dos Produtos</Typography>
+                    <div>
+                        <Typography variant="subtitle1">Status</Typography>
                         <PieChart
-                            series={[{ data: secondDummyDataset, innerRadius: 30, outerRadius: 80, paddingAngle: 5 }]}
+                            series={[{ data: chartData.byStatus, innerRadius: 30, paddingAngle: 5 }]}
+                            height={200}
                             width={300}
-                            height={240}
-                            margin={{ top: 10, bottom: 10, left: 100, right: 0 }}
-                             sx={{
-                                "*": {
-                                    padding: 0,
-                                    margin: 0,
-                                    gap: 0,
-                                    left: 0,
-                                    right: "auto",
-                                },
-                                "& ul": {
-                                    paddingRight: 15,
-                                    display: 'flexbox',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                    gap: 1,
-                                },
-                                "& li": {
-                                    padding: 1,
-                                    borderRadius: 2,
-                                },
-                                }}/>
-                    </div>
-                        <div>
-                        <Typography variant="h6">Atualizações Semanais (Qtd.)</Typography>
-                        <LineChart
-                            xAxis={[{ scaleType: "band", data: ["Seg", "Ter", "Qua", "Qui", "Sex"] }]}
-                            series={[
-                                { data: [1, 3, 5, 2, 8], label: "Novos Registros", color: '#2196F3' },
-                            ]}
-                            height={240}
-                            width={300}
+                            slotProps={{ legend: { hidden: true } }}
                         />
                     </div>
                 </ChartGrid>
                 
-                <hr/>
                 <ProductHeader> 
-                    <h2>Lista Detalhada de Produtos</h2>
-                    <ToggleButton onClick={toggleProductView}>
+                    <h2>Catálogo</h2>
+                    <ToggleButton onClick={() => setProductView(v => v === 'grid' ? 'list' : 'grid')}>
                         {productView === 'grid' ? <ViewList /> : <ViewModule />}
-                        {productView === 'grid' ? 'Mudar para Vista em Coluna' : 'Mudar para Vista em Grade'}
+                        {productView === 'grid' ? 'Lista' : 'Grade'}
                     </ToggleButton>
                 </ProductHeader>
                 
                 <ProductList $view={productView}>
-                    {DUMMY_PRODUCTS.map((product) => {
-                        const ItemComponent = productView === 'grid' ? ProductCardGrid : ProductItem;
-                        return (
-                            <ItemComponent key={product.id} to={`/products/${product.id}`}>
-                                <img src={product.photo} alt={product.name} />
-                                <div className="list-info">
-                                    <h3>{product.name}</h3>
-                                    <p>{product.description}</p>
-                                </div>
-                            </ItemComponent>
-                        );
-                    })}
+                    {products.map((product) => (
+                        <ProductItem key={product.id} to={`/products/${product.id}`} $view={productView}>
+                            <img src={product.photo} onError={(e) => e.target.src = 'https://via.placeholder.com/100'} alt=""/>
+                            <div className="list-info">
+                                <h3>{product.name}</h3>
+                                <p>{product.category}</p>
+                            </div>
+                        </ProductItem>
+                    ))}
                 </ProductList>
                 
             </MainContainer>

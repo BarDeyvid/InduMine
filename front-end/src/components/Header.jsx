@@ -1,34 +1,21 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { Button, IconButton, Avatar } from "@mui/material";
+import { Button, Avatar } from "@mui/material";
 import { Settings, Brightness4, Logout, ChevronRight } from '@mui/icons-material';
 import { useTheme } from '../context/themeProvider';
 import useAnimatedToggle from '../components/useAnimatedToggle';
 import SearchBar from "../components/SearchBar";
 import UserSettings from './UserSettings'; 
 
-
 const slideDown = keyframes`
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 `;
 
 const slideUp = keyframes`
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-10px); }
 `;
 
 const StyledHeader = styled.header`
@@ -44,11 +31,33 @@ const StyledHeader = styled.header`
     position: sticky;
     top: 0;
     z-index: 1000;
+    flex-wrap: wrap; /* Permite quebrar linha no mobile */
+    gap: 15px;
 
     .logo-placeholder {
         font-size: 1.5em;
         font-weight: bold;
         color: ${props => props.theme.primary};
+        margin-left: 40px; /* Espaço para o botão do menu hamburger */
+    }
+
+    @media (max-width: 768px) {
+        padding: 10px 15px;
+        
+        .logo-placeholder {
+            font-size: 1.2em;
+            margin-left: 50px;
+        }
+    }
+`;
+
+const SearchArea = styled.div`
+    width: 25vw;
+
+    @media (max-width: 768px) {
+        order: 3; /* Joga a busca para baixo no mobile */
+        width: 100%;
+        margin-top: 5px;
     }
 `;
 
@@ -83,7 +92,7 @@ const UserInfo = styled.div`
     text-align: left;
 
     @media (max-width: 600px) {
-        display: none;
+        display: none; /* Esconde texto em telas muito pequenas */
     }
 `;
 
@@ -107,7 +116,7 @@ const UserSubMenu = styled.div`
         color: ${({ theme }) => theme.text};
         width: 100%;
         justify-content: flex-start;
-        padding: 10px 15px;
+        padding: 15px; /* Aumentado touch target */
         border-radius: 0;
         text-transform: none;
         display: flex;
@@ -169,16 +178,15 @@ export default function Header() {
 
     return (
         <StyledHeader>
-            
             <div className="logo-placeholder">InduMine</div>
 
-            <UserProfileSection>
-                <div className="search-area">
-                    <SearchBar width={"25vw"} /> 
-                </div>
+            <SearchArea>
+                <SearchBar width="100%" placeholder="Buscar..." /> 
+            </SearchArea>
 
+            <UserProfileSection>
                 <UserAvatarButton onClick={userSubMenu.toggle}>
-                    <Avatar alt={userInfo.name} src="/static/images/avatar/1.jpg" />
+                    <Avatar alt={userInfo.name} src="/static/images/avatar/1.jpg" sx={{ width: 32, height: 32 }} />
                     <UserInfo>
                         <span style={{ fontSize: 14, fontWeight: "bold" }}>{userInfo.name}</span>
                         <span style={{ fontSize: 12, opacity: 0.8 }}>{userInfo.cargo}</span>
@@ -195,7 +203,7 @@ export default function Header() {
                             <Brightness4 /> Trocar Tema
                         </Button>
                         <Button onClick={handleLogOut}>
-                            <Logout /> Log Out
+                            <Logout /> Sair
                         </Button>
                     </UserSubMenu>
                 )}

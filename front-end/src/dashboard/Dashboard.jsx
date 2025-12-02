@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
-import { Category, History, Warning, AutoAwesomeMosaic, Inventory } from '@mui/icons-material';
+import { Category, History, Warning, AutoAwesomeMosaic, Inventory, Search } from '@mui/icons-material';
 import { api, handleApiError } from '../services/api';
 
 const HISTORY_KEY = 'recentProducts';
@@ -19,6 +19,10 @@ const StyledPage = styled.div`
     flex-direction: column;
     align-items: center;
     padding-bottom: 40px;
+    
+    @media (max-width: 768px) {
+        padding-bottom: 20px;
+    }
 `;
 
 const MainContainer = styled.div`
@@ -30,30 +34,82 @@ const MainContainer = styled.div`
         font-size: 2.2em;
         color: ${props => props.theme.primary};
         margin: 20px 0 10px 0;
-        border-bottom: 2px solid ${props => props.theme.textSecondary}20;
-        padding-bottom: 5px;
+        text-align: center;
     }
-
+    
     h2 {
         font-size: 1.5em;
-        color: ${props => props.theme.text};
         margin: 30px 0 15px 0;
         display: flex;
         align-items: center;
         gap: 10px;
+        
+        svg {
+            font-size: 1.2em;
+        }
     }
 
     @media (max-width: 768px) {
-        width: 100%;
+        width: 95%;
         padding: 0 10px;
+        margin-top: 10px;
+        
+        h1 { 
+            font-size: 1.8em; 
+            margin: 10px 0 5px 0;
+        }
+        h2 { 
+            font-size: 1.3em; 
+            margin: 20px 0 10px 0;
+            gap: 8px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        width: 100%;
+        padding: 0 12px;
+        
+        h1 { font-size: 1.6em; }
+        h2 { 
+            font-size: 1.2em; 
+            margin: 16px 0 8px 0;
+        }
+    }
+`;
+
+const SearchContainer = styled.div`
+    width: 100%;
+    margin-bottom: 20px;
+    
+    @media (max-width: 768px) {
+        margin-bottom: 15px;
+    }
+    
+    @media (max-width: 480px) {
+        margin-bottom: 12px;
     }
 `;
 
 const InfoCardsContainer = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
+
+    @media (max-width: 768px) {
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    
+    @media (max-width: 600px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
 `;
 
 const InfoCard = styled.div`
@@ -64,144 +120,262 @@ const InfoCard = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 100px;
-
-    .icon {
-        color: ${props => props.theme.primary};
-        font-size: 2.5rem;
+    min-height: 120px;
+    
+    .icon { 
+        color: ${props => props.theme.primary}; 
+        font-size: 2.5rem; 
+        margin-bottom: 10px;
     }
-
-    .value {
-        font-size: 2.5em;
-        font-weight: bold;
-        color: ${props => props.theme.primary};
+    .value { 
+        font-size: 2em; 
+        font-weight: bold; 
+        margin: 5px 0;
+        line-height: 1.2;
+    }
+    .title { 
+        font-size: 0.9em; 
+        color: ${props => props.theme.textSecondary}; 
         margin-top: 5px;
     }
 
-    .title {
-        font-size: 1em;
-        color: ${props => props.theme.textSecondary};
-        margin-top: 5px;
+    @media (max-width: 768px) {
+        padding: 16px;
+        min-height: 110px;
+        
+        .icon { font-size: 2.2rem; }
+        .value { font-size: 1.8em; }
+        .title { font-size: 0.85em; }
     }
     
-    &.error-card {
-        background-color: #fcebeb; 
-        color: #dc3545;
-        border: 1px solid #dc3545;
-        .icon { color: #dc3545; }
-        .value, .title { color: #dc3545; }
+    @media (max-width: 480px) {
+        padding: 14px;
+        min-height: 100px;
+        
+        .icon { font-size: 2rem; }
+        .value { font-size: 1.6em; }
+        .title { font-size: 0.8em; }
     }
 `;
 
 const CategoryGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 20px;
-    list-style: none;
-    padding: 0;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+
+    @media (max-width: 768px) {
+        gap: 12px;
+    }
+    
+    @media (max-width: 600px) {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    
+    @media (max-width: 480px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    @media (max-width: 360px) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
 `;
 
 const CategoryCard = styled(Link)`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 20px 10px;
+    padding: 15px;
     background-color: ${props => props.theme.surface};
     border-radius: 12px;
-    text-align: center;
     text-decoration: none;
     color: inherit;
-    transition: all 0.3s ease;
-    border: 1px solid ${props => props.theme.textSecondary}20;
-
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
     &:hover {
-        box-shadow: 0 8px 16px ${props => props.theme.primary}40;
-        transform: translateY(-4px);
-        border-color: ${props => props.theme.primary};
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
     img {
-        width: 100%;
-        max-width: 80px;
-        height: auto;
-        margin-bottom: 10px;
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
         border-radius: 6px;
+        margin-bottom: 10px;
+    }
+    
+    h3 { 
+        font-size: 1em; 
+        text-align: center; 
+        margin: 0 0 4px 0;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        max-width: 100%;
+    }
+    
+    p { 
+        font-size: 0.8em; 
+        color: ${props => props.theme.textSecondary}; 
+        margin: 0;
     }
 
-    h3 {
-        font-size: 1.1em;
-        margin: 5px 0 0 0;
-        color: ${props => props.theme.text};
+    @media (max-width: 768px) {
+        padding: 12px;
+        
+        img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 8px;
+        }
+        
+        h3 { font-size: 0.9em; }
+        p { font-size: 0.75em; }
     }
+    
+    @media (max-width: 480px) {
+        padding: 10px;
+        
+        img {
+            width: 45px;
+            height: 45px;
+            margin-bottom: 6px;
+        }
+        
+        h3 { font-size: 0.85em; }
+        p { font-size: 0.7em; }
+    }
+`;
 
-    p {
-        font-size: 0.8em;
-        color: ${props => props.theme.textSecondary};
-        margin: 5px 0 0 0;
+const TableWrapper = styled.div`
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    
+    @media (max-width: 768px) {
+        border-radius: 6px;
+        margin-bottom: 15px;
     }
 `;
 
 const ActivityTableStyle = styled.table`
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 10px;
-    overflow: hidden;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-collapse: collapse;
+    min-width: 600px;
 
     thead th {
         background-color: ${props => props.theme.primary};
         color: white;
-        padding: 12px 15px;
+        padding: 12px 8px;
         text-align: left;
+        font-size: 0.95em;
         font-weight: 600;
-        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    tbody td {
+        padding: 10px 8px;
+        border-bottom: 1px solid ${props => props.theme.textSecondary}20;
+        background-color: ${props => props.theme.surface};
         font-size: 0.9em;
     }
-
-    tbody tr {
-        background-color: ${props => props.theme.surface};
-        border-bottom: 1px solid ${props => props.theme.textSecondary}20;
-        transition: background-color 0.2s;
-    }
-
-    tbody tr:hover {
-        background-color: ${props => props.theme.surfaceHover};
-    }
     
-    tbody tr:last-child {
+    tbody tr:last-child td {
         border-bottom: none;
     }
+    
+    @media (max-width: 768px) {
+        min-width: 500px;
+        
+        thead th {
+            padding: 10px 6px;
+            font-size: 0.9em;
+        }
+        
+        tbody td {
+            padding: 8px 6px;
+            font-size: 0.85em;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        min-width: 450px;
+        
+        thead th {
+            padding: 8px 5px;
+            font-size: 0.85em;
+        }
+        
+        tbody td {
+            padding: 7px 5px;
+            font-size: 0.8em;
+        }
+    }
+`;
 
-    td {
-        padding: 12px 15px;
-        color: ${props => props.theme.text};
+const LoadingContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    width: 100%;
+    
+    h1 {
+        font-size: 1.5em;
+        margin-top: 20px;
+        color: ${props => props.theme.textSecondary};
+    }
+    
+    @media (max-width: 768px) {
+        min-height: 50vh;
+        
+        h1 {
+            font-size: 1.3em;
+        }
+    }
+`;
+
+const NoDataMessage = styled.div`
+    text-align: center;
+    padding: 30px;
+    color: ${props => props.theme.textSecondary};
+    font-style: italic;
+    
+    @media (max-width: 768px) {
+        padding: 20px;
         font-size: 0.95em;
     }
+`;
 
-    td button {
-        background-color: ${props => props.theme.primary};
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s;
+const MobileOptimizedLink = styled(Link)`
+    display: inline-block;
+    padding: 6px 12px;
+    background-color: ${props => props.theme.primary};
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+        background-color: ${props => props.theme.primaryDark || props.theme.primary}cc;
     }
     
-    td button:hover {
-        background-color: ${props => props.theme.primaryDark};
-    }
-    
-    td:nth-child(4) {
-        font-weight: bold;
-    }
-    
-    .empty-row td {
-        text-align: center;
-        color: ${props => props.theme.textSecondary};
+    @media (max-width: 768px) {
+        padding: 5px 10px;
+        font-size: 0.8em;
     }
 `;
 
@@ -279,9 +453,9 @@ function Dashboard() {
         return (
             <StyledPage>
                 <Header />
-                <MainContainer>
+                <LoadingContainer>
                     <h1>Carregando...</h1>
-                </MainContainer>
+                </LoadingContainer>
             </StyledPage>
         );
     }
@@ -290,108 +464,88 @@ function Dashboard() {
         <StyledPage>
             <Header />
             <MainContainer>
-                <h1>Dashboard - Visão Geral do Catálogo</h1>
+                <h1>Dashboard</h1>
                 
-                <SearchBar width={"100%"} style={{ marginBottom: '30px' }} />
+                <SearchContainer>
+                    <SearchBar width="100%" placeholder="Pesquisa rápida..." />
+                </SearchContainer>
                 
-                <h2><AutoAwesomeMosaic /> Visão Geral do Catálogo</h2>
+                <h2><AutoAwesomeMosaic /> Visão Geral</h2>
                 <InfoCardsContainer>
-                    {error ? (
-                        <InfoCard className="error-card">
-                            <Warning className="icon" />
-                            <div className="value">ERRO</div>
-                            <div className="title">{error}</div>
-                        </InfoCard>
-                    ) : loading ? (
-                        <InfoCard>
-                            <div className="value">...</div>
-                            <div className="title">Carregando...</div>
-                        </InfoCard>
-                    ) : (
-                        <>
-                            <InfoCard>
-                                <Category className="icon" />
-                                <div className="value">{stats.totalCategories}</div>
-                                <div className="title">Categorias Registradas</div>
-                            </InfoCard>
-                            
-                            <InfoCard>
-                                <Inventory className="icon" />
-                                <div className="value">{stats.totalProducts.toLocaleString()}</div>
-                                <div className="title">Total de Produtos</div>
-                            </InfoCard>
-                            
-                            <InfoCard>
-                                <History className="icon" />
-                                <div className="value">{stats.activeProductsPercentage}%</div>
-                                <div className="title">Status Ativo</div>
-                            </InfoCard>
-
-                            <InfoCard>
-                                <History className="icon" />
-                                <div className="value">{stats.updatesToday}</div>
-                                <div className="title">Atualizações Hoje</div>
-                            </InfoCard>
-                        </>
-                    )}
+                    <InfoCard>
+                        <Inventory className="icon"/>
+                        <div className="value">{stats.totalProducts}</div>
+                        <div className="title">Produtos</div>
+                    </InfoCard>
+                    <InfoCard>
+                        <Category className="icon"/>
+                        <div className="value">{stats.totalCategories}</div>
+                        <div className="title">Categorias</div>
+                    </InfoCard>
+                    <InfoCard>
+                        <History className="icon"/>
+                        <div className="value">{stats.activeProductsPercentage}%</div>
+                        <div className="title">Ativos</div>
+                    </InfoCard>
                 </InfoCardsContainer>
 
-                
-                <h2><Category /> Acesso Rápido por Categoria</h2>
-                <CategoryGrid>
-                    {categories.map((category) => (
-                        <CategoryCard key={category.id} to={`/categories/${category.id}`}>
-                            <img src={category.photo} alt={category.name} />
-                            <h3>{category.name}</h3>
-                            <p>{category.product_count || 0} Produtos</p>
-                        </CategoryCard>
-                    ))}
-                </CategoryGrid>
-
-                <h2><History /> Itens Acessados Recentemente</h2>
-                <ActivityTableStyle>
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Tipo</th>
-                            <th>Último Acesso</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {combinedHistory.map((item, index) => (
-                            <tr key={index}>
-                                <td>{item.name}</td>
-                                <td>{item.type === 'product' ? 'Produto' : 'Categoria'}</td>
-                                <td>
-                                    {item.timestamp ? new Date(item.timestamp).toLocaleTimeString('pt-BR', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit'
-                                    }) : 'N/A'}
-                                </td>
-                                <td>{item.status || 'Ativo'}</td>
-                                <td>
-                                    <button onClick={() => navigate(
-                                        item.type === 'product' 
-                                            ? `/products/${item.id}`
-                                            : `/categories/${item.id}`
-                                    )}>
-                                        Ver Detalhes
-                                    </button>
-                                </td>
-                            </tr>
+                <h2><Category /> Categorias</h2>
+                {categories.length > 0 ? (
+                    <CategoryGrid>
+                        {categories.map(cat => (
+                            <CategoryCard key={cat.id} to={`/categories/${cat.id}`}>
+                                <img 
+                                    src={cat.photo || "placeholder.png"} 
+                                    alt={cat.name} 
+                                    onError={(e) => {
+                                        e.target.src = 'placeholder.png';
+                                        e.target.onerror = null;
+                                    }}
+                                />
+                                <h3>{cat.name}</h3>
+                                <p>{cat.product_count || 0} itens</p>
+                            </CategoryCard>
                         ))}
-                        {combinedHistory.length === 0 && (
-                            <tr className="empty-row">
-                                <td colSpan="5">
-                                    Nenhum item acessado recentemente. Navegue para ver o histórico aqui.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </ActivityTableStyle>
+                    </CategoryGrid>
+                ) : (
+                    <NoDataMessage>Nenhuma categoria encontrada</NoDataMessage>
+                )}
+
+                <h2><History /> Recentes</h2>
+                {combinedHistory.length > 0 ? (
+                    <TableWrapper>
+                        <ActivityTableStyle>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Data</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {combinedHistory.map((item, i) => (
+                                    <tr key={i}>
+                                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {item.name}
+                                        </td>
+                                        <td>{item.type === 'product' ? 'Produto' : 'Categoria'}</td>
+                                        <td>{new Date(item.timestamp).toLocaleDateString('pt-BR')}</td>
+                                        <td>
+                                            <MobileOptimizedLink 
+                                                to={item.type === 'product' ? `/products/${item.id}` : `/categories/${item.id}`}
+                                            >
+                                                Ver
+                                            </MobileOptimizedLink>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </ActivityTableStyle>
+                    </TableWrapper>
+                ) : (
+                    <NoDataMessage>Nenhuma atividade recente</NoDataMessage>
+                )}
             </MainContainer>
         </StyledPage>
     );
