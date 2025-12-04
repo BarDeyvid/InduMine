@@ -7,6 +7,7 @@ import json
 from urllib.parse import unquote
 import numpy as np
 import math
+import os # Importar para verificar existência do arquivo
 
 app = FastAPI()
 
@@ -25,6 +26,7 @@ products_db = []
 categories_db = []  # Será preenchida com category_objects
 actual_columns = {}
 category_objects = []  # Para manter compatibilidade com a lógica original
+data_loaded_successfully = False # Inicializa a flag
 
 def extract_id_and_name_from_url(url):
     """
@@ -116,7 +118,6 @@ def get_column_value(row, column_key):
             return '' if pd.isna(value) else str(value)
     return ''
 
-# --- PRÉ-PROCESSAMENTO ORIGINAL PARA CATEGORIAS ---
 # Extrair nome da categoria da URL
 def extract_category(url):
     try:
@@ -135,9 +136,14 @@ def extract_category(url):
         return "Sem Categoria"
 
 # Carregar e processar o dataset na inicialização
+csv_path = r"data/grouped_products_final.csv"
+
+# --- Bloco de Carregamento de Dados ---
 try:
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"Arquivo CSV não encontrado em: {csv_path}")
+
     # Carregar o CSV
-    csv_path = r"data/grouped_products_final.csv"
     raw_df = pd.read_csv(csv_path, on_bad_lines='skip')
     
     print(f"Dataset carregado: {len(raw_df)} linhas.")
@@ -257,11 +263,13 @@ try:
     
     print(f"Processamento concluído: {len(products_db)} produtos, {len(categories_db)} categorias.")
     print(f"Exemplos de categorias: {[cat['name'] for cat in categories_db[:5]]}")
+    
+    data_loaded_successfully = True # Flag para indicar carregamento OK
 
 except FileNotFoundError:
-    print("ERRO: Arquivo 'data/grouped_products_final.csv' não encontrado.")
+    print(f"ERRO: Arquivo '{csv_path}' não encontrado. Iniciando com dados dummy.")
     # Dados dummy para não quebrar a API
-    df = pd.DataFrame({
+    raw_df = pd.DataFrame({ # Criar raw_df dummy
         'Product URL': ['https://example.com/en/motores/product1'],
         'Product': ['Motor Exemplo'],
         'Product Family': ['Motores'],
@@ -272,6 +280,7 @@ except FileNotFoundError:
         'dimension_specs': ['{"Altura": "500mm", "Largura": "300mm"}'],
         'key_features': ['Alta eficiência']
     })
+    
     actual_columns = {
         'product_name': 'Product',
         'product_family': 'Product Family',
@@ -281,6 +290,7 @@ except FileNotFoundError:
     }
     
     # Criar dados dummy
+    df = raw_df.copy()
     df["final_category_name"] = "Motores"
     df["product_id"] = [1]
     
@@ -310,6 +320,7 @@ except FileNotFoundError:
     }]
     
     categories_db = category_objects
+    data_loaded_successfully = False 
 
 # --- ENDPOINTS PRINCIPAIS ---
 
@@ -322,9 +333,10 @@ def root():
         "dataset_info": {
             "total_products": len(products_db),
             "total_categories": len(categories_db),
-            "data_source": "Processado a partir do CSV"
+            "data_source": "Processado a partir do CSV" if data_loaded_successfully else "Dados Dummy (CSV não encontrado)"
         },
         "endpoints": {
+            "handshake": "/api/handshake",
             "health": "/api/health",
             "dashboard_stats": "/api/dashboard/stats",
             "categories": "/api/categories",
@@ -334,11 +346,26 @@ def root():
         }
     }
 
+@app.get("/api/handshake")
+def handshake():
+    """
+    Endpoint de 'Wake-up' para o Render.
+    Serve para iniciar o servidor e a carga de dados na primeira chamada.
+    """
+    status_message = "Data Loaded Successfully" if data_loaded_successfully else "Warning: Dummy Data Used"
+    return {
+        "message": "Server Woke Up and Handshake Successful",
+        "status": status_message,
+        "total_products": len(products_db),
+        "total_categories": len(categories_db)
+    }
+
 @app.get("/api/health")
 def health_check():
-    """Verifica saúde da API"""
+    """Verifica saúde da API e status do carregamento de dados"""
     return {
         "status": "healthy", 
+        "data_load_status": "Success" if data_loaded_successfully else "Warning (Dummy Data Used)",
         "total_products": len(products_db), 
         "total_categories": len(categories_db),
         "actual_columns_mapping": actual_columns
@@ -357,6 +384,7 @@ def get_dashboard_stats():
     
     # Calcular estatísticas reais
     categories_with_products = len([cat for cat in categories_db if cat["product_count"] > 0])
+    # Evitar divisão por zero
     active_percentage = min(100, int((categories_with_products / total_categories) * 100)) if total_categories > 0 else 0
     
     # Dados para gráficos
@@ -371,11 +399,11 @@ def get_dashboard_stats():
             {"id": 2, "value": 5, "label": "Descontinuados"}
         ],
         "weekly_updates": [
-            {"day": "Seg", "updates": np.random.randint(1, 10)},
-            {"day": "Ter", "updates": np.random.randint(1, 10)},
-            {"day": "Qua", "updates": np.random.randint(1, 10)},
-            {"day": "Qui", "updates": np.random.randint(1, 10)},
-            {"day": "Sex", "updates": np.random.randint(1, 10)}
+            {"day": "Seg", "updates": int(np.random.randint(1, 10))},
+            {"day": "Ter", "updates": int(np.random.randint(1, 10))},
+            {"day": "Qua", "updates": int(np.random.randint(1, 10))},
+            {"day": "Qui", "updates": int(np.random.randint(1, 10))},
+            {"day": "Sex", "updates": int(np.random.randint(1, 10))}
         ]
     }
     
@@ -383,7 +411,7 @@ def get_dashboard_stats():
         "total_products": total_products,
         "total_categories": total_categories,
         "active_products_percentage": active_percentage,
-        "updates_today": np.random.randint(1, 10),
+        "updates_today": int(np.random.randint(1, 10)),
         "chart_data": chart_data
     }
 
@@ -635,9 +663,10 @@ def get_total_rows():
 @app.get("/api/columns")
 def get_columns():
     """Retorna a lista de colunas disponíveis no dataset original"""
+    source_df = raw_df if 'raw_df' in globals() and not raw_df.empty else df
     return {
-        "columns": list(df.columns) if not df.empty else [],
-        "total_columns": len(df.columns) if not df.empty else 0,
+        "columns": list(source_df.columns) if not source_df.empty else [],
+        "total_columns": len(source_df.columns) if not source_df.empty else 0,
         "actual_mapping": actual_columns,
         "note": "Os dados da API são processados a partir do CSV original"
     }
