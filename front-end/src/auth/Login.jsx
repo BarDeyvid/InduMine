@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -9,6 +9,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { api } from '../services/api';
 
 const StyledLogin = styled.div`
   width: 100vw;
@@ -37,6 +38,19 @@ function Login() {
   const navigate = useNavigate();
 
   const BACKEND_URL = 'https://wegmine.onrender.com/api/auth/login';
+
+  useEffect(() => {
+    const wakeUpServer = async () => {
+      try {
+        console.log("Attempting server handshake...");
+        await api.hs();
+        console.log("Server handshake complete");
+      } catch (error) {
+        console.error("Server handshake failed:", error);
+      }
+    };
+    wakeUpServer();
+  }, []);
 
   const handleRegister = () => navigate('/register');
 

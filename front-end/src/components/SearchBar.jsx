@@ -4,8 +4,13 @@ import styled from 'styled-components';
 import { Search as SearchIcon, Close } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
-const API_BASE_URL = 'https://weg-product-api.onrender.com';
+let API_BASE_URL;
 
+if (import.meta.env.MODE === 'deploy') {
+    API_BASE_URL = 'https://weg-product-api.onrender.com/api'; 
+} else {
+    API_BASE_URL = 'http://localhost:8000'; 
+}
 const SearchContainer = styled.div`
   position: relative;
   width: ${props => props.width || '100%'};

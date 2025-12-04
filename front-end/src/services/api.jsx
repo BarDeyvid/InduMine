@@ -1,5 +1,10 @@
-// front-end/src/services/api.js
-const API_BASE_URL = 'https://weg-product-api.onrender.com/api';
+let API_BASE_URL;
+
+if (import.meta.env.MODE === 'deploy') {
+    API_BASE_URL = 'https://weg-product-api.onrender.com/api'; 
+} else {
+    API_BASE_URL = 'http://localhost:8000/api'; 
+}
 
 export const api = {
     // Verificar saúde da API
@@ -7,6 +12,21 @@ export const api = {
         const response = await fetch(`${API_BASE_URL}/health`);
         return response.json();
     },
+
+    // Cumprimentar
+    hs: async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/handshake`);
+            if (!response.ok) {
+            throw new Error(`Erro HTTP! Status: ${response.status}`);
+        }
+        
+        return response.json();
+    } catch (error) {
+        console.error("Erro no Handshake/Wake-up:", error);
+        return { error: true, message: error.message }; 
+    }
+},
     
     // Dashboard
     getDashboardStats: async () => {
