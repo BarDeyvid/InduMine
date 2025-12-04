@@ -1,63 +1,214 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User'); 
-const jwt = require('jsonwebtoken'); 
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_EXPIRES_IN = '24h';
+
+// Middleware para verificar JWT
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ 
+      error: true,
+      message: 'Token não fornecido' 
+    });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return res.status(401).json({ 
+      error: true,
+      message: 'Token inválido ou expirado' 
+    });
+  }
 };
 
-router.post('/register', async (req, res) => {
-    const { username, email, password, role } = req.body;
-    
-    try {
-        let userExists = await User.findOne({ email });
-
-        if (userExists) {
-            return res.status(400).json({ msg: 'Usuário com este e-mail já existe.' });
-        }
-        let user = new User({ 
-            username, 
-            email, 
-            password, 
-            role: role || 'user' 
-        });
-        await user.save();
-        res.status(201).json({ 
-            msg: 'Usuário registrado com sucesso!', 
-            token: generateToken(user._id),
-            user: { username: user.username, email: user.email, role: user.role } 
-        });
-
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Erro no Servidor ao registrar usuário');
-    }
+// Criar usuários demo na inicialização
+router.get('/init-demo', async (req, res) => {
+  try {
+    await User.createDemoUsers();
+    res.json({ 
+      success: true, 
+      message: 'Usuários demo criados com sucesso' 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: true, 
+      message: 'Erro ao criar usuários demo' 
+    });
+  }
 });
 
+// Login
 router.post('/login', async (req, res) => {
+  try {
     const { email, password } = req.body;
 
-    try {
-        const user = await User.findOne({ email });
-        if (user && (await user.matchPassword(password))) {
-            res.json({
-                msg: 'Login bem-sucedido',
-                token: generateToken(user._id),
-                user: {
-                    id: user._id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role
-                }
-            });
-        } else {
-            res.status(401).json({ msg: 'Email ou PIN inválido.' });
-        }
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Erro no Servidor');
+    if (!email || !password) {
+      return res.status(400).json({
+        error: true,
+        message: 'Email e senha são obrigatórios'
+      });
     }
+
+    // Buscar usuário
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return res.status(401).json({
+        error: true,
+        message: 'Email ou senha incorretos'
+      });
+    }
+
+    // Verificar senha
+    const isValidPassword = await user.comparePassword(password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: true,
+        message: 'Email ou senha incorretos'
+      });
+    }
+
+    // Atualizar último login
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Gerar payload para token
+    const tokenPayload = user.toTokenPayload();
+
+    // Gerar token JWT
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    res.json({
+      success: true,
+      message: 'Login bem-sucedido',
+      access_token: token,
+      token_type: 'bearer',
+      expires_in: JWT_EXPIRES_IN,
+      user: tokenPayload
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro interno no servidor'
+    });
+  }
+});
+
+// Registrar novo usuário
+router.post('/register', async (req, res) => {
+  try {
+    const { username, email, password, role = 'guest' } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        error: true,
+        message: 'Todos os campos são obrigatórios'
+      });
+    }
+
+    // Verificar se usuário já existe
+    const existingUser = await User.findOne({ 
+      $or: [{ email: email.toLowerCase() }, { username }] 
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: true,
+        message: 'Email ou nome de usuário já cadastrado'
+      });
+    }
+
+    // Criar novo usuário
+    const newUser = new User({
+      username,
+      email: email.toLowerCase(),
+      password,
+      role: User.ROLES[role.toUpperCase()] || User.ROLES.GUEST
+    });
+
+    await newUser.save();
+
+    // Gerar token para o novo usuário
+    const tokenPayload = newUser.toTokenPayload();
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    res.status(201).json({
+      success: true,
+      message: 'Usuário registrado com sucesso',
+      access_token: token,
+      token_type: 'bearer',
+      user: tokenPayload
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao registrar usuário'
+    });
+  }
+});
+
+// Verificar token
+router.get('/verify', verifyToken, (req, res) => {
+  res.json({
+    valid: true,
+    user: req.user
+  });
+});
+
+// Obter usuário atual
+router.get('/me', verifyToken, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
+});
+
+// Logout (apenas no cliente)
+router.post('/logout', verifyToken, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Logout realizado com sucesso'
+  });
+});
+
+// Obter usuários (apenas admin)
+router.get('/users', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        error: true,
+        message: 'Acesso negado'
+      });
+    }
+
+    const users = await User.find({}, { password: 0 });
+    res.json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Erro ao buscar usuários'
+    });
+  }
 });
 
 module.exports = router;
