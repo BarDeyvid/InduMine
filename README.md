@@ -38,14 +38,17 @@ InduMine é uma **plataforma full-stack de coleta, organização e visualizaçã
 ```
 
 .
-├── api/
-│   └── back-end/               # Node.js API server
-│       ├── models/             # Mongoose schemas
-│       ├── routes/             # API endpoints
-│       ├── server.js
-│       └── package.json
-├── dashboards/
-│   └── front-end/              # Legacy static demos
+├── backend/                # Python API server
+│   └── auth/               # Authentication    
+│   ├── crud/               # CRUD Methods for User
+│   ├── data/               # MongoDB and CSV data
+│   ├── database/           # MongoDB implementation
+│   ├── models/             # Models
+│   ├── routes/             # API Routes
+│   ├── schemas/            # General Schemas
+│   ├── config.py
+│   └── data_main.py
+│   └── main.py
 ├── data/                       # Raw & processed outputs
 │   ├── industrial_products_final.csv
 │   └── grouped_products_final.csv
