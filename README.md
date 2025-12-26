@@ -186,7 +186,7 @@ Visit: `http://localhost:5173`
 | Done        | Pandas pivot + MongoDB upsert          |
 | Done        | Node.js API with pagination            |
 | Done        | React dashboard with auth              |
-| In Progress | Search & filter (specs, voltage, type) |
+| Done | Search & filter (specs, voltage, type) |
 | In Progress | CSV/Excel export                       |
 | Planned     | Scheduled scraper (cron/APScheduler)   |
 | Planned     | Deploy (Render API + Vercel frontend)  |
@@ -216,7 +216,3 @@ Visit: `http://localhost:5173`
 ## License
 
 [Apache 2.0](LICENSE) – Free to use, modify, and distribute.
-
----
-
-> **"I don’t just collect data — I turn catalogs into intelligence."**
