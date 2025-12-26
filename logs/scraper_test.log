@@ -14466,3 +14466,13 @@
 08:48:03 INFO: Found 57 total specs on https://www.weg.net/catalog/weg/BR/en//MKT-WMO-BR-IMAGE-W22-Motofreio-Plus-Premium-63-132-IE3-B34D/W22-Brake-Motor-IR3-Premium-2-cv-6P-100L-3Ph-220-380-440-V-60-Hz-IC411---TFVE---B34D/p/13014362
 08:48:14 INFO: Done! Saved 28075 rows in 1021.26s.
 08:48:14 INFO: Pivoted data saved to 'data\grouped_products_final.csv'.
+13:49:47 CRITICAL: Failed to create ChromeDriver. Path check needed. Error: Message: Unable to obtain driver for chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+
+13:49:47 CRITICAL: Failed to create driver on attempt 1. Retrying.
+13:49:47 CRITICAL: Failed to create ChromeDriver. Path check needed. Error: Message: Unable to obtain driver for chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+
+13:49:47 CRITICAL: Failed to create driver on attempt 2. Retrying.
+13:49:47 CRITICAL: Failed to create ChromeDriver. Path check needed. Error: Message: Unable to obtain driver for chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+
+13:49:47 CRITICAL: Failed to create driver on attempt 3. Retrying.
+13:49:47 INFO: Done! Saved 0 rows in 0.01s.
