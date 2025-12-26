@@ -1,12 +1,12 @@
 # main.py
-from app.database.mongodb import connect_to_mongo, close_mongo_connection
+from database.mongodb import connect_to_mongo, close_mongo_connection
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.auth.deps import get_current_user
-from app.schemas.user import UserResponse
-from app.config import settings
-from app.routes import auth
+from auth.deps import get_current_user
+from schemas.user import UserResponse
+from config import settings
+from routes import auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
