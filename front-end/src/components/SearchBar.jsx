@@ -9,7 +9,7 @@ let API_BASE_URL;
 if (import.meta.env.MODE === 'deploy') {
     API_BASE_URL = 'https://weg-product-api.onrender.com/api'; 
 } else {
-    API_BASE_URL = 'http://localhost:8000'; 
+    API_BASE_URL = 'http://localhost:5001'; 
 }
 const SearchContainer = styled.div`
   position: relative;

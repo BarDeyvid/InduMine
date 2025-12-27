@@ -28,8 +28,11 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React app
-    allow_credentials=True,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True, # Required for your current auth flow
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,5 +50,8 @@ async def health_check():
 
 @app.get(f"{settings.api_v1_prefix}/users/me", response_model=UserResponse)
 async def read_users_me(current_user: dict = Depends(get_current_user)):
-    current_user.pop("hashed_password", None)
+    if "_id" in current_user:
+        current_user["id"] = str(current_user["_id"])
+        current_user.pop("hashed_password", None)
+    
     return current_user

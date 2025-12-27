@@ -5,7 +5,7 @@ import os
 # Add the app directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.schemas.user import UserCreate, UserInDB, PyObjectId
+from schemas.user import UserCreate, UserInDB, PyObjectId
 from bson import ObjectId
 from datetime import datetime
 import json
