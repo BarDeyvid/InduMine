@@ -2,9 +2,9 @@
 from typing import Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime, timezone
-from app.auth.utils import get_password_hash, verify_password
-from app.schemas.user import UserCreate
-from app.models.user import UserModel
+from auth.utils import get_password_hash, verify_password
+from schemas.user import UserCreate
+from models.user import UserModel
 import logging
 import re
 
@@ -18,7 +18,7 @@ class UserCRUD:
     def collection(self):
         """Lazy loading of collection"""
         if self._collection is None:
-            from app.database.mongodb import mongodb
+            from database.mongodb import mongodb
             if mongodb.db is None:
                 raise RuntimeError("Database not initialized. Call connect_to_mongo() first.")
             self._collection = mongodb.db.users

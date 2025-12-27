@@ -2,9 +2,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from app.config import settings
-from app.crud.user import user_crud
-from app.schemas.user import TokenData
+from config import settings
+from crud.user import user_crud
+from schemas.user import TokenData
 from typing import Optional
 import logging
 

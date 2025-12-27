@@ -1,7 +1,7 @@
 # database/mongodb.py
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from app.config import settings
+from config import settings
 import logging
 
 logger = logging.getLogger(__name__)
