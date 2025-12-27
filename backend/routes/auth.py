@@ -1,11 +1,11 @@
 # routes/auth.py
-from app.auth.utils import create_access_token, create_refresh_token
+from auth.utils import create_access_token, create_refresh_token
 from fastapi import APIRouter, HTTPException, status, Depends
-from app.schemas.user import UserCreate, UserResponse, Token
+from schemas.user import UserCreate, UserResponse, Token
 from fastapi.security import OAuth2PasswordRequestForm
-from app.auth.deps import get_current_user  
-from app.crud.user import user_crud
-from app.config import settings
+from auth.deps import get_current_user  
+from crud.user import user_crud
+from config import settings
 from datetime import timedelta
 from typing import Dict, Any
 from bson import ObjectId
