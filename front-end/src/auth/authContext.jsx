@@ -1,28 +1,39 @@
 // auth/authContext.jsx
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
+import { authApi } from '../services/api';
 
-export const AuthContext = createContext({});
+export const AuthContext = createContext(null); 
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [isAuth, setIsAuth] = useState(false);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Verificar autenticação uma vez ao montar
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('auth_token');
-      setIsAuth(!!token);
+      const userInfo = localStorage.getItem('user_info');
+      
+      if (token && userInfo) {
+        setIsAuth(true);
+        setUser(JSON.parse(userInfo));
+      } else {
+        setIsAuth(false);
+        setUser(null);
+      }
       setLoading(false);
     };
-    
+
     checkAuth();
-  }, []); // Array vazio para rodar apenas uma vez
+  }, []);
 
   const login = async (email, password) => {
     try {
-      const result = await loginApi(email, password);
+      const result = await authApi.login(email, password);
       if (result.success) {
         setIsAuth(true);
+        setUser(result.user);
+        return { success: true };
       }
       return result;
     } catch (error) {
@@ -32,16 +43,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_info');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
+    authApi.logout();
     setIsAuth(false);
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuth, loading, login, logout }}>
+    <AuthContext.Provider value={{ isAuth, user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}

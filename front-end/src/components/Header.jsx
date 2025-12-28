@@ -1,5 +1,5 @@
 // components/Header.jsx
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useContext } from "react";
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { Button, Avatar } from "@mui/material";
@@ -8,6 +8,7 @@ import { useTheme } from '../context/themeProvider';
 import useAnimatedToggle from '../components/useAnimatedToggle';
 import SearchBar from "../components/SearchBar";
 import UserSettings from './UserSettings'; 
+import { AuthContext } from '../auth/authContext';
 
 const slideDown = keyframes`
     from { opacity: 0; transform: translateY(-10px); }
@@ -258,6 +259,7 @@ export default function Header() {
     const [userInfo, setUserInfo] = useState({ name: "Usuário", cargo: "Visitante" });
     const navigate = useNavigate();
     const [showMobileSearch, setShowMobileSearch] = useState(false);
+    const { user, isAuth } = useContext(AuthContext);
 
     const [email, setEmail] = useState('');
     const [username, setUserName] = useState('');
@@ -285,22 +287,15 @@ export default function Header() {
     };
     
     useEffect(() => {
-        const userName = localStorage.getItem('userName');
-        const userRole = localStorage.getItem('userRole'); 
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-            navigate('/');
-            return;
-        }
-        
-        if (userName && userRole) {
+        if (user) {
             setUserInfo({ 
-                name: userName, 
-                cargo: userRole.length > 20 ? userRole.substring(0, 20) + '...' : userRole 
+                name: user.username || user.email || 'Usuário', 
+                cargo: (user.roles?.[0] || 'Visitante').length > 20 
+                    ? user.roles[0].substring(0, 20) + '...' 
+                    : user.roles?.[0] || 'Visitante'
             });
         }
-    }, [navigate]);
+    }, [user]);
     
     const { toggleTheme } = useTheme();
 
