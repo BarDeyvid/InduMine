@@ -10,14 +10,8 @@ import Categories from './categories/Categories';
 import CategoryDetail from './categories/CategoryDetail';
 import NavBar from './navbar/NavBar';
 import { ThemeProvider } from './context/themeProvider';
-
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token');
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  return children;
-};
+import ProtectedRoute from './ProtectedRoute';
+import UnprotectedRoute from './UnprotectedRoute';
 
 const NAVBAR_WIDTH_OPEN = '250px';
 const NAVBAR_WIDTH_CLOSED = '60px';
@@ -33,9 +27,17 @@ export default function AppRouter() {
     <ThemeProvider>
       <Router basename={isDeploy ? '/InduMine' : '/'}>
         <Routes>
-          {/* Rotas Públicas */}
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* Rotas Públicas usando UnprotectedRoute */}
+          <Route path="/" element={
+            <UnprotectedRoute>
+              <Login />
+            </UnprotectedRoute>
+          } />
+          <Route path="/register" element={
+            <UnprotectedRoute>
+              <Register />
+            </UnprotectedRoute>
+          } />
 
           {/* Rotas Protegidas */}
           <Route

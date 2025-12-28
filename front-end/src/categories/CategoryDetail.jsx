@@ -1,4 +1,4 @@
-// front-end/src/categories/categoryDetail.jsx
+// categories/categoryDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom'; 
 import styled from 'styled-components';

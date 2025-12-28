@@ -1,52 +1,47 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { authApi, removeToken, getCurrentUser, isAuthenticated } from '../services/api';
+// auth/authContext.jsx
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 
-export const AuthContext = createContext(null);
+export const AuthContext = createContext({});
 
-export function AuthProvider({ children }) {
-  const [isAuth, setIsAuth] = useState(isAuthenticated());
-  const [user, setUser] = useState(getCurrentUser());
+export const AuthProvider = ({ children }) => {
+  const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Verificar autenticação uma vez ao montar
   useEffect(() => {
-    // Validação inicial
     const checkAuth = () => {
-      const authenticated = isAuthenticated();
-      const currentUser = getCurrentUser();
-
-      if (authenticated && currentUser) {
-        setIsAuth(true);
-        setUser(currentUser);
-      } else {
-        setIsAuth(false);
-        setUser(null);
-        removeToken(); // Limpa lixo se houver
-      }
+      const token = localStorage.getItem('auth_token');
+      setIsAuth(!!token);
       setLoading(false);
     };
-
+    
     checkAuth();
-  }, []);
+  }, []); // Array vazio para rodar apenas uma vez
 
   const login = async (email, password) => {
-    const result = await authApi.login(email, password);
-    if (result.success) {
-      setIsAuth(true);
-      setUser(result.user);
-      return { success: true };
+    try {
+      const result = await loginApi(email, password);
+      if (result.success) {
+        setIsAuth(true);
+      }
+      return result;
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: error.message };
     }
-    return result;
   };
 
   const logout = () => {
-    authApi.logout();
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_info');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
     setIsAuth(false);
-    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuth, user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ isAuth, loading, login, logout }}>
+      {children}
     </AuthContext.Provider>
   );
-}
+};

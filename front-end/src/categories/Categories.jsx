@@ -1,4 +1,5 @@
-// front-end/src/Categories/Categories.jsx
+// categories/Categories.jsx
+
 import { useState, useCallback, useEffect } from "react";
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
