@@ -1,5 +1,6 @@
+// auth/Login.jsx
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
@@ -34,8 +35,9 @@ const StyledLogin = styled.div`
 `;
 
 function Login() {
-  const navigate = useNavigate();
-  const { login } = useContext(AuthContext); // Usando o Contexto
+  const navigate = useNavigate(); 
+  const location = useLocation();
+  const { login } = useContext(AuthContext);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,17 +49,18 @@ function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+    
     try {
-      // Chama o login do Contexto
       const result = await login(email, password);
       
       if (result.success) {
-        navigate('/dashboard');
+        const from = location.state?.from?.pathname || '/dashboard';
+        navigate(from, { replace: true });
       } else {
-        setError(result.error || 'Login falhou. Verifique suas credenciais.');
+        setError(result.error || 'Login falhou');
       }
     } catch (err) {
+      console.error('Login catch error:', err);
       setError('Erro de conexão com o servidor.');
     } finally {
       setLoading(false);
@@ -86,8 +89,9 @@ function Login() {
             required
             disabled={loading}
             sx={{ mb: 2 }}
+            autoComplete="email"
           />
-          
+
           <TextField
             fullWidth
             label="Senha"
@@ -98,6 +102,7 @@ function Login() {
             required
             disabled={loading}
             sx={{ mb: 3 }}
+            autoComplete="current-password"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">

@@ -3,14 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Search as SearchIcon, Close } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api'; 
 
-let API_BASE_URL;
-
-if (import.meta.env.MODE === 'deploy') {
-    API_BASE_URL = 'https://weg-product-api.onrender.com/api'; 
-} else {
-    API_BASE_URL = 'http://localhost:5001'; 
-}
 const SearchContainer = styled.div`
   position: relative;
   width: ${props => props.width || '100%'};
@@ -183,35 +177,19 @@ function SearchBar({ width, style, placeholder = "Buscar produtos ou categorias.
     setError(null);
     
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/items?search=${encodeURIComponent(query)}&limit=10`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          mode: 'cors'
-        }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setResults(data);
-        setShowResults(true);
-      } else {
-        const errorText = await response.text();
-        console.error('Erro na resposta da API:', response.status, errorText);
-        setError(`Erro ${response.status}: Não foi possível realizar a busca`);
-        setResults({ products: [], categories: [] });
-      }
+      // Use the centralized API function
+      const data = await api.searchItems(query, 10);
+      setResults(data);
+      setShowResults(true);
     } catch (error) {
       console.error('Erro na busca:', error);
-      setError('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
+      setError('Não foi possível realizar a busca');
       setResults({ products: [], categories: [] });
     } finally {
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {

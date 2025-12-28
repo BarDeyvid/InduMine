@@ -1,9 +1,9 @@
-// ProtectedRoute.jsx
+// UnprotectedRoute.jsx
 import { Navigate, useLocation } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from './auth/authContext';
 
-export default function ProtectedRoute({ children }) {
+export default function UnprotectedRoute({ children }) {
   const { isAuth, loading } = useContext(AuthContext);
   const location = useLocation();
 
@@ -20,11 +20,12 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // If not authenticated, redirect to login
-  if (!isAuth) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+  // If authenticated, redirect to dashboard or previous page
+  if (isAuth) {
+    const from = location.state?.from?.pathname || '/dashboard';
+    return <Navigate to={from} replace />;
   }
 
-  // If authenticated, show the protected content
+  // If not authenticated, show the children (login/register pages)
   return children;
 }

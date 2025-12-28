@@ -1,205 +1,236 @@
-// src/services/api.jsx
+// front-end/src/services/api.jsx
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1';
 
-// Configuração de URLs
-const API_URL = import.meta.env.VITE_PRODUCT_API_URL || 'http://localhost:5001';
-
-// Gerenciamento de Token
-const getToken = () => localStorage.getItem('auth_token');
-const setToken = (token) => localStorage.setItem('auth_token', token);
-const setUserInfo = (user) => localStorage.setItem('user_info', JSON.stringify(user));
-
-export const getUserInfo = () => {
-    const userStr = localStorage.getItem('user_info');
-    return userStr ? JSON.parse(userStr) : null;
-};
-
-export const getCurrentUser = () => getUserInfo();
-
-export const removeToken = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_info');
-};
-
-// --- Headers Auxiliar ---
-const getHeaders = () => {
-    const headers = { 'Content-Type': 'application/json' };
-    const token = getToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
-};
-
-// --- API de Autenticação ---
+// Auth API functions
 export const authApi = {
     login: async (email, password) => {
         try {
+            // Convert to URLSearchParams for form-urlencoded
             const formData = new URLSearchParams();
-            formData.append('username', email); 
+            formData.append('username', email);  // Note: backend expects 'username' field
             formData.append('password', password);
 
-            const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: formData
+                body: formData,
             });
-
-            const data = await response.json();
-
+            
             if (!response.ok) {
-                throw new Error(data.detail || 'Falha no login');
+                let errorMessage = 'Login failed';
+                try {
+                    const errorData = await response.json();
+                    
+                    // Handle FastAPI validation errors
+                    if (errorData.detail) {
+                        if (Array.isArray(errorData.detail)) {
+                            // Multiple validation errors
+                            errorMessage = errorData.detail.map(err => err.msg).join(', ');
+                        } else {
+                            // Single error message
+                            errorMessage = errorData.detail;
+                        }
+                    }
+                } catch (parseError) {
+                    errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                }
+                return { success: false, error: errorMessage };
             }
-
-            // Salvar Token
+            
+            const data = await response.json();
+            
+            // Store tokens
             if (data.access_token) {
-                setToken(data.access_token);
+                localStorage.setItem('auth_token', data.access_token);
                 
-                // Buscar dados do usuário após login para pegar a role correta
-                const userResponse = await fetch(`${API_URL}/api/v1/users/me`, {
-                    headers: { 'Authorization': `Bearer ${data.access_token}` }
-                });
+                // If user info is not in the response, fetch it separately
+                if (!data.user) {
+                    // Get user info using the token
+                    const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${data.access_token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        data.user = userData;
+                    }
+                }
                 
-                if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    setUserInfo(userData);
-                    return { success: true, user: userData };
+                // Store user info
+                if (data.user) {
+                    localStorage.setItem('user_info', JSON.stringify(data.user));
+                    localStorage.setItem('userName', data.user.username || data.user.email || 'User');
+                    localStorage.setItem('userRole', data.user.roles?.[0] || 'user');
                 }
             }
-            return { success: false, error: 'Token não recebido' };
+            
+            return { success: true, user: data.user || {} };
         } catch (error) {
             console.error('Login error:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: error.message || 'Network error' };
         }
     },
 
     register: async (username, email, password) => {
         try {
-            const response = await fetch(`${API_URL}/api/v1/auth/register`, {
+            // First check if the backend expects JSON for registration
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    username, 
+                    email, 
+                    password,
+                    is_active: true,
+                    roles: ["user"]
+                }),
             });
-
+            
             const data = await response.json();
-
+            
             if (!response.ok) {
-                const msg = Array.isArray(data.detail) 
-                    ? data.detail.map(d => d.msg).join(', ') 
-                    : data.detail;
-                throw new Error(msg || 'Erro no registro');
+                // Handle validation errors
+                let errorMessage = data.detail || 'Registration failed';
+                if (Array.isArray(data.detail)) {
+                    errorMessage = data.detail.map(err => err.msg).join(', ');
+                }
+                return { success: false, error: errorMessage };
             }
-
-            return { success: true, data };
+            
+            return { success: true, user: data.user || data };
         } catch (error) {
-            return { success: false, error: error.message };
+            console.error('Registration error:', error);
+            return { success: false, error: error.message || 'Network error' };
         }
     },
 
+
     logout: () => {
-        removeToken();
-        window.location.href = '/';
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_info');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userRole');
     }
 };
 
-// API de Produtos (FastAPI)
+// Main API functions
 export const api = {
+    // Root endpoints
     health: async () => {
-        const response = await fetch(`${API_URL}/health`);
+        const response = await fetch(`${API_BASE_URL}/health`);
         return response.json();
     },
-
-    hs: async () => {
-        try {
-            const response = await fetch(`${API_URL}/api/handshake`);
-            if (!response.ok) throw new Error(`Status: ${response.status}`);
-            return response.json();
-        } catch (error) {
-            return { error: true, message: error.message };
-        }
-    },
     
+    // Dashboard endpoints
     getDashboardStats: async () => {
-        const response = await fetch(`${API_URL}/api/dashboard/stats`, {
-            headers: getHeaders()
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            }
         });
-        if (!response.ok) return handleApiError({ message: response.statusText });
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid
+                authApi.logout();
+                window.location.href = '/';
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return response.json();
     },
     
+    // Categories endpoints
     getCategories: async (page = 1, limit = 20, search = '') => {
+        const token = localStorage.getItem('auth_token');
         const response = await fetch(
-            `${API_URL}/api/categories?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
-            { headers: getHeaders() }
+            `${API_BASE_URL}/categories?page=${page}&limit=${limit}&search=${search}`,
+            {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json'
+                }
+            }
         );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     },
     
     getCategoryDetail: async (categoryId) => {
-        const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
-            headers: getHeaders()
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            }
         });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     },
     
+    // Products endpoints
     getProducts: async (page = 1, limit = 20, category = '', search = '') => {
-        let url = `${API_URL}/api/products?page=${page}&limit=${limit}`;
-        if (category) url += `&category=${encodeURIComponent(category)}`;
-        if (search) url += `&search=${encodeURIComponent(search)}`;
+        const token = localStorage.getItem('auth_token');
+        let url = `${API_BASE_URL}/products?page=${page}&limit=${limit}`;
+        if (category) url += `&category=${category}`;
+        if (search) url += `&search=${search}`;
         
-        const response = await fetch(url, { headers: getHeaders() });
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     },
     
     getProductDetail: async (productId) => {
-        const response = await fetch(`${API_URL}/api/products/${productId}`, {
-            headers: getHeaders()
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            }
         });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
     },
     
+    // Search endpoint
     searchItems: async (query, limit = 10) => {
+        const token = localStorage.getItem('auth_token');
         const response = await fetch(
-            `${API_URL}/api/items?search=${encodeURIComponent(query)}&limit=${limit}`,
-            { headers: getHeaders() }
+            `${API_BASE_URL}/items?search=${encodeURIComponent(query)}&limit=${limit}`,
+            {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Accept': 'application/json',
+                }
+            }
         );
-        return response.json();
-    },
-    
-    getConfig: async () => {
-        const response = await fetch(`${API_URL}/api/config`);
+        if (!response.ok) {
+            // Don't throw for search errors, just return empty results
+            console.error('Search error:', response.status);
+            return { products: [], categories: [] };
+        }
         return response.json();
     }
 };
 
-// Helper para lidar com erros de API
+// Error handler
 export const handleApiError = (error) => {
     console.error('API Error:', error);
-    let message = error.message || 'Error connecting to API';
-    
-    if (message.includes('401')) {
-        message = 'Sessão expirada.';
-        removeToken();
-    }
-    return { error: true, message, data: null };
-};
-
-// Verificar se usuário está autenticado
-export const isAuthenticated = () => {
-    const token = getToken();
-    const user = getUserInfo();
-    return !!(token && user);
-};
-
-// Verificar se usuário tem role específica
-export const hasRole = (requiredRole) => {
-    const user = getUserInfo();
-    if (!user) return false;
-    return user.role === requiredRole;
-};
-
-// Obter categorias permitidas para o usuário
-export const getAllowedCategories = () => {
-    const user = getUserInfo();
-    if (!user) return ['Motores'];
-    return user.allowed_categories || ['Motores'];
+    return {
+        message: error.message || 'An error occurred',
+        status: error.status || 500
+    };
 };

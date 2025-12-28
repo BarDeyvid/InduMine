@@ -11,3 +11,7 @@ dist/
 *.csv
 *.db
 api/
+
+**/__pycache__/
+**/.venv/
+**/.env

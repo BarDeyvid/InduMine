@@ -1,3 +1,4 @@
+// components/Header.jsx
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';

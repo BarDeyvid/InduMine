@@ -14,19 +14,6 @@ import jwt
 from datetime import datetime, timedelta
 
 app = FastAPI(title="WEG Product API", description="API de Produtos WEG com RBAC")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-# JWT Configuration - DEVE SER A MESMA DO EXPRESS
-SECRET_KEY = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-
-# Role to Category Mapping (usado apenas como fallback)
-ROLE_CATEGORIES = {
-    "admin": ["Motores", "Drives", "Softstarters", "Painéis", "Geradores", "Transformadores"],
-    "engineer": ["Motores", "Drives", "Softstarters"],
-    "sales": ["Motores", "Drives", "Painéis"],
-    "guest": ["Motores"]
-}
 
 # Configurar CORS
 app.add_middleware(
@@ -292,72 +279,9 @@ except FileNotFoundError:
     categories_db = category_objects
     data_loaded_successfully = False
 
-# ==============================================
-# FUNÇÕES DE AUTENTICAÇÃO E RBAC
-# ==============================================
-
-async def verify_token(authorization: str = Header(None)):
-    """Verifica token JWT vindo do Express"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token não fornecido"
-        )
-    
-    token = authorization.split(" ")[1]
-    
-    try:
-        # Decodifica o token usando a mesma SECRET_KEY do Express
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        
-        # Verifica se o token expirou
-        if datetime.fromtimestamp(payload["exp"]) < datetime.utcnow():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token expirado"
-            )
-        
-        # Retorna informações do usuário do token
-        return {
-            "id": payload.get("id"),
-            "username": payload.get("username"),
-            "email": payload.get("email"),
-            "role": payload.get("role", "guest"),
-            "allowed_categories": payload.get("allowed_categories", [])
-        }
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expirado"
-        )
-    except jwt.InvalidTokenError as e:
-        print(f"Token inválido: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido"
-        )
-
-async def get_optional_user(authorization: str = Header(None)):
-    """Autenticação opcional para endpoints públicos"""
-    if not authorization or not authorization.startswith("Bearer "):
-        return {"role": "guest", "allowed_categories": ROLE_CATEGORIES["guest"]}
-    
-    token = authorization.split(" ")[1]
-    
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        if datetime.fromtimestamp(payload["exp"]) < datetime.utcnow():
-            return {"role": "guest", "allowed_categories": ROLE_CATEGORIES["guest"]}
-        
-        return {
-            "id": payload.get("id"),
-            "username": payload.get("username"),
-            "email": payload.get("email"),
-            "role": payload.get("role", "guest"),
-            "allowed_categories": payload.get("allowed_categories", [])
-        }
-    except:
-        return {"role": "guest", "allowed_categories": ROLE_CATEGORIES["guest"]}
+# TODO: adapt this to the new backend
+#
+#
 
 def filter_products_by_role(products: List[Dict], user_role: str, allowed_categories: List[str]):
     """Filtra produtos baseado no role"""
@@ -424,7 +348,7 @@ def handshake():
 @app.get("/api/public/categories")
 async def get_public_categories(limit: int = Query(5, ge=1, le=20)):
     """Endpoint público para categorias"""
-    guest_categories = ROLE_CATEGORIES["guest"]
+    guest_categories = ROLE_CATEGORIES["guest"] # TODO: Adaptar para novo backend 
     public_categories = [cat for cat in categories_db if cat["name"] in guest_categories][:limit]
     
     return {
@@ -436,7 +360,7 @@ async def get_public_categories(limit: int = Query(5, ge=1, le=20)):
 @app.get("/api/public/products")
 async def get_public_products(limit: int = Query(5, ge=1, le=20)):
     """Endpoint público para produtos"""
-    guest_categories = ROLE_CATEGORIES["guest"]
+    guest_categories = ROLE_CATEGORIES["guest"] # TODO: Adaptar para novo backend 
     public_products = [p for p in products_db if p.get("final_category_name") in guest_categories][:limit]
     
     return {
@@ -446,11 +370,11 @@ async def get_public_products(limit: int = Query(5, ge=1, le=20)):
     }
 
 # ==============================================
-# ENDPOINTS PROTEGIDOS (requerem token do Express)
+# ENDPOINTS PROTEGIDOS
 # ==============================================
 
 @app.get("/api/dashboard/stats")
-async def get_dashboard_stats(current_user: Dict = Depends(verify_token)):
+async def get_dashboard_stats(current_user: Dict = Depends(verify_token)): # TODO: Adaptar para novo backend 
     """Estatísticas do dashboard"""
     user_categories = get_user_categories(current_user["role"], current_user.get("allowed_categories", []))
     
@@ -513,12 +437,12 @@ async def get_categories(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = None,
-    current_user: Dict = Depends(verify_token)
+    current_user: Dict = Depends(verify_token) # TODO: Adaptar para novo backend 
 ):
     """Lista categorias com paginação"""
-    user_categories = get_user_categories(current_user["role"], current_user.get("allowed_categories", []))
+    user_categories = get_user_categories(current_user["role"], current_user.get("allowed_categories", [])) # TODO: Adaptar para novo backend 
     
-    filtered_categories = filter_categories_by_role(
+    filtered_categories = filter_categories_by_role( # TODO: Adaptar para novo backend 
         categories_db,
         current_user["role"],
         user_categories
@@ -551,7 +475,7 @@ async def get_categories(
 @app.get("/api/categories/{category_id}")
 async def get_category_detail(
     category_id: str,
-    current_user: Dict = Depends(verify_token)
+    current_user: Dict = Depends(verify_token) # TODO: Adaptar para novo backend 
 ):
     """Detalhes de uma categoria"""
     try:
@@ -609,7 +533,7 @@ async def get_products(
     limit: int = Query(20, ge=1, le=100),
     category: Optional[str] = None,
     search: Optional[str] = None,
-    current_user: Dict = Depends(verify_token)
+    current_user: Dict = Depends(verify_token) # TODO: Adaptar para novo backend 
 ):
     """Lista produtos com filtros"""
     user_categories = get_user_categories(current_user["role"], current_user.get("allowed_categories", []))
@@ -651,7 +575,7 @@ async def get_products(
 @app.get("/api/products/{product_id}")
 async def get_product_detail(
     product_id: int,
-    current_user: Dict = Depends(verify_token)
+    current_user: Dict = Depends(verify_token) # TODO: Adaptar para novo backend 
 ):
     """Detalhes de um produto"""
     product = next((p for p in products_db if p["id"] == product_id), None)
@@ -691,7 +615,7 @@ async def get_product_detail(
 async def get_items(
     search: Optional[str] = None,
     limit: int = Query(20, ge=1, le=50),
-    current_user: Dict = Depends(get_optional_user)
+    current_user: Dict = Depends(get_optional_user) # TODO: Adaptar para novo backend 
 ):
     """Busca geral de items (produtos e categorias)"""
     user_categories = get_user_categories(current_user["role"], current_user.get("allowed_categories", []))
@@ -759,7 +683,7 @@ async def get_items(
 @app.get("/api/sample")
 async def get_sample_data(
     n: int = Query(5, ge=1, le=100),
-    current_user: Dict = Depends(verify_token)
+    current_user: Dict = Depends(verify_token) # TODO: Adaptar para novo backend 
 ):
     """Amostra de dados processados"""
     user_categories = get_user_categories(current_user["role"], current_user.get("allowed_categories", []))
