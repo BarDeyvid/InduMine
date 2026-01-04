@@ -27,12 +27,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Role-based category access mapping
+ALL_CATEGORIES = [
+    "Electric Motors", "Generation,Transmission And Distribution", 
+    "Digital Solutions", "Digital Solutions And Smart Grid", 
+    "Critical Power", "Coatings And Varnishes", "Industrial Automation", 
+    "Safety, Industrial Sensors And Power Supply"
+]
+
 ROLE_CATEGORIES = {
-    "admin": ["Electric-Motors", "Coatings And Varnishes", "Critical Power", "Digital Solutions And Smart Grid", "Digital Solutions", "Electric Motors", "Generation,Transmission And Distribution", "Industrial Automation", "Safety, Industrial Sensors And Power Supply"],
-    "engineer": ["Electric-Motors", "Industrial Automation", "Digital Solutions"],
-    "sales": ["Electric-Motors", "Critical Power", "Safety, Industrial Sensors And Power Supply"],
-    "guest": ["Electric-Motors"]
+    "admin": ALL_CATEGORIES,
+    "analise_de_dados": ALL_CATEGORIES, 
+    "guest": "",
+    "tintas_e_vernizes": ["Coatings And Varnishes"],
+    "mecanica": ["Electric Motors", "Industrial Automation"],
+    "eletrotecnica": ["Electric Motors", "Generation,Transmission And Distribution", "Critical Power", "Industrial Automation", "Safety, Industrial Sensors And Power Supply"],
+    "manutencao_eletroeletronica": ["Electric Motors", "Critical Power", "Industrial Automation", "Safety, Industrial Sensors And Power Supply"],
+    "desenvolvimento_de_sistemas": ["Digital Solutions", "Digital Solutions And Smart Grid"],
+    "automacao_e_conectividade": ["Industrial Automation", "Digital Solutions", "Digital Solutions And Smart Grid", "Safety, Industrial Sensors And Power Supply"],
+    "eletromecanica": ["Electric Motors", "Generation,Transmission And Distribution", "Industrial Automation", "Critical Power", "Safety, Industrial Sensors And Power Supply"]
 }
 
 # ==============================================
@@ -850,4 +862,4 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5001)
+    uvicorn.run("main:app", host="0.0.0.0", port=5001, reload=True)
