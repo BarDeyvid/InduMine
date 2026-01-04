@@ -1,4 +1,6 @@
 # config.py
+import sys
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 from typing import Optional
 
@@ -20,4 +22,15 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
-settings = Settings()
+try:
+    settings = Settings()
+except ValidationError as e:
+    print("\n" + "="*50)
+    print("CONFIGURATION ERROR")
+    print("="*50)
+    print("Missing or invalid environment variables in your .env file:")
+    for error in e.errors():
+        print(f"  - {error['loc'][0]}: {error['msg']}")
+    print("\nFIX: Check your .env file or system environment variables.")
+    print("="*50 + "\n")
+    sys.exit(1)
