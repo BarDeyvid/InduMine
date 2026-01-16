@@ -18,3 +18,10 @@ api/
 
 logs/
 *.log
+
+backend/data/
+logs/
+*.log
+*.0000*
+WiredTiger*
+mongod.lock
