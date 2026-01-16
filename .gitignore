@@ -15,4 +15,6 @@ api/
 **/__pycache__/
 **/.venv/
 **/.env
-**/.log
+
+logs/
+*.log
