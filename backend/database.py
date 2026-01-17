@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float, ForeignKey, JSON
 from sqlalchemy.sql import func
-from backend.config import settings
+from config import settings
 from typing import AsyncGenerator
 import logging
 

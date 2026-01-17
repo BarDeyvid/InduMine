@@ -14,8 +14,8 @@ import re
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from backend.database import engine, AsyncSessionLocal, Category, Product, ProductSpec, create_tables
-from backend.backend.config import settings
+from database import engine, AsyncSessionLocal, Category, Product, ProductSpec, create_tables
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -354,7 +354,7 @@ class DataMigrator:
 def find_csv_file():
     """Find CSV file"""
     possible_paths = [
-        "data/grouped_products_final.csv",
+        "backend/data/grouped_products_final.csv",
         "../data/grouped_products_final.csv",
         "../../data/grouped_products_final.csv",
         "grouped_products_final.csv"
