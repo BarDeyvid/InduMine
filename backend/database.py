@@ -1,7 +1,8 @@
 # ==================== DATABASE.PY ====================
+import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float, ForeignKey, JSON
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float, ForeignKey, JSON, create_engine
 from sqlalchemy.sql import func
 from config import settings
 from typing import AsyncGenerator
@@ -9,20 +10,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create async engine
-engine = create_async_engine(
-    settings.mysql_url,
-    echo=True,
+# Use the configuration from config.py
+engine = create_engine(
+    settings.MYSQL_URL,  # Use the computed property
+    echo=False,
     pool_pre_ping=True,
     pool_recycle=3600,
 )
 
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base model
 Base = declarative_base()
@@ -84,25 +80,19 @@ class ProductSpec(Base, BaseMixin):
     __table_args__ = ({"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"},)
 
 # ==================== DATABASE HELPER FUNCTIONS ====================
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get DB session"""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-async def create_tables():
+def create_tables():
     """Create all tables"""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created")
 
-async def close_database():
+def close_database():
     """Close database connection"""
-    await engine.dispose()
+    engine.dispose()
     logger.info("✅ Database connection closed")

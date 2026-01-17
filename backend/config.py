@@ -1,40 +1,42 @@
 # ==================== CONFIG.PY ====================
-import os
 from typing import Optional
 from pydantic_settings import BaseSettings
+from pydantic import computed_field
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class Settings(BaseSettings):
-    # MySQL Configuration
-    mysql_host: str = os.getenv("MYSQL_HOST", "localhost")
-    mysql_port: int = int(os.getenv("MYSQL_PORT", 3306))
-    mysql_user: str = os.getenv("MYSQL_USER", "root")
-    mysql_password: str = os.getenv("MYSQL_PASSWORD", "Mv1208811#")
-    mysql_database: str = os.getenv("MYSQL_DATABASE", "indumine_db")
-    
-    # MySQL Connection URL
-    mysql_url: Optional[str] = None
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.mysql_url = (
-            f"mysql+aiomysql://{self.mysql_user}:{self.mysql_password}"
-            f"@{self.mysql_host}:{self.mysql_port}/{self.mysql_database}"
-        )
+    # Database Configuration - using the EXACT environment variable names from your .env file
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 3306
+    DB_USER: str = "root"
+    DB_PASSWORD: str = "Mv1208811#"
+    DB_NAME: str = "indumine_db"
+    DEBUG: bool = True  # Add this since it's in your environment
     
     # JWT Configuration
-    secret_key: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    refresh_token_expire_days: int = 7
+    SECRET_KEY: str = "supersecretinduminekey123"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
     # App Configuration
-    project_name: str = "WEG Product API - MySQL"
-    api_v1_prefix: str = "/api/v1"
+    PROJECT_NAME: str = "WEG Product API - MySQL"
+    API_V1_PREFIX: str = "/api/v1"
+    
+    @computed_field
+    @property
+    def MYSQL_URL(self) -> str:
+        """Synchronous MySQL URL (using pymysql)"""
+        return (
+            f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}"
+            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            f"?charset=utf8mb4"
+        )
     
     class Config:
         env_file = ".env"
+        # Allow extra environment variables without throwing errors
+        extra = "ignore"
 
 settings = Settings()
