@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  actions: write 
 
 jobs:
   leaderboard:
@@ -19,6 +18,7 @@ jobs:
           
       - name: Generate leaderboard
         run: |
+          # Use mailmap and group by author
           git shortlog -sn --since="30 days ago" main > leaderboard.txt
           
           echo "## Commit Leaderboard (últimos 30 dias)" > leaderboard.md
@@ -27,12 +27,25 @@ jobs:
           echo "|------|---------|--------|" >> leaderboard.md
           
           awk '{count=$1; $1=""; name=substr($0,2); print "| " NR " | " count " | " name " |"}' leaderboard.txt >> leaderboard.md
+
+      - name: Push to Orphan Branch
+        run: |
+          # 1. Create a temporary folder and move the result there
+          mkdir tmp_data
+          cp leaderboard.md tmp_data/
           
-      - name: Commit leaderboard
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Update commit leaderboard [skip ci]"
-          file_pattern: leaderboard.md
-          branch: leaderboard-data
-          create_branch: true
-          push_options: '--force'
+          # 2. Switch to a completely empty "orphan" branch
+          git checkout --orphan leaderboard-data
+          
+          # 3. Remove all files tracked from main (this doesn't delete them from main branch)
+          git rm -rf .
+          
+          # 4. Move the leaderboard back and commit
+          mv tmp_data/leaderboard.md .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add leaderboard.md
+          git commit -m "Update leaderboard [skip ci]"
+          
+          # 5. Force push the single file to the remote branch
+          git push origin leaderboard-data --force
