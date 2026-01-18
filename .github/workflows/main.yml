@@ -42,10 +42,10 @@ jobs:
                   name = "Deyvid Barcelos";
               }
               if (name == "luclc13241") {
-                  name = "Lucas Cardoso";
+                  name = "Lucas Gabriel Da Silva Nardes";
               }
               if (name == "kauamdsouza") {
-                  name = "Kauan Souza";
+                  name = "Kaua Martins De Souza";
               }
               
               scores[name] += count;
