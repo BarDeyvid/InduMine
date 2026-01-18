@@ -16,6 +16,30 @@ from pydantic import BaseModel, EmailStr, Field
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routes.products import router
+
+app = FastAPI(title="InduMine Modular Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include the router
+app.include_router(router)
+
+if __name__ == "__main__":
+    import uvicorn
+    from database import Base, engine
+    # Initial DB Create (safe to run, will only create tables if missing)
+    Base.metadata.create_all(bind=engine)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+
 from models.products import *
 from models.users import *
 from schemas.products import *
@@ -167,184 +191,3 @@ def row_to_dict(instance):
                 
     return base
 
-# ============================================================================
-# API ENDPOINTS
-# ============================================================================
-
-app = FastAPI(title="InduMine Modular Backend")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# --- AUTHENTICATION ---
-
-@app.post("/auth/register", response_model=UserResponse)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(or_(User.email == user.email, User.username == user.username)).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email or Username already registered")
-    
-    hashed_pw = get_password_hash(user.password)
-    
-    # By default, new users might get access to everything or nothing.
-    # Here we default to access all categories if none provided, for testing ease.
-    categories_to_assign = user.allowed_categories if user.allowed_categories else list(CATEGORY_CONFIG.keys())
-
-    new_user = User(
-        email=user.email,
-        username=user.username,
-        hashed_password=hashed_pw,
-        full_name=user.full_name,
-        allowed_categories=categories_to_assign,
-        role="user",
-        is_active=True,
-        created_at=str(datetime.now())
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
-@app.post("/auth/login", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# --- USER MANAGEMENT ---
-
-@app.get("/users/me", response_model=UserResponse)
-def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
-
-@app.patch("/users/me", response_model=UserResponse)
-def update_user_me(user_update: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Allow user to update their own details"""
-    if user_update.full_name is not None:
-        current_user.full_name = user_update.full_name
-    if user_update.email is not None:
-        current_user.email = user_update.email
-    if user_update.password is not None:
-        current_user.hashed_password = get_password_hash(user_update.password)
-    
-    # Only Admins should theoretically update allowed_categories, but for this demo logic:
-    if user_update.allowed_categories is not None:
-         current_user.allowed_categories = user_update.allowed_categories
-
-    db.commit()
-    db.refresh(current_user)
-    return current_user
-
-# --- DATA / CATEGORIES ---
-
-@app.get("/categories", response_model=List[CategorySummary])
-def get_available_categories(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """
-    Returns categories available to the logged-in user, 
-    including the count of items in each specific table.
-    """
-    user_access_list = current_user.allowed_categories or []
-    
-    results = []
-    
-    # Iterate over the defined config (ignoring SQL 'categories' table)
-    for slug, config in CATEGORY_CONFIG.items():
-        # Check if user has access (or is admin)
-        if slug in user_access_list or current_user.role == "admin":
-            model = config["model"]
-            try:
-                # Count items in the specific table
-                count = db.query(model).count()
-                results.append({
-                    "name": config["name"],
-                    "slug": slug,
-                    "item_quantity": count
-                })
-            except Exception as e:
-                # If table doesn't exist or error
-                logger.error(f"Error counting table for {slug}: {e}")
-                results.append({"name": config["name"], "slug": slug, "item_quantity": 0})
-                
-    return results
-
-@app.get("/products/{category_slug}", response_model=List[ProductItemResponse])
-def get_products_by_category(
-    category_slug: str, 
-    limit: int = 50, 
-    offset: int = 0,
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)
-):
-    """
-    Loads data ONLY from the table corresponding to the requested category.
-    Verifies user permission first.
-    """
-    # 1. Security Check
-    user_access_list = current_user.allowed_categories or []
-    if category_slug not in user_access_list and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="You do not have access to this category data.")
-    
-    # 2. Get the Model
-    config = CATEGORY_CONFIG.get(category_slug)
-    if not config:
-        raise HTTPException(status_code=404, detail="Category table definition not found.")
-    
-    model = config["model"]
-    
-    # 3. Query the specific table
-    try:
-        products = db.query(model).offset(offset).limit(limit).all()
-    except Exception as e:
-        logger.error(f"Database error querying {category_slug}: {e}")
-        raise HTTPException(status_code=500, detail="Error retrieving data from category table")
-
-    # 4. Serialize (Handle heterogeneous columns)
-    return [row_to_dict(p) for p in products]
-
-@app.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
-def get_product_detail(
-    category_slug: str, 
-    product_code: str,
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)
-):
-    # 1. Security Check
-    user_access_list = current_user.allowed_categories or []
-    if category_slug not in user_access_list and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Access denied.")
-
-    config = CATEGORY_CONFIG.get(category_slug)
-    if not config:
-        raise HTTPException(status_code=404, detail="Category not found.")
-    
-    model = config["model"]
-    
-    # 2. Find Product
-    # Since product codes might be strings with spaces, we decode or query directly
-    product = db.query(model).filter(model.product_code == product_code).first()
-    
-    if not product:
-         raise HTTPException(status_code=404, detail="Product not found in this category.")
-         
-    return row_to_dict(product)
-
-if __name__ == "__main__":
-    import uvicorn
-    # Initial DB Create (safe to run, will only create tables if missing)
-    Base.metadata.create_all(bind=engine)
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
