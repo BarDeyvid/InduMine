@@ -18,14 +18,21 @@ jobs:
           
       - name: Generate leaderboard
         run: |
-          git shortlog -sn --since="30 days ago" --use-mailmap main > leaderboard.txt
+          git shortlog -sn -e --since="30 days ago" main > leaderboard.txt
           
           echo "## Commit Leaderboard (últimos 30 dias)" > leaderboard.md
           echo "" >> leaderboard.md
           echo "| Rank | Commits | Author |" >> leaderboard.md
           echo "|------|---------|--------|" >> leaderboard.md
           
-          awk '{count=$1; $1=""; name=substr($0,2); print "| " NR " | " count " | " name " |"}' leaderboard.txt >> leaderboard.md
+          awk '{
+              count=$1; 
+              $1=""; 
+              line=$0; 
+              sub(/ <.*>/, "", line); 
+              name=substr(line,2); 
+              print "| " NR " | " count " | " name " |"
+          }' leaderboard.txt >> leaderboard.md
 
       - name: Push to Orphan Branch
         run: |
