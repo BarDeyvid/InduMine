@@ -37,7 +37,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
       {/* Background Effects */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
         <div className="absolute top-[20%] -left-[10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[120px]" />
