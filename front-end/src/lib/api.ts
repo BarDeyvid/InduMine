@@ -15,7 +15,7 @@ async function handleResponse(response: Response) {
 export const getCategories = async () => {
   const token = getAuthToken(); // 1. Pega o token
   
-  const response = await fetch(`${API_BASE_URL}/categories/`, {
+  const response = await fetch(`${API_BASE_URL}/categories`, {
     headers: {
       'Authorization': `Bearer ${token}`, // 2. Envia o token
       'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export const getCategoryBySlug = async (slug: string) => {
 export const getProducts = async () => {
   const token = getAuthToken();
   
-  const response = await fetch(`${API_BASE_URL}/products/`, {
+  const response = await fetch(`${API_BASE_URL}/products`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -170,3 +170,51 @@ export const logout = () => {
 
 // Função para pegar o token salvo
 export const getAuthToken = () => localStorage.getItem('auth_token');
+
+export const getCurrentUser = async () => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/me`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Falha ao buscar dados do usuário");
+  }
+
+  return handleResponse(response);
+};
+
+export const updateCurrentUser = async (userData: any) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/me`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};

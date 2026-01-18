@@ -292,21 +292,23 @@ def row_to_dict(instance, slug=None):
 # ============================================================================
 
 app = FastAPI(title="InduMine Modular Backend")
-
+# --- CORS MIDDLEWARE ---
 origins = [
-    "http://localhost",
-    "http://localhost:80",
-    "http://127.0.0.1",
-    "http://127.0.0.1:80",
+    "https://indumine.duckdns.org",
+    "https://api-indumine.duckdns.org", 
+    "http://65.109.0.163",
+    "https://65.109.0.163",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Permite todos os métodos (GET, POST, etc.)
-    allow_headers=["*"],  # Permite todos os headers
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
+
 
 # --- AUTHENTICATION ---
 

@@ -63,7 +63,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
         <div className="absolute -top-[10%] left-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
       </div>
