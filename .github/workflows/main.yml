@@ -1,0 +1,26 @@
+name: Update Commit Leaderboard
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  leaderboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # pega todo histórico
+      - name: Generate leaderboard
+        run: |
+          git shortlog -sn --since="30 days ago" > leaderboard.txt
+          echo "## Commit Leaderboard (últimos 30 dias)" > leaderboard.md
+          echo "" >> leaderboard.md
+          echo "| Rank | Commits | Author |" >> leaderboard.md
+          echo "|------|---------|--------|" >> leaderboard.md
+          awk '{print "| " NR " | " $1 " | " substr($0, index($0,$2)) " |"}' leaderboard.txt >> leaderboard.md
+      - name: Commit leaderboard
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Update commit leaderboard
+          file_pattern: leaderboard.md
