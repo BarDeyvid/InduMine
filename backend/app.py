@@ -17,6 +17,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 
 from models.products import *
+from models.users import *
 
 # ============================================================================
 # CONFIGURATION
@@ -50,19 +51,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 # MODELS (Database Tables)
 # ============================================================================
 
-class User(Base):
-    __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, nullable=False)
-    username = Column(String(100), unique=True)
-    hashed_password = Column(String(255), nullable=False)
-    full_name = Column(String(200))
-    role = Column(String(50), default="user") # admin, user, guest
-    is_active = Column(Boolean, default=True)
-    # Stores list of slugs user can access: ["electric-motors", "industrial-automation"]
-    allowed_categories = Column(JSON, default=list) 
-    created_at = Column(Text) # Using Text to avoid datetime parsing issues with legacy data if any
 
 
 # ============================================================================

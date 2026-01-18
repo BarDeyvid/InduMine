@@ -6,6 +6,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float, 
 from sqlalchemy.sql import func
 from config import settings
 from typing import AsyncGenerator
+from sqlalchemy import create_engine
 import logging
 
 logger = logging.getLogger(__name__)

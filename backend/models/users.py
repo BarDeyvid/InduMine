@@ -1,23 +1,15 @@
-import os
-import logging
-import json
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
-
-from fastapi import FastAPI, HTTPException, Depends, status, Body
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.middleware.cors import CORSMiddleware
+import os, sys
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, Boolean, JSON, 
     inspect, or_, text
 )
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
-from pydantic import BaseModel, EmailStr, Field
-from passlib.context import CryptContext
-from jose import JWTError, jwt
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = {'extend_existing': True}  # Add this line
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False)

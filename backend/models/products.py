@@ -1,20 +1,9 @@
 import os, sys
-import logging
-import json
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
 
-from fastapi import FastAPI, HTTPException, Depends, status, Body
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, Boolean, JSON, 
     inspect, or_, text
 )
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
-from pydantic import BaseModel, EmailStr, Field
-from passlib.context import CryptContext
-from jose import JWTError, jwt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
