@@ -18,8 +18,7 @@ jobs:
           
       - name: Generate leaderboard
         run: |
-          # Use mailmap and group by author
-          git shortlog -sn --since="30 days ago" main > leaderboard.txt
+          git shortlog -sn --since="30 days ago" --use-mailmap main > leaderboard.txt
           
           echo "## Commit Leaderboard (últimos 30 dias)" > leaderboard.md
           echo "" >> leaderboard.md
