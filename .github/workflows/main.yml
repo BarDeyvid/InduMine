@@ -41,6 +41,12 @@ jobs:
               if (name == "BarDeyvid" || name == "ddeyvid" || name == "Deyvid") {
                   name = "Deyvid Barcelos";
               }
+              if (name == "luclc13241") {
+                  name = "Lucas Cardoso";
+              }
+              if (name == "kauamdsouza") {
+                  name = "Kauan Souza";
+              }
               
               scores[name] += count;
           } END {
