@@ -22,8 +22,8 @@ from jose import JWTError, jwt
 
 # Database Config
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Mv1208811#")
-DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "Echidna12")
+DB_HOST = os.getenv("DB_HOST", "db")
 DB_NAME = os.getenv("DB_NAME", "indumine_db")
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?charset=utf8mb4"
 
@@ -219,7 +219,7 @@ class ProductItemResponse(BaseModel):
     product_code: str
     image: Optional[str]
     url: Optional[str]
-    # Dynamic bucket for table-specific fields (e.g. "Poles", "Color")
+    category_slug: Optional[str] = None
     specifications: Dict[str, Any] 
 
 # ============================================================================
@@ -265,23 +265,24 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
-def row_to_dict(instance):
+def row_to_dict(instance, slug=None):
     """Converts a SQLAlchemy row to a standardized dict with 'specifications'."""
+    if instance is None:
+        return None
     data = {c.key: getattr(instance, c.key) for c in inspect(instance).mapper.column_attrs}
     
-    # Extract standard fields
     base = {
         "product_code": data.get("product_code", "N/A"),
         "image": data.get("product_image"),
         "url": data.get("product_url"),
-        "category": data.get("category_name"),
+        "category_slug": slug, 
         "specifications": {}
     }
     
     # Move everything else to specifications
     for key, val in data.items():
         if key not in ["product_code", "product_image", "product_url", "category_name"]:
-            if val: # Only include non-empty values
+            if val: 
                 base["specifications"][key] = val
                 
     return base
@@ -292,12 +293,19 @@ def row_to_dict(instance):
 
 app = FastAPI(title="InduMine Modular Backend")
 
+origins = [
+    "http://localhost",
+    "http://localhost:80",
+    "http://127.0.0.1",
+    "http://127.0.0.1:80",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permite todos os métodos (GET, POST, etc.)
+    allow_headers=["*"],  # Permite todos os headers
 )
 
 # --- AUTHENTICATION ---
@@ -401,39 +409,39 @@ def get_available_categories(current_user: User = Depends(get_current_user), db:
                 
     return results
 
+@app.get("/products/code/{product_code}", response_model=ProductItemResponse)
+def get_product_globally(product_code: str, db: Session = Depends(get_db)):
+    """
+    Searches for a product across ALL configured categories.
+    Used when we have the ID but don't know the category yet.
+    """
+    # Iterate through all configured tables
+    for slug, config in CATEGORY_CONFIG.items():
+        model = config["model"]
+        # Try to find the product in this table
+        product = db.query(model).filter(model.product_code == product_code).first()
+        
+        if product:
+            # If found, return it with the slug context
+            return row_to_dict(product, slug=slug)
+            
+    raise HTTPException(status_code=404, detail="Product not found in any category")
+
 @app.get("/products/{category_slug}", response_model=List[ProductItemResponse])
-def get_products_by_category(
-    category_slug: str, 
-    limit: int = 50, 
-    offset: int = 0,
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)
-):
-    """
-    Loads data ONLY from the table corresponding to the requested category.
-    Verifies user permission first.
-    """
-    # 1. Security Check
-    user_access_list = current_user.allowed_categories or []
-    if category_slug not in user_access_list and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="You do not have access to this category data.")
-    
-    # 2. Get the Model
+def get_products_by_category(category_slug: str, db: Session = Depends(get_db)):
     config = CATEGORY_CONFIG.get(category_slug)
     if not config:
-        raise HTTPException(status_code=404, detail="Category table definition not found.")
-    
+        raise HTTPException(status_code=404, detail="Categoria não configurada no backend")
+
     model = config["model"]
     
-    # 3. Query the specific table
-    try:
-        products = db.query(model).offset(offset).limit(limit).all()
-    except Exception as e:
-        logger.error(f"Database error querying {category_slug}: {e}")
-        raise HTTPException(status_code=500, detail="Error retrieving data from category table")
-
-    # 4. Serialize (Handle heterogeneous columns)
-    return [row_to_dict(p) for p in products]
+    # Adicionando um filtro para evitar linhas corrompidas/vazias
+    products = db.query(model).all()
+    
+    # Filtragem robusta antes de converter para dicionário
+    valid_products = [row_to_dict(p, slug=category_slug) for p in products if p is not None]
+    
+    return valid_products
 
 @app.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
 def get_product_detail(
@@ -460,7 +468,7 @@ def get_product_detail(
     if not product:
          raise HTTPException(status_code=404, detail="Product not found in this category.")
          
-    return row_to_dict(product)
+    return row_to_dict(product, slug=category_slug)
 
 if __name__ == "__main__":
     import uvicorn

@@ -8,7 +8,7 @@ load_dotenv()
 
 class Settings(BaseSettings):
     # MySQL Configuration
-    mysql_host: str = os.getenv("MYSQL_HOST", "localhost")
+    mysql_host: str = os.getenv("MYSQL_HOST", "db")
     mysql_port: int = int(os.getenv("MYSQL_PORT", 3306))
     mysql_user: str = os.getenv("MYSQL_USER", "root")
     mysql_password: str = os.getenv("MYSQL_PASSWORD", "Mv1208811#")
