@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mysql:latest
@@ -28,13 +26,30 @@ services:
       - indumine-network
 
   frontend:
-    build: ./front-end
+    build:
+      context: ./front-end  
+      args:
+        - VITE_API_URL=https://api-indumine.duckdns.org
     container_name: indumine-ui
     restart: always
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     depends_on:
       - backend
+    networks:
+      - indumine-network
+
+  nginx-proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81' 
+    volumes:
+      - ./nginx_data:/data
+      - ./letsencrypt:/etc/letsencrypt
     networks:
       - indumine-network
 
