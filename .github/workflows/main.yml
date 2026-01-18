@@ -18,12 +18,16 @@ jobs:
 
       - name: Generate leaderboard
         run: |
-          git shortlog -sn --since="30 days ago" > leaderboard.txt
+          # Explicitly pull history from main to ensure data exists
+          git shortlog -sn --since="30 days ago" main > leaderboard.txt
+          
           echo "## Commit Leaderboard (últimos 30 dias)" > leaderboard.md
           echo "" >> leaderboard.md
           echo "| Rank | Commits | Author |" >> leaderboard.md
           echo "|------|---------|--------|" >> leaderboard.md
-          awk '{print "| " NR " | " $1 " | " substr($0, index($0,$2)) " |"}' leaderboard.txt >> leaderboard.md
+          
+          # Improved awk to handle names with spaces correctly
+          awk '{count=$1; $1=""; name=substr($0,2); print "| " NR " | " count " | " name " |"}' leaderboard.txt >> leaderboard.md
 
       - name: Commit leaderboard
         uses: stefanzweifel/git-auto-commit-action@v5
