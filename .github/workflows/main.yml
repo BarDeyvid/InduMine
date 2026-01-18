@@ -18,6 +18,7 @@ jobs:
           
       - name: Generate leaderboard
         run: |
+          # 1. Get the log. We use -e to ensure we see the email.
           git shortlog -sn -e --since="30 days ago" main > leaderboard.txt
           
           echo "## Commit Leaderboard (últimos 30 dias)" > leaderboard.md
@@ -25,13 +26,42 @@ jobs:
           echo "| Rank | Commits | Author |" >> leaderboard.md
           echo "|------|---------|--------|" >> leaderboard.md
           
+          # 2. AWK with "Identity Force"
           awk '{
               count=$1; 
               $1=""; 
               line=$0; 
+              # Remove the email part <...>
               sub(/ <.*>/, "", line); 
-              name=substr(line,2); 
-              print "| " NR " | " count " | " name " |"
+              name=substr(line,2);
+              # Trim spaces
+              gsub(/^[ \t]+|[ \t]+$/, "", name);
+              
+              # MANUALLY MERGE ALL YOUR KNOWN ALIASES
+              if (name == "BarDeyvid" || name == "ddeyvid" || name == "Deyvid") {
+                  name = "Deyvid Barcelos";
+              }
+              
+              scores[name] += count;
+          } END {
+              n = 0;
+              for (name in scores) {
+                  n++;
+                  names[n] = name;
+              }
+              # Sort by commit count descending
+              for (i = 1; i <= n; i++) {
+                  for (j = i + 1; j <= n; j++) {
+                      if (scores[names[j]] > scores[names[i]]) {
+                          tmp = names[i];
+                          names[i] = names[j];
+                          names[j] = tmp;
+                      }
+                  }
+              }
+              for (i = 1; i <= n; i++) {
+                  print "| " i " | " scores[names[i]] " | " names[i] " |";
+              }
           }' leaderboard.txt >> leaderboard.md
 
       - name: Push to Orphan Branch
