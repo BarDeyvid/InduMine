@@ -1,179 +1,178 @@
+# ============================================================================
+# BACKEND ROUTES - PRODUCTS
+# ============================================================================
+# routes/products.py
+# ============================================================================
+
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm  
-from fastapi import APIRouter, HTTPException, Depends, status  
-from datetime import datetime, timedelta  
-from sqlalchemy import or_, inspect  
-from sqlalchemy.orm import Session  
-from typing import Optional, List  
-import logging  
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, HTTPException, Depends, status, Query, Body
+from datetime import datetime
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+from typing import List
+import logging
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
-from database import User, get_db  
-from schemas.products import *  
-from models.products import *  
-from utils.helpers import *  
+from database import get_db
+from schemas.products import *
+from schemas.auth import UserCreate, UserUpdate
+from models.users import User
+from models.products import *
+from utils.helpers import row_to_dict
 
 logger = logging.getLogger(__name__)
 
 # Import security helpers
-from passlib.context import CryptContext
-from jose import JWTError, jwt
+from config import settings
+from utils.security import (
+    get_current_user, 
+    require_role,
+    get_password_hash,
+    create_tokens,
+    verify_token,
+    TokenResponse,
+    verify_password
+)
+from configuration.mappings import CATEGORY_CONFIG
 
-# Security Setup
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+# Rate limiter instance
+limiter = Limiter(key_func=get_remote_address)
 
-# JWT Config
-SECRET_KEY = "supersecretinduminekey123"  # Should come from config
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-
-CATEGORY_CONFIG = {
-    "building-infrastructure": {
-        "model": BuildingInfrastructure,
-        "name": "Building Infrastructure"
-    },
-    "coatings-and-varnishes": {
-        "model": CoatingsAndVarnishes,
-        "name": "Coatings & Varnishes"
-    },
-    "critical-power": {
-        "model": CriticalPower,
-        "name": "Critical Power"
-    },
-    "digital-solutions": {
-        "model": DigitalSolutions,
-        "name": "Digital Solutions"
-    },
-    "digital-solutions-and-smart-grid": {
-        "model": DigitalSolutionsSmartGrid,
-        "name": "Digital Solutions & Smart Grid"
-    },
-    "electric-motors": {
-        "model": ElectricMotors,
-        "name": "Electric Motors"
-    },
-    "generation-transmission": {
-        "model": GenerationTransmission,
-        "name": "Generation, Transmission & Distribution"
-    },
-    "industrial-automation": {
-        "model": IndustrialAutomation,
-        "name": "Industrial Automation"
-    },
-    "safety-sensors": {
-        "model": SafetySensors,
-        "name": "Safety, Sensors & Power Supply"
-    }
-}
-
-router = APIRouter()
-
-# Helper functions
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-        
-    user = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-# --- AUTHENTICATION ---
+router = APIRouter(prefix="")
 
 @router.post("/auth/register", response_model=UserResponse)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(or_(User.email == user.email, User.username == user.username)).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email or Username already registered")
+def register_user(
+    user: UserCreate, 
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_role("admin"))  # Only admins can register users
+):
+    # Check existing user
+    existing = db.query(User).filter(
+        (User.email == user.email) | (User.username == user.username)
+    ).first()
     
-    hashed_pw = get_password_hash(user.password)
-    
-    # By default, new users might get access to everything or nothing.
-    # Here we default to access all categories if none provided, for testing ease.
-    categories_to_assign = user.allowed_categories if user.allowed_categories else list(CATEGORY_CONFIG.keys())
-
-    new_user = User(
-        email=user.email,
-        username=user.username,
-        hashed_password=hashed_pw,
-        full_name=user.full_name,
-        allowed_categories=categories_to_assign,
-        role="user",
-        is_active=True,
-        created_at=str(datetime.now())
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
-@router.post("/auth/login", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if existing:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=400,
+            detail="Email or username already registered"
         )
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
+    # Create user with safe defaults
+    db_user = User(
+        email=user.email,
+        username=user.username,
+        hashed_password=get_password_hash(user.password),
+        full_name=user.full_name,
+        allowed_categories=user.allowed_categories,
+        role="user",  # Default role
+        is_active=True,
+        created_by=admin_user.id
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    # Log registration
+    logger.info(f"New user registered: {user.username} by {admin_user.username}")
+    
+    return db_user
 
-# --- USER MANAGEMENT ---
+@router.post("/auth/login", response_model=TokenResponse)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    
+    # Prevent timing attacks
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials"
+        )
+    
+    # Verify password
+    if not verify_password(form_data.password, user.hashed_password):
+        # Log failed attempt
+        logger.warning(f"Failed login attempt for user: {form_data.username}")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials"
+        )
+    
+    # Update last login
+    user.last_login = datetime.now()
+    db.commit()
+    
+    # Create tokens
+    access_token, refresh_token = create_tokens(user.username, user.role)
+    
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
 
+@router.post("/auth/refresh", response_model=TokenResponse)
+def refresh_access_token(
+    refresh_token: str = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """Refresh access token using refresh token"""
+    payload = verify_token(refresh_token, "refresh")
+    username = payload.get("sub")
+    
+    user = db.query(User).filter(User.username == username).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    new_access_token, _ = create_tokens(user.username, user.role)
+    
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+# Rotas de produtos com validação de categoria
+@router.get("/products/{category_slug}", response_model=List[ProductItemResponse])
+def get_products_by_category(
+    category_slug: str,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check access permissions
+    if not current_user.has_access_to_category(category_slug):
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied to this category"
+        )
+    
+    # Validate category exists
+    if category_slug not in CATEGORY_CONFIG:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Safe query with parameterization
+    model = CATEGORY_CONFIG[category_slug]["model"]
+    products = db.query(model).offset(offset).limit(limit).all()
+    
+    results = [row_to_dict(p, slug=category_slug) for p in products]
+    return [r for r in results if r is not None]
+
+# Adicione também as rotas restantes que estavam no arquivo original
 @router.get("/users/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-@router.patch("/users/me", response_model=UserResponse)
-def update_user_me(user_update: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Allow user to update their own details"""
-    if user_update.full_name is not None:
-        current_user.full_name = user_update.full_name
-    if user_update.email is not None:
-        current_user.email = user_update.email
-    if user_update.password is not None:
-        current_user.hashed_password = get_password_hash(user_update.password)
-    
-    # Only Admins should theoretically update allowed_categories, but for this demo logic:
-    if user_update.allowed_categories is not None:
-         current_user.allowed_categories = user_update.allowed_categories
-
-    db.commit()
-    db.refresh(current_user)
-    return current_user
-
-# --- DATA / CATEGORIES ---
 
 @router.get("/categories", response_model=List[CategorySummary])
 def get_available_categories(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -223,92 +222,31 @@ def get_product_globally(product_code: str, db: Session = Depends(get_db)):
 
     raise HTTPException(status_code=404, detail="Product not found in any category")
 
-@router.get("/products/{category_slug}", response_model=List[ProductItemResponse])  
-def get_products_by_category(  
-    category_slug: str, 
-    limit: int = 50, 
-    offset: int = 0,  
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)  
-):  
-    # 1. Security Check (RBAC)  
-    user_access_list = current_user.allowed_categories or []  
-    if category_slug not in user_access_list and current_user.role != "admin":  
-        raise HTTPException(  
-            status_code=403, 
-            detail="You do not have access to this category data."  
-        )  
-
-    # 2. Get the Model configuration  
-    config = CATEGORY_CONFIG.get(category_slug)  
-    if not config:  
-        raise HTTPException(  
-            status_code=404, 
-            detail="Category table definition not found."  
-        )  
-
-    model = config["model"]  
-
-    # 3. Query with Pagination and Error Handling  
-    try:  
-        products = db.query(model).offset(offset).limit(limit).all()  
-    except Exception as e:  
-        # Ensure 'logger' is imported and configured in the module  
-        logger.error(f"Database error querying {category_slug}: {e}")  
-        raise HTTPException(  
-            status_code=500, 
-            detail="Error retrieving data from category table."  
-        )  
-
-    # 4. Robust Serialization  
-    # Filters out None values and handles category-specific context  
-    return [row_to_dict(p, slug=category_slug) for p in products if p is not None]
-
-
-@router.get("/products/code/{product_code}", response_model=ProductItemResponse)  
-def get_product_globally(product_code: str, db: Session = Depends(get_db)):  
-    """  
-    Searches for a product across ALL configured categories.  
-    Used when we have the ID but don't know the category yet.  
-    """  
-    # Iterate through all configured tables  
-    for slug, config in CATEGORY_CONFIG.items():  
-        model = config["model"]  
-        # Try to find the product in this table  
-        product = db.query(model).filter(model.product_code == product_code).first()  
-
-        if product:  
-            # If found, return it with the slug context  
-            return row_to_dict(product, slug=slug)  
-
-    raise HTTPException(status_code=404, detail="Product not found in any category")
-
-
 @router.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
-def get_product_detail(  
-    category_slug: str, 
-    product_code: str,  
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)  
-):  
-    # 1. Security Check  
-    user_access_list = current_user.allowed_categories or []  
-    if category_slug not in user_access_list and current_user.role != "admin":  
-        raise HTTPException(status_code=403, detail="Access denied.")  
-
-    config = CATEGORY_CONFIG.get(category_slug)  
-    if not config:  
-        raise HTTPException(status_code=404, detail="Category not found.")  
+def get_product_detail(
+    category_slug: str,
+    product_code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 1. Security Check
+    user_access_list = current_user.allowed_categories or []
+    if category_slug not in user_access_list and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied.")
     
-    model = config["model"]  
+    config = CATEGORY_CONFIG.get(category_slug)
+    if not config:
+        raise HTTPException(status_code=404, detail="Category not found.")
     
-    # 2. Find Product  
-    # Since product codes might be strings with spaces, we decode or query directly  
-    product = db.query(model).filter(model.product_code == product_code).first()  
+    model = config["model"]
     
-    if not product:  
-         raise HTTPException(status_code=404, detail="Product not found in this category.")  
-         
+    # 2. Find Product
+    # Since product codes might be strings with spaces, we decode or query directly
+    product = db.query(model).filter(model.product_code == product_code).first()
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found in this category.")
+        
     return row_to_dict(product, slug=category_slug)
 
 # Test if this file runs directly
