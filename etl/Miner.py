@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 from typing import NamedTuple
 from queue import Queue, Empty, Full
+import os
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -80,7 +81,7 @@ def extract_links_from_navigation(soup: BeautifulSoup, current_url: str) -> list
     """Extract navigation links from category/navigation pages using specific selectors."""
     next_urls = []
     
-    # All the navigation selectors combined from the second version
+    # All the navigation selectors combined
     main_menu_links = soup.select("#productMenuContent li a[href]")
     category_links = soup.select("a.xtt-url-categories[href]")
     subcategory_links = soup.select("#products-selection a[href]")
@@ -118,97 +119,82 @@ def extract_links_from_navigation(soup: BeautifulSoup, current_url: str) -> list
     
     return next_urls
 
-def extract_tech_specs(soup: BeautifulSoup, url: str) -> list[list[str]]:
+# ------------------------------------------------------------------
+# EXTRACTION LOGIC 
+# ------------------------------------------------------------------
+def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
     """
-    Extracts technical specifications from the product datasheet section 
-    and returns a list of [URL, Feature, Value] rows.
+    Extracts product data based on the new logic and flattens it 
+    into a list of [URL, Feature, Value] rows for CSV storage.
     """
-    scraped_data = []
+    data = {
+        "name": None,
+        "code": None,
+        "description": None,
+        "features": {},
+        "details": {}
+    }
 
-    # 1. Find the main datasheet tab content
-    datasheet_div = soup.find('div', id='datasheet')
-    if not datasheet_div:
-        return scraped_data
+    # Nome
+    name = soup.select_one("h1.product-card-title")
+    if name:
+        data["name"] = name.get_text(strip=True)
 
-    # Helper function to process standard key-value tables (Frame, Output, Features, etc.)
-    def process_key_value_tables(container):
-        rows = []
-        # Find all data tables with the key-value structure
-        for table in container.find_all('table', class_='table-striped'):
-            if table.find_previous_sibling('h4', string=lambda t: t in ['Efficiency', 'Power factor']):
-                continue
+    # Código
+    code = soup.select_one("small.product-card-info")
+    if code:
+        data["code"] = code.get_text(strip=True).replace("Product:", "").strip()
 
-            for tr in table.find_all('tr'):
-                th = tr.find('th')
-                td = tr.find('td')
+    # Descrição
+    desc = soup.select_one("div.xtt-product-description p")
+    if desc:
+        data["description"] = desc.get_text(strip=True)
+
+    # Product features
+    features_block = soup.select_one("div.product-info-specs")
+    if features_block:
+        for table in features_block.select("table.table"):
+            for tr in table.select("tr"):
+                th, td = tr.find("th"), tr.find("td")
                 if th and td:
-                    feature = th.get_text(strip=True).replace(':', '')
-                    value = td.get_text(strip=True)
-                    if feature and value:
-                        feature = re.sub(r'¹|²|³|⁴', '', feature).strip()
-                        rows.append([url, feature, value])
-        return rows
+                    data["features"][th.get_text(strip=True)] = td.get_text(strip=True)
 
-    # Extract data from 'Electric Motors' and 'Features' sections
-    scraped_data.extend(process_key_value_tables(datasheet_div))
+    # Product details
+    for table in soup.select("table.table-striped"):
+        for tr in table.select("tr"):
+            th, td = tr.find("th"), tr.find("td")
+            if th and td:
+                data["details"][th.get_text(strip=True)] = td.get_text(strip=True)
+
+    # --- Flattening to CSV Rows ---
+    scraped_rows = []
     
-    # Loop over Efficiency and Power factor sections
-    for section_title, prefix in [('Efficiency', 'Efficiency'), ('Power factor', 'Power factor')]:
-        section = datasheet_div.find('h4', string=section_title)
-        if section:
-            table = section.find_next_sibling('table', class_='table-striped')
-            if table:
-                headers = [th.get_text(strip=True) for th in table.select('tbody tr:first-child th') if th.get_text(strip=True)]
-                data_row = table.select_one('tbody tr:nth-child(2)')
-                if data_row:
-                    values = [td.get_text(strip=True) for td in data_row.find_all('td')]
-                    
-                    for header, value in zip(headers, values):
-                        feature = f"{prefix} @ {header}"
-                        scraped_data.append([url, feature, value])
+    if data["name"]:
+        scraped_rows.append([url, "Product Name", data["name"]])
+    if data["code"]:
+        scraped_rows.append([url, "Product Code", data["code"]])
+    if data["description"]:
+        scraped_rows.append([url, "Description", data["description"]])
+    
+    for k, v in data["features"].items():
+        scraped_rows.append([url, k, v])
+        
+    for k, v in data["details"].items():
+        scraped_rows.append([url, k, v])
 
-    return scraped_data
-
-def extract_product_info(soup: BeautifulSoup, url: str) -> list[list[str]]:
-    """Extracts product name, code and image link."""
-    scraped_data = []
-
-    # 1. Scrape Product Name
-    name_div = soup.find('div', class_='product-card-title')
-    if name_div:
-        product_name = name_div.get_text(strip=True).replace(':', '').strip()
-        scraped_data.append([url, "Product Name", product_name])
-
-    # 2. Scrape Product Code
-    code_small = soup.select_one("small.product-card-info")
-    if code_small:
-        product_code = code_small.get_text(strip=True).replace(':', '').strip()
-        scraped_data.append([url, "Product Code", product_code])
-
-    # 3. Scrape Image Link
-    image_div = soup.find('div', id='productImageContainerImage')
-    if image_div:
-        img_tag = image_div.select_one("img")
-        if img_tag and img_tag.get('src'):
-            product_image = img_tag['src']
-            if not product_image.startswith('http'):
-                product_image = urljoin(BASE_URL, product_image)
-            scraped_data.append([url, "Product Image", product_image])
-
-    return scraped_data
+    return scraped_rows
 
 # ------------------------------------------------------------------
-# Synchronous worker (runs inside a thread) - FIXED FOR LINK LOSS
+# Synchronous worker (runs inside a thread)
 # ------------------------------------------------------------------
 def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
     """
     Acquires a driver from the pool, loads the page, scrapes data, and returns/quits the driver.
-    The wait logic is now defensive, allowing link extraction even if elements timeout.
     """
     driver = None
     soup = None
 
-    # ACQUIRE DRIVER: Try to pull a driver from the thread-safe pool
+    # ACQUIRE DRIVER
     try:
         driver = CHROME_POOL.get_nowait()
     except Empty:
@@ -219,15 +205,13 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
 
     driver_ok = True
     try:
-        # Start page load
         driver.get(url)
 
-        # Wait selector from second version
         wait_selector = (
             "a.xtt-url-categories, div.product-info-specs, "
             "td.product-code, a.btn.btn-primary.btn-sm.btn-block, "
             "#productMenuContent, section.product-row-techspecs, "
-            "ul.pagination"
+            "ul.pagination, h1.product-card-title"
         )
         
         try:
@@ -238,19 +222,13 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
             logging.warning(f"Wait timeout on {url}. Proceeding with page source extraction.")
             driver_ok = False
 
-        # Get page source regardless of wait success/failure
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-    except WebDriverException as e:
-        logging.error(f"Selenium error on {url}. Driver may be stale/corrupt. Error: {e}")
-        driver_ok = False
-        return ScrapeResult(next_urls=[], scraped_rows=[])
     except Exception as e:
-        logging.error(f"Unexpected error during scrape of {url}. Error: {e}")
+        logging.error(f"Error on {url}: {e}")
         driver_ok = False
         return ScrapeResult(next_urls=[], scraped_rows=[])
     finally:
-        # RELEASE DRIVER: Quit if stale, otherwise put back in pool.
         if driver:
             if driver_ok:
                 try:
@@ -263,117 +241,133 @@ def scrape_page_sync(url: str, retries=2) -> ScrapeResult:
                 except Exception:
                     pass
 
-    # If the page failed to load entirely (WebDriverException), soup will be None
     if not soup:
         return ScrapeResult(next_urls=[], scraped_rows=[])
 
     scraped_rows = []
     next_urls = []
 
-    # Check if this is a product page - using both old and new structure checks
-    if (soup.find('section', class_='product-row-techspecs') or 
-        soup.find('div', id='datasheet') or
-        soup.select_one("div.product-info-specs table.table")):
-        
-        logging.info(f"Product page detected: {url}. Scraping technical specs.")
-        
-        # Extract technical specifications from new structure
-        tech_specs = extract_tech_specs(soup, url)
-        if tech_specs:
-            scraped_rows.extend(tech_specs)
-        else:
-            # Fallback to old structure
-            specs_table = soup.select_one("div.product-info-specs table.table")
-            if specs_table:
-                for tr in specs_table.find_all("tr"):
-                    th, td = tr.find("th"), tr.find("td")
-                    if th and td:
-                        scraped_rows.append([url, th.get_text(strip=True), td.get_text(strip=True)])
-        
-        # Extract product info
-        scraped_rows.extend(extract_product_info(soup, url))
-        
-        # Don't follow any links from product pages
-        next_urls = []
+    # Check if this is a product page (using the selectors from the new logic)
+    # If it has a product title or product details table, treat as product
+    is_product_page = (
+        soup.select_one("h1.product-card-title") or 
+        soup.select_one("div.product-info-specs") or
+        soup.select_one("div.xtt-product-description")
+    )
+
+    if is_product_page:
+        logging.info(f"Product page detected: {url}")
+        # Use the NEW extraction logic
+        scraped_rows = extract_product_data(soup, url)
+        next_urls = [] # Usually don't want to go deeper from a product page
     
     else:
-        # This is a category/navigation page - extract links to follow
-        logging.info(f"Navigation page detected: {url}. Extracting links.")
+        # Navigation page
+        logging.info(f"Navigation page detected: {url}")
         next_urls = extract_links_from_navigation(soup, url)
-        
-        # Filter out non-WEG URLs
-        filtered_urls = []
-        for link in next_urls:
-            if BASE_URL in link:
-                filtered_urls.append(link)
+        filtered_urls = [u for u in next_urls if BASE_URL in u]
         next_urls = filtered_urls
-        
-        # Log how many links were found
-        if next_urls:
-            logging.info(f"Found {len(next_urls)} sub-links on {url}")
-        
-        # No data to scrape from category pages
         scraped_rows = []
 
     return ScrapeResult(next_urls=next_urls, scraped_rows=scraped_rows)
 
 # ------------------------------------------------------------------
+# Helper: Load visited URLs for Resuming
+# ------------------------------------------------------------------
+def load_visited_urls(filepath: Path) -> set:
+    """Reads the CSV and returns a set of URLs already scraped."""
+    visited = set()
+    if not filepath.exists():
+        return visited
+    
+    try:
+        # Use pandas for quick reading, only read the Product URL column
+        df = pd.read_csv(filepath, usecols=["Product URL"])
+        visited = set(df["Product URL"].unique())
+        logging.info(f"Resumed session: Found {len(visited)} URLs already scraped.")
+    except Exception as e:
+        logging.warning(f"Could not load existing CSV for resuming: {e}")
+    
+    return visited
+
+# ------------------------------------------------------------------
 # Async dispatcher
 # ------------------------------------------------------------------
-async def crawl(start_url: str) -> list[list[str]]:
-    """Manages the crawling process, dispatching tasks to a thread pool."""
+async def crawl(start_url: str) -> None:
+    """Manages the crawling process, dispatching tasks and SAVING INCREMENTALLY."""
     executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
     loop = asyncio.get_running_loop()
 
+    # Ensure directory exists
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    # 1. LOAD VISITED URLS (Resume Logic)
+    visited_urls = load_visited_urls(OUTPUT_FILE)
+    
     tasks = set()
     pending_urls = {start_url}
-    visited_urls = set()
-    all_scraped_rows = []
 
     pbar = tqdm_asyncio(desc="Crawling Pages", unit="page")
+    pbar.update(len(visited_urls)) # Visual update for skipped pages
 
-    while pending_urls or tasks:
-        while pending_urls and len(tasks) < MAX_WORKERS:
-            url_to_scrape = pending_urls.pop()
-            if url_to_scrape in visited_urls:
+    # Open CSV in append mode
+    file_exists = OUTPUT_FILE.exists()
+    mode = 'a' if file_exists else 'w'
+    
+    with open(OUTPUT_FILE, mode, newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        
+        # Write header only if file is new
+        if not file_exists:
+            writer.writerow(["Product URL", "Feature", "Value"])
+
+        while pending_urls or tasks:
+            # Fill the pool
+            while pending_urls and len(tasks) < MAX_WORKERS:
+                url_to_scrape = pending_urls.pop()
+                
+                # Check if already done (Resume logic)
+                if url_to_scrape in visited_urls:
+                    continue
+
+                visited_urls.add(url_to_scrape)
+                task = loop.run_in_executor(executor, scrape_page_sync, url_to_scrape)
+                tasks.add(task)
+                pbar.total = len(visited_urls) + len(tasks)
+
+            if not tasks:
+                await asyncio.sleep(0.1)
                 continue
 
-            visited_urls.add(url_to_scrape)
-            task = loop.run_in_executor(executor, scrape_page_sync, url_to_scrape)
-            tasks.add(task)
-            pbar.total = len(visited_urls) + len(tasks)
+            # Wait for at least one task
+            done, tasks = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-        if not tasks:
-            await asyncio.sleep(0.1)
-            continue
-
-        done, tasks = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-
-        for future in done:
-            try:
-                result = await future
-                pbar.update(1)
-                
-                if result.scraped_rows:
-                    all_scraped_rows.extend(result.scraped_rows)
-                
-                # Add new URLs to pending queue
-                for new_url in result.next_urls:
-                    if new_url not in visited_urls and new_url not in pending_urls:
-                        pending_urls.add(new_url)
-                        
-            except Exception as e:
-                logging.error(f"Error processing task result: {e}")
+            for future in done:
+                try:
+                    result = await future
+                    pbar.update(1)
+                    
+                    # 2. SAVE INCREMENTALLY
+                    if result.scraped_rows:
+                        writer.writerows(result.scraped_rows)
+                        f.flush() # Ensure data is written to disk
+                    
+                    # Add new URLs
+                    for new_url in result.next_urls:
+                        if new_url not in visited_urls and new_url not in pending_urls:
+                            pending_urls.add(new_url)
+                            
+                except Exception as e:
+                    logging.error(f"Error processing task result: {e}")
 
     pbar.close()
     executor.shutdown(wait=True)
-    return all_scraped_rows
 
 # ------------------------------------------------------------------
 # Entry point 
 # ------------------------------------------------------------------
 async def main() -> None:
-    """Main function to run the scraper and save the results."""
+    """Main function."""
     start_time = time.time()
     
     # Initialize driver pool
@@ -384,9 +378,10 @@ async def main() -> None:
         except Exception as e:
             logging.error(f"Failed to create driver for pool: {e}")
 
-    final_rows = await crawl(START_URL)
+    # Run crawler (now handles saving internally)
+    await crawl(START_URL)
 
-    # Clean up any drivers left in the pool
+    # Cleanup drivers
     while True:
         try:
             driver = CHROME_POOL.get_nowait()
@@ -396,33 +391,28 @@ async def main() -> None:
         except Exception:
             pass
 
-    # Ensure the output directory exists
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    # Save the raw data
-    with OUTPUT_FILE.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Product URL", "Feature", "Value"])
-        if final_rows:
-            writer.writerows(final_rows)
-
     elapsed = time.time() - start_time
-    logging.info(
-        f"Done! Data saved to '{OUTPUT_FILE}' with {len(final_rows)} rows in {elapsed:.2f}s."
-    )
+    logging.info(f"Done! Crawling finished in {elapsed:.2f}s.")
 
-    # Pivot and save the data
-    if final_rows:
-        try:
+    # Pivot Data (Optional step at the end)
+    # Wrapped in try/except because CSV might be large or empty
+    try:
+        if OUTPUT_FILE.exists():
+            print("Generating Pivot Table (grouped_products_final.csv)...")
             df = pd.read_csv(OUTPUT_FILE)
-            # Group by URL to create pivot table
-            pivoted_df = df.pivot_table(index="Product URL", columns="Feature", values="Value", aggfunc='first')
-            pivoted_df.reset_index(inplace=True)
-            pivoted_output_file = Path("data/grouped_products_final.csv")
-            pivoted_df.to_csv(pivoted_output_file, index=False)
-            logging.info(f"Pivoted data saved to '{pivoted_output_file}'.")
-        except Exception as e:
-            logging.error(f"Could not pivot data. Error: {e}")
+            if not df.empty:
+                # Group by URL to create pivot table
+                pivoted_df = df.pivot_table(index="Product URL", columns="Feature", values="Value", aggfunc='first')
+                pivoted_df.reset_index(inplace=True)
+                pivoted_output_file = Path("data/grouped_products_final.csv")
+                pivoted_df.to_csv(pivoted_output_file, index=False)
+                logging.info(f"Pivoted data saved to '{pivoted_output_file}'.")
+                print("Pivot Table created successfully.")
+            else:
+                print("CSV is empty, skipping pivot.")
+    except Exception as e:
+        logging.error(f"Could not pivot data. Error: {e}")
+        print(f"Error pivoting data: {e}")
 
 if __name__ == "__main__":
     try:
