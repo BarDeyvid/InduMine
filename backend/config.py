@@ -1,5 +1,5 @@
+
 # ==================== CONFIG.PY ====================
-from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import computed_field
 from dotenv import load_dotenv
@@ -40,3 +40,5 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 settings = Settings()
+
+
