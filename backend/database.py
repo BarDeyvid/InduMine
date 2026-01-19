@@ -1,28 +1,14 @@
 # ==================== DATABASE.PY ====================
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float, ForeignKey, JSON
-from sqlalchemy.sql import func
-from config import settings
-from typing import AsyncGenerator
-import logging
+from sqlalchemy.orm import sessionmaker  
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, JSON  
+from sqlalchemy.sql import func  
+from config import settings  
+import logging  
 
+from configuration.products import * 
 logger = logging.getLogger(__name__)
 
-# Create async engine
-engine = create_async_engine(
-    settings.mysql_url,
-    echo=True,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-)
-
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base model
 Base = declarative_base()
@@ -33,18 +19,18 @@ class BaseMixin:
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
 # ==================== MODELS.PY ====================
-class User(Base, BaseMixin):
+class User(Base):  # Remove BaseMixin
     __tablename__ = "users"
     
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    username = Column(String(50), unique=True, nullable=True, index=True)
+    username = Column(String(100), unique=True, nullable=True, index=True)
     hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(200), nullable=True)
+    role = Column(String(50), default="user", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
-    roles = Column(JSON, default=["user"], nullable=False)
-    profile = Column(JSON, default={}, nullable=False)
-    allowed_categories = Column(JSON, default=[], nullable=False)
-    full_name = Column(String(100), nullable=True)
+    allowed_categories = Column(JSON, default=[])
+    created_at = Column(Text)  # Add only created_at, not updated_at
 
 class Category(Base, BaseMixin):
     __tablename__ = "categories"
@@ -84,25 +70,19 @@ class ProductSpec(Base, BaseMixin):
     __table_args__ = ({"mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_unicode_ci"},)
 
 # ==================== DATABASE HELPER FUNCTIONS ====================
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get DB session"""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-async def create_tables():
+def create_tables():
     """Create all tables"""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created")
 
-async def close_database():
+def close_database():
     """Close database connection"""
-    await engine.dispose()
+    engine.dispose()
     logger.info("✅ Database connection closed")
