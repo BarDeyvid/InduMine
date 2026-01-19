@@ -43,6 +43,7 @@ if __name__ == "__main__":
 from models.products import *
 from models.users import *
 from schemas.products import *
+from utils.helpers import *
 
 # ============================================================================
 # CONFIGURATION
@@ -84,45 +85,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 # This defines the "Universe" of data. We ignore the 'categories' table in SQL
 # and use this strict mapping to determine which Python Class handles which Data.
 
-CATEGORY_CONFIG = {
-    "building-infrastructure": {
-        "model": BuildingInfrastructure,
-        "name": "Building Infrastructure"
-    },
-    "coatings-and-varnishes": {
-        "model": CoatingsAndVarnishes,
-        "name": "Coatings & Varnishes"
-    },
-    "critical-power": {
-        "model": CriticalPower,
-        "name": "Critical Power"
-    },
-    "digital-solutions": {
-        "model": DigitalSolutions,
-        "name": "Digital Solutions"
-    },
-    "digital-solutions-and-smart-grid": {
-        "model": DigitalSolutionsSmartGrid,
-        "name": "Digital Solutions & Smart Grid"
-    },
-    "electric-motors": {
-        "model": ElectricMotors,
-        "name": "Electric Motors"
-    },
-    "generation-transmission": {
-        "model": GenerationTransmission,
-        "name": "Generation, Transmission & Distribution"
-    },
-    "industrial-automation": {
-        "model": IndustrialAutomation,
-        "name": "Industrial Automation"
-    },
-    "safety-sensors": {
-        "model": SafetySensors,
-        "name": "Safety, Sensors & Power Supply"
-    }
-}
-
 # ============================================================================
 # PYDANTIC SCHEMAS (Validation)
 # ============================================================================
@@ -130,64 +92,4 @@ CATEGORY_CONFIG = {
 # ============================================================================
 # HELPERS & DEPENDENCIES
 # ============================================================================
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-        
-    user = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-def row_to_dict(instance):
-    """Converts a SQLAlchemy row to a standardized dict with 'specifications'."""
-    data = {c.key: getattr(instance, c.key) for c in inspect(instance).mapper.column_attrs}
-    
-    # Extract standard fields
-    base = {
-        "product_code": data.get("product_code", "N/A"),
-        "image": data.get("product_image"),
-        "url": data.get("product_url"),
-        "category": data.get("category_name"),
-        "specifications": {}
-    }
-    
-    # Move everything else to specifications
-    for key, val in data.items():
-        if key not in ["product_code", "product_image", "product_url", "category_name"]:
-            if val: # Only include non-empty values
-                base["specifications"][key] = val
-                
-    return base
 
