@@ -1,15 +1,12 @@
-import os, sys
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, Boolean, JSON, 
-    inspect, or_, text
-)
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import os, sys  
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  
 
+from sqlalchemy import Column, Integer, String, Text, Boolean, JSON  
 from database import Base
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = {'extend_existing': True}  # Add this line
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False)
