@@ -108,7 +108,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
-def row_to_dict(instance):
+def row_to_dict(instance, slug=None):
     """Converts a SQLAlchemy row to a standardized dict with 'specifications'."""
     data = {c.key: getattr(instance, c.key) for c in inspect(instance).mapper.column_attrs}
     
@@ -117,7 +117,7 @@ def row_to_dict(instance):
         "product_code": data.get("product_code", "N/A"),
         "image": data.get("product_image"),
         "url": data.get("product_url"),
-        "category": data.get("category_name"),
+        "category": data.get("category_name", slug),
         "specifications": {}
     }
     
@@ -230,39 +230,39 @@ def get_available_categories(current_user: User = Depends(get_current_user), db:
                 
     return results
 
+@router.get("/products/code/{product_code}", response_model=ProductItemResponse)
+def get_product_globally(product_code: str, db: Session = Depends(get_db)):
+    """
+    Searches for a product across ALL configured categories.
+    Used when we have the ID but don't know the category yet.
+    """
+    # Iterate through all configured tables
+    for slug, config in CATEGORY_CONFIG.items():
+        model = config["model"]
+        # Try to find the product in this table
+        product = db.query(model).filter(model.product_code == product_code).first()
+
+        if product:
+            # If found, return it with the slug context
+            return row_to_dict(product, slug=slug)
+
+    raise HTTPException(status_code=404, detail="Product not found in any category")
+
 @router.get("/products/{category_slug}", response_model=List[ProductItemResponse])
-def get_products_by_category(
-    category_slug: str, 
-    limit: int = 50, 
-    offset: int = 0,
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)
-):
-    """
-    Loads data ONLY from the table corresponding to the requested category.
-    Verifies user permission first.
-    """
-    # 1. Security Check
-    user_access_list = current_user.allowed_categories or []
-    if category_slug not in user_access_list and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="You do not have access to this category data.")
-    
-    # 2. Get the Model
+def get_products_by_category(category_slug: str, db: Session = Depends(get_db)):
     config = CATEGORY_CONFIG.get(category_slug)
     if not config:
-        raise HTTPException(status_code=404, detail="Category table definition not found.")
-    
-    model = config["model"]
-    
-    # 3. Query the specific table
-    try:
-        products = db.query(model).offset(offset).limit(limit).all()
-    except Exception as e:
-        logger.error(f"Database error querying {category_slug}: {e}")
-        raise HTTPException(status_code=500, detail="Error retrieving data from category table")
+        raise HTTPException(status_code=404, detail="Category not configured in backend")
 
-    # 4. Serialize (Handle heterogeneous columns)
-    return [row_to_dict(p) for p in products]
+    model = config["model"]
+
+    # Add filter to avoid corrupted/empty rows
+    products = db.query(model).all()
+
+    # Robust filtering before converting to dictionary
+    valid_products = [row_to_dict(p, slug=category_slug) for p in products if p is not None]
+
+    return valid_products
 
 @router.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
 def get_product_detail(
@@ -279,17 +279,17 @@ def get_product_detail(
     config = CATEGORY_CONFIG.get(category_slug)
     if not config:
         raise HTTPException(status_code=404, detail="Category not found.")
-    
+
     model = config["model"]
-    
-    # 2. Find Product
+
+    # Find Product
     # Since product codes might be strings with spaces, we decode or query directly
     product = db.query(model).filter(model.product_code == product_code).first()
-    
+
     if not product:
          raise HTTPException(status_code=404, detail="Product not found in this category.")
-         
-    return row_to_dict(product)
+
+    return row_to_dict(product, slug=category_slug)
 
 # Test if this file runs directly
 if __name__ == "__main__":

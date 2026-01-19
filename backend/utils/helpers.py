@@ -103,23 +103,24 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
-def row_to_dict(instance):
+def row_to_dict(instance, slug=None):
     """Converts a SQLAlchemy row to a standardized dict with 'specifications'."""
+    if instance is None:
+        return None
     data = {c.key: getattr(instance, c.key) for c in inspect(instance).mapper.column_attrs}
     
-    # Extract standard fields
     base = {
         "product_code": data.get("product_code", "N/A"),
         "image": data.get("product_image"),
         "url": data.get("product_url"),
-        "category": data.get("category_name"),
+        "category_slug": slug, 
         "specifications": {}
     }
     
     # Move everything else to specifications
     for key, val in data.items():
         if key not in ["product_code", "product_image", "product_url", "category_name"]:
-            if val: # Only include non-empty values
+            if val: 
                 base["specifications"][key] = val
                 
     return base

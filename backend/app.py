@@ -3,13 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.products import router
 
 app = FastAPI(title="InduMine Modular Backend")
+# --- CORS MIDDLEWARE ---
+origins = [
+    "https://indumine.duckdns.org",
+    "https://api-indumine.duckdns.org", 
+    "http://65.109.0.163",
+    "https://65.109.0.163",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include the router

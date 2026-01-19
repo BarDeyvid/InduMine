@@ -45,5 +45,5 @@ class ProductItemResponse(BaseModel):
     product_code: str
     image: Optional[str]
     url: Optional[str]
-    # Dynamic bucket for table-specific fields (e.g. "Poles", "Color")
+    category_slug: Optional[str] = None
     specifications: Dict[str, Any]
