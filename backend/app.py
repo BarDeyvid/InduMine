@@ -40,6 +40,7 @@ if __name__ == "__main__":
     Base.metadata.create_all(bind=engine)
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
+from configuration.products import *
 from models.products import *
 from models.users import *
 from schemas.products import *
@@ -49,29 +50,6 @@ from utils.helpers import *
 # CONFIGURATION
 # ============================================================================
 
-# Database Config
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Mv1208811#")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "indumine_db")
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?charset=utf8mb4"
-
-# JWT Config (Change SECRET_KEY in production!)
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretinduminekey123")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# SQLAlchemy Setup
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# Security Setup
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # ============================================================================
 # MODELS (Database Tables)
