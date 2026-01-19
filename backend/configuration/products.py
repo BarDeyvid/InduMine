@@ -1,13 +1,9 @@
-import os
-import logging
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, Boolean, JSON, 
-    inspect, or_, text
-)
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
-from passlib.context import CryptContext
-
+import os  
+import logging  
+from fastapi.security import OAuth2PasswordBearer  
+from sqlalchemy import create_engine  
+from sqlalchemy.orm import sessionmaker, declarative_base  
+from passlib.context import CryptContext 
 
 # ============================================================================
 # CONFIGURATION
