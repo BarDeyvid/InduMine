@@ -1,23 +1,12 @@
 # ==================== DATABASE.PY ====================
-import os
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Float, ForeignKey, JSON, create_engine
-from sqlalchemy.sql import func
-from config import settings
-from typing import AsyncGenerator
-from sqlalchemy import create_engine
-import logging
+from sqlalchemy.orm import sessionmaker  
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, JSON  
+from sqlalchemy.sql import func  
+from config import settings  
+import logging  
 
+from configuration.products import * 
 logger = logging.getLogger(__name__)
-
-# Use the configuration from config.py
-engine = create_engine(
-    settings.MYSQL_URL,  # Use the computed property
-    echo=False,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
