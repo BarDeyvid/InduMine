@@ -1,11 +1,12 @@
-import os, sys
+# ============================================================================
+# BACKEND MODELS - PRODUCTS
+# ============================================================================
+# models/products.py
+# ============================================================================
 
 from sqlalchemy import Column, String, Text
-
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from database import Base
+
 # --- Product Table Models (Specific to your SQL Dump) ---
 # We use a Mixin for columns that appear often, but map specific columns manually.
 
