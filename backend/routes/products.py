@@ -15,7 +15,7 @@ from schemas.products import (
     CategorySummary, ProductItemResponse
 )
 from database import get_db, engine, Base
-from models.users import User
+from database import User, get_db, engine, Base
 from models.products import *
 
 logger = logging.getLogger(__name__)

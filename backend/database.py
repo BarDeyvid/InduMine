@@ -30,18 +30,18 @@ class BaseMixin:
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
 # ==================== MODELS.PY ====================
-class User(Base, BaseMixin):
+class User(Base):  # Remove BaseMixin
     __tablename__ = "users"
     
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    username = Column(String(50), unique=True, nullable=True, index=True)
+    username = Column(String(100), unique=True, nullable=True, index=True)
     hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(200), nullable=True)
+    role = Column(String(50), default="user", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
-    roles = Column(JSON, default=["user"], nullable=False)
-    profile = Column(JSON, default={}, nullable=False)
-    allowed_categories = Column(JSON, default=[], nullable=False)
-    full_name = Column(String(100), nullable=True)
+    allowed_categories = Column(JSON, default=[])
+    created_at = Column(Text)  # Add only created_at, not updated_at
 
 class Category(Base, BaseMixin):
     __tablename__ = "categories"

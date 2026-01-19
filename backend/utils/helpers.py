@@ -13,7 +13,7 @@ from passlib.context import CryptContext
 
 # Import models
 from models.products import *
-from models.users import User
+from database import User
 from database import get_db
 
 # Security Setup
