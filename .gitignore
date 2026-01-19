@@ -25,3 +25,5 @@ logs/
 *.0000*
 WiredTiger*
 mongod.lock
+
+**.sql

@@ -1,11 +1,18 @@
 # InduMine – Industrial Product Intelligence Platform
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20-green.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=white)](https://reactjs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-4.7+-47A248.svg?logo=mongodb&logoColor=white)](https://mongodb.com/)
-[![Selenium](https://img.shields.io/badge/Selenium-Web%20Scraping-43B02A.svg?logo=selenium&logoColor=white)](https://selenium.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5.0-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1.svg?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg?logo=python&logoColor=white)](https://www.sqlalchemy.org/)
 [![License](https://img.shields.io/badge/license-Apache_2.0-green.svg)](LICENSE)
+
+---
+
+## 📊 Development Metrics
+> [!TIP]
+> **[Click here to see our Commit Leaderboard (Last 30 days) 🏆](https://github.com/BarDeyvid/InduMine/blob/leaderboard-data/leaderboard.md)**
 
 ---
 
@@ -19,102 +26,72 @@ Nenhum dado proprietário, sigiloso, autenticado ou protegido é utilizado.
 
 ---
 
+## 👥 Autores
+
+Este projeto atingiu sua arquitetura principal (v1.0) após **mais de 100 commits solo** do fundador, expandindo-se posteriormente para um esforço colaborativo.
+
+| <img loading="lazy" src="https://github.com/BarDeyvid.png" width="115"><br><sub><a href="https://github.com/BarDeyvid">Deyvid Barcelos</a><br><span style="color:#00BFFF">🏗️ Lead Architect</span></sub> | <img loading="lazy" src="https://github.com/luclc13241.png" width="115"><br><sub><a href="https://github.com/luclc13241">Lucas G. S. Nardes</a><br><span style="color:#00BFFF">💻 Desenvolvedor</span></sub> | <img loading="lazy" src="https://github.com/kauamdsouza.png" width="115"><br><sub><a href="https://github.com/kauamdsouza">Kaua M. De Souza</a><br><span style="color:#00BFFF">💻 Desenvolvedor</span></sub> |
+| :---: | :---: | :---: |
+
+---
+
 ## Overview
 
 InduMine é uma **plataforma full-stack de coleta, organização e visualização de dados industriais**, capaz de:
 
-- **Raspar** catálogos de produtos (ex.: motores, tintas, automação)
-- **Limpar e reorganizar** dados com **Pandas**
-- **Salvar** tudo em **MongoDB**
-- **Servir** via **Node.js + Express API**
-- **Visualizar** em um dashboard **React + Vite** com autenticação e filtros
-
-> **One source of truth. Zero data duplication.**
+- **Raspar** catálogos de produtos complexos via Selenium Assíncrono.
+- **Processar** e normalizar dados técnicos com **Pandas**.
+- **Persistir** dados estruturados em **MySQL** utilizando **SQLAlchemy ORM**.
+- **Visualizar** em um dashboard moderno construído com **React + TypeScript + Vite**.
 
 ---
 
 ## Project Structure
 
-```
-
+```text
 .
-├── backend/                # Python API server
-│   └── auth/               # Authentication    
-│   ├── crud/               # CRUD Methods for User
-│   ├── data/               # MongoDB and CSV data
-│   ├── database/           # MongoDB implementation
-│   ├── models/             # Models
-│   ├── routes/             # API Routes
-│   ├── schemas/            # General Schemas
-│   ├── config.py
-│   └── data_main.py
-│   └── main.py
-├── data/                       # Raw & processed outputs
-│   ├── industrial_products_final.csv
-│   └── grouped_products_final.csv
-├── etl/                        # Extraction, Transform, Load
-│   ├── Miner.py                # Async Selenium scraper (core)
-│   ├── Pivoter.py              # Data pivoting
-│   └── *.py                    # Experiments & drafts
-├── front-end/                  # React + Vite Dashboard
+├── backend/                # Python API & ETL
+│   ├── database/           # SQLAlchemy models & MySQL connection
+│   ├── routes/             # API Endpoints
+│   ├── services/           # Business logic
+│   └── main.py             # FastAPI/Flask entry point
+├── etl/                    # Extraction, Transform, Load
+│   ├── Miner.py            # Async Selenium scraper (core)
+│   ├── Processor.py        # Pandas data cleaning
+│   └── loader.py           # SQLAlchemy database ingestion
+├── front-end/              # React + TypeScript + Vite Dashboard
 │   ├── src/
-│   │   ├── auth/               # Login, Register, JWT
-│   │   ├── dashboard/          # Product table, filters, charts
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── public/
-│   └── vite.config.js
-├── logs/                       # Scraper & API logs
-├── test/                       # Unit tests & experiments
-├── .env                        # Secrets (MongoDB, JWT, paths)
-├── .gitignore
-├── LICENSE
+│   │   ├── components/     # Reusable UI components
+│   │   ├── hooks/          # Custom TS hooks
+│   │   ├── types/          # TypeScript interfaces/types
+│   │   └── App.tsx
+│   └── vite.config.ts
+├── data/                   # Processed CSV exports
 └── README.md
 
-````
+```
 
 ---
 
 ## Tech Stack
 
-| Layer        | Technology |
-|-------------|------------|
+| Layer | Technology |
+| --- | --- |
 | **Scraping** | Python, Selenium, BeautifulSoup, AsyncIO |
-| **ETL**      | Pandas, CSV → MongoDB |
-| **Backend**  | Node.js, Express, Mongoose, CORS |
-| **Frontend** | React 18, Vite, Tailwind, React Query |
-| **Database** | MongoDB (flexible schema for dynamic specs) |
-| **Auth**     | JWT + LocalStorage |
-| **DevOps**   | Git, `.env`, logging, `tqdm`, driver pooling |
-
----
-
-## Features
-
-- **Resilient scraping** with driver pooling & retry logic  
-- **Dynamic product spec extraction** (any field, any depth)  
-- **Pivoted wide-format data** for easy querying  
-- **Paginated API** (`/api/products?page=1&limit=50`)  
-- **Secure auth flow** (Login → JWT → Protected dashboard)  
-- **Live React table** with search, sort, and export  
-- **Dark mode + blue industrial branding**  
+| **ETL** | Pandas, NumPy |
+| **ORM** | SQLAlchemy (Python) |
+| **Database** | MySQL 8.0 |
+| **Frontend** | React 18, **TypeScript**, Vite, Tailwind CSS |
+| **DevOps** | GitHub Actions (Leaderboard Automation), `.env` |
 
 ---
 
 ## How It Works
 
-```mermaid
-graph LR
-    A[Miner.py] --> B[Pandas Pivot]
-    B --> C[MongoDB]
-    C --> D[Node.js API]
-    D --> E[React Dashboard]
-````
-
-1. `Miner.py` → Crawls the catalog → Saves raw + pivoted CSVs
-2. Data → **Upserted into MongoDB** (unique by `Product URL`)
-3. `server.js` → Serves `/api/products` with pagination
-4. React → Fetches, filters, displays in real time
+1. **Miner.py**: Realiza o crawling assíncrono do catálogo e extrai especificações técnicas.
+2. **Pandas**: Limpa strings, remove duplicatas e pivota as características técnicas.
+3. **SQLAlchemy**: Mapeia os objetos Python para tabelas relacionais no **MySQL**.
+4. **React Dashboard**: Consome os dados e exibe em uma interface tipada e performática.
 
 ---
 
@@ -123,99 +100,26 @@ graph LR
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/BarDeyvid/InduMine.git
+git clone [https://github.com/BarDeyvid/InduMine.git](https://github.com/BarDeyvid/InduMine.git)
 cd InduMine
+
 ```
 
-### 2. Install Dependencies
+### 2. Environment Setup
 
-```bash
-# Backend
-cd api/back-end && npm install
-
-# Frontend
-cd ../../front-end && npm install
-
-# Python ETL
-pip install -r requirements.txt
-```
-
-### 3. Setup `.env`
+Crie um arquivo `.env` com suas credenciais:
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/indu_products
-JWT_SECRET=your_strong_secret_here
-CHROMEDRIVER_PATH=C:\chromedriver\chromedriver.exe
-PORT=5000
+DATABASE_URL=mysql+pymysql://user:password@localhost:3306/indumine
+JWT_SECRET=your_secret
+
 ```
 
-### 4. Run Pipeline
+### 3. Frontend (TS + Vite)
 
 ```bash
-# 1. Start MongoDB
-mongod
-
-# 2. Run Scraper (once)
-cd etl
-python Miner.py
-
-# 3. Start API
-cd ../api/back-end
-node server.js
-
-# 4. Start Dashboard
-cd ../../front-end
+cd front-end
+npm install
 npm run dev
+
 ```
-
-Visit: `http://localhost:5173`
-
----
-
-## API Endpoints
-
-| Route                  | Method | Description                             |
-| ---------------------- | ------ | --------------------------------------- |
-| `POST /api/auth/login` | POST   | Get JWT                                 |
-| `GET /api/products`    | GET    | Paginated products (`?page=1&limit=50`) |
-
----
-
-## Roadmap
-
-| Status      | Feature                                |
-| ----------- | -------------------------------------- |
-| Done        | Async scraper with driver pool         |
-| Done        | Pandas pivot + MongoDB upsert          |
-| Done        | Node.js API with pagination            |
-| Done        | React dashboard with auth              |
-| Done | Search & filter (specs, voltage, type) |
-| In Progress | CSV/Excel export                       |
-| Planned     | Scheduled scraper (cron/APScheduler)   |
-| Planned     | Deploy (Render API + Vercel frontend)  |
-
----
-
-## Contributing
-
-1. Fork → Create branch → Code → Test → PR
-2. Follow **Conventional Commits**
-3. Add tests in `test/`
-
-> Issues, ideas, and PRs welcome!
-
----
-
-## Author
-
-**Deyvid Barcelos**
-*Robotics & Data Ecosystems | Full-Stack Developer | Web Scraper Engineer*
-
-[![GitHub](https://img.shields.io/badge/GitHub-BarDeyvid-black?logo=github)](https://github.com/BarDeyvid)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Deyvid-blue?logo=linkedin\&logoColor=white)](https://www.linkedin.com/in/deyvid-barcelos/)
-
----
-
-## License
-
-[Apache 2.0](LICENSE) – Free to use, modify, and distribute.

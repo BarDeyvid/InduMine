@@ -1,0 +1,61 @@
+services:
+  db:
+    image: mysql:latest
+    container_name: InduMine
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./data/indumine_db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - indumine-network
+
+  backend:
+    build: ./backend
+    container_name: indumine-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+    networks:
+      - indumine-network
+
+  frontend:
+    build:
+      context: ./front-end  
+      args:
+        - VITE_API_URL=https://api-indumine.duckdns.org
+    container_name: indumine-ui
+    restart: always
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    networks:
+      - indumine-network
+
+  nginx-proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81' 
+    volumes:
+      - ./nginx_data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    networks:
+      - indumine-network
+
+networks:
+  indumine-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
