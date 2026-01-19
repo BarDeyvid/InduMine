@@ -1,9 +1,7 @@
 import os, sys
 
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, Boolean, JSON, 
-    inspect, or_, text
-)
+from sqlalchemy import Column, String, Text
+
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
