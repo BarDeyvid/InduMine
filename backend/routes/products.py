@@ -2,21 +2,18 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, Depends, status, Body
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, inspect
-import logging
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm  
+from fastapi import APIRouter, HTTPException, Depends, status  
+from datetime import datetime, timedelta  
+from sqlalchemy import or_, inspect  
+from sqlalchemy.orm import Session  
+from typing import Optional, List  
+import logging  
 
-from schemas.products import (
-    Token, UserCreate, UserUpdate, UserResponse, 
-    CategorySummary, ProductItemResponse
-)
-from database import get_db, engine, Base
-from database import User, get_db, engine, Base
-from models.products import *
+from database import User, get_db  
+from schemas.products import *  
+from models.products import *  
+from utils.helpers import *  
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +30,6 @@ SECRET_KEY = "supersecretinduminekey123"  # Should come from config
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-# CATEGORY_CONFIG (move from app.py or import from config)
 CATEGORY_CONFIG = {
     "building-infrastructure": {
         "model": BuildingInfrastructure,
@@ -107,27 +103,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
     return user
-
-def row_to_dict(instance, slug=None):
-    """Converts a SQLAlchemy row to a standardized dict with 'specifications'."""
-    data = {c.key: getattr(instance, c.key) for c in inspect(instance).mapper.column_attrs}
-    
-    # Extract standard fields
-    base = {
-        "product_code": data.get("product_code", "N/A"),
-        "image": data.get("product_image"),
-        "url": data.get("product_url"),
-        "category": data.get("category_name", slug),
-        "specifications": {}
-    }
-    
-    # Move everything else to specifications
-    for key, val in data.items():
-        if key not in ["product_code", "product_image", "product_url", "category_name"]:
-            if val: # Only include non-empty values
-                base["specifications"][key] = val
-                
-    return base
 
 # --- AUTHENTICATION ---
 
@@ -248,47 +223,92 @@ def get_product_globally(product_code: str, db: Session = Depends(get_db)):
 
     raise HTTPException(status_code=404, detail="Product not found in any category")
 
-@router.get("/products/{category_slug}", response_model=List[ProductItemResponse])
-def get_products_by_category(category_slug: str, db: Session = Depends(get_db)):
-    config = CATEGORY_CONFIG.get(category_slug)
-    if not config:
-        raise HTTPException(status_code=404, detail="Category not configured in backend")
+@router.get("/products/{category_slug}", response_model=List[ProductItemResponse])  
+def get_products_by_category(  
+    category_slug: str, 
+    limit: int = 50, 
+    offset: int = 0,  
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)  
+):  
+    # 1. Security Check (RBAC)  
+    user_access_list = current_user.allowed_categories or []  
+    if category_slug not in user_access_list and current_user.role != "admin":  
+        raise HTTPException(  
+            status_code=403, 
+            detail="You do not have access to this category data."  
+        )  
 
-    model = config["model"]
+    # 2. Get the Model configuration  
+    config = CATEGORY_CONFIG.get(category_slug)  
+    if not config:  
+        raise HTTPException(  
+            status_code=404, 
+            detail="Category table definition not found."  
+        )  
 
-    # Add filter to avoid corrupted/empty rows
-    products = db.query(model).all()
+    model = config["model"]  
 
-    # Robust filtering before converting to dictionary
-    valid_products = [row_to_dict(p, slug=category_slug) for p in products if p is not None]
+    # 3. Query with Pagination and Error Handling  
+    try:  
+        products = db.query(model).offset(offset).limit(limit).all()  
+    except Exception as e:  
+        # Ensure 'logger' is imported and configured in the module  
+        logger.error(f"Database error querying {category_slug}: {e}")  
+        raise HTTPException(  
+            status_code=500, 
+            detail="Error retrieving data from category table."  
+        )  
 
-    return valid_products
+    # 4. Robust Serialization  
+    # Filters out None values and handles category-specific context  
+    return [row_to_dict(p, slug=category_slug) for p in products if p is not None]
+
+
+@router.get("/products/code/{product_code}", response_model=ProductItemResponse)  
+def get_product_globally(product_code: str, db: Session = Depends(get_db)):  
+    """  
+    Searches for a product across ALL configured categories.  
+    Used when we have the ID but don't know the category yet.  
+    """  
+    # Iterate through all configured tables  
+    for slug, config in CATEGORY_CONFIG.items():  
+        model = config["model"]  
+        # Try to find the product in this table  
+        product = db.query(model).filter(model.product_code == product_code).first()  
+
+        if product:  
+            # If found, return it with the slug context  
+            return row_to_dict(product, slug=slug)  
+
+    raise HTTPException(status_code=404, detail="Product not found in any category")
+
 
 @router.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
-def get_product_detail(
+def get_product_detail(  
     category_slug: str, 
-    product_code: str,
+    product_code: str,  
     current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)
-):
-    # 1. Security Check
-    user_access_list = current_user.allowed_categories or []
-    if category_slug not in user_access_list and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Access denied.")
+    db: Session = Depends(get_db)  
+):  
+    # 1. Security Check  
+    user_access_list = current_user.allowed_categories or []  
+    if category_slug not in user_access_list and current_user.role != "admin":  
+        raise HTTPException(status_code=403, detail="Access denied.")  
 
-    config = CATEGORY_CONFIG.get(category_slug)
-    if not config:
-        raise HTTPException(status_code=404, detail="Category not found.")
-
-    model = config["model"]
-
-    # Find Product
-    # Since product codes might be strings with spaces, we decode or query directly
-    product = db.query(model).filter(model.product_code == product_code).first()
-
-    if not product:
-         raise HTTPException(status_code=404, detail="Product not found in this category.")
-
+    config = CATEGORY_CONFIG.get(category_slug)  
+    if not config:  
+        raise HTTPException(status_code=404, detail="Category not found.")  
+    
+    model = config["model"]  
+    
+    # 2. Find Product  
+    # Since product codes might be strings with spaces, we decode or query directly  
+    product = db.query(model).filter(model.product_code == product_code).first()  
+    
+    if not product:  
+         raise HTTPException(status_code=404, detail="Product not found in this category.")  
+         
     return row_to_dict(product, slug=category_slug)
 
 # Test if this file runs directly
