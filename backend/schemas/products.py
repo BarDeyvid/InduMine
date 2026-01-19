@@ -1,3 +1,9 @@
+# ============================================================================
+# BACKEND SCHEMAS - PRODUCTS
+# ============================================================================
+# schemas/products.py
+# ============================================================================
+
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
@@ -5,18 +11,21 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 # PYDANTIC SCHEMAS (Validation)
 # ============================================================================
 
-
-
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expires_in: int
 
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
     password: str
     full_name: Optional[str] = None
-    # Allowed categories can be passed on creation, or defaulted to []
     allowed_categories: List[str] = []
 
 class UserUpdate(BaseModel):
@@ -33,7 +42,6 @@ class UserResponse(BaseModel):
     role: str
     allowed_categories: List[str]
 
-    # Updated: Use ConfigDict instead of inner Config class
     model_config = ConfigDict(from_attributes=True)
 
 class CategorySummary(BaseModel):
