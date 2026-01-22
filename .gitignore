@@ -27,3 +27,5 @@ WiredTiger*
 mongod.lock
 
 **.sql
+mosquitto/
+nginx_data/
