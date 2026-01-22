@@ -5,10 +5,23 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./data/indumine_db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - indumine-network
+
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: indumine-mqtt
+    restart: always
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
     networks:
       - indumine-network
 
@@ -18,10 +31,13 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    env_file: .env  # <--- ADICIONADO AQUI para o Pydantic carregar o DB_PASSWORD
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - MQTT_HOST=mqtt-broker
     depends_on:
       - db
+      - mqtt-broker
     networks:
       - indumine-network
 
