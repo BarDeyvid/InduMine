@@ -134,3 +134,11 @@ def require_role(required_role: str):
             )
         return user
     return role_checker
+
+def has_access_to_category(self, category_slug):
+    """Check if user has access to a specific category"""
+    if self.role == "admin":
+        return True
+    
+    user_categories = self.allowed_categories or []
+    return category_slug in user_categories

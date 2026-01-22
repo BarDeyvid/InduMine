@@ -1,11 +1,12 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import Optional, List
 import re
 
 class PasswordMixin:
     """Password validation mixin"""
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -19,24 +20,58 @@ class PasswordMixin:
 
 class UserCreate(BaseModel):
     email: EmailStr
-    username: str = Field(..., min_length=3, max_length=100)
+    username: str
     password: str
-    full_name: Optional[str] = Field(None, max_length=200)
+    full_name: Optional[str] = None
     allowed_categories: List[str] = []
-    
-    _validate_password = validator('password')(PasswordMixin.validate_password)
+    # Note: role field removed from public registration
+
+class UserCreateAdmin(BaseModel):
+    """Admin-only user creation schema with role field"""
+    email: EmailStr
+    username: str
+    password: str
+    full_name: Optional[str] = None
+    allowed_categories: List[str] = []
+    role: str = Field("user", pattern="^(admin|user|moderator)$")
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = Field(None, max_length=200)
+    full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    # Only admins can update these
     allowed_categories: Optional[List[str]] = None
-    role: Optional[str] = None
     is_active: Optional[bool] = None
-    
-    @validator('password')
-    def validate_password_if_present(cls, v):
-        if v is not None:
-            return PasswordMixin.validate_password(v)
-        return v
+
+from datetime import datetime  # Add this import
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: Optional[str]
+    role: str
+    allowed_categories: List[str]
+    is_active: bool
+    # Change these from Optional[str] to Optional[datetime]
+    created_at: Optional[datetime] = None 
+    last_login: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expires_in: int
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str

@@ -27,6 +27,7 @@ class UserCreate(BaseModel):
     password: str
     full_name: Optional[str] = None
     allowed_categories: List[str] = []
+    role: Optional[str] = Field(None, pattern="^(admin|user|moderator)$")  
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -55,3 +56,28 @@ class ProductItemResponse(BaseModel):
     url: Optional[str]
     category_slug: Optional[str] = None
     specifications: Dict[str, Any]
+
+class ProductBase(BaseModel):
+    id: str
+    url: str
+    name: str
+    category: str
+    description: Optional[Dict[str, Any]] = None
+    specs: Optional[str] = None
+    images: Optional[str] = None
+    scraped_at: str
+
+class ProductCreate(ProductBase):
+    pass
+
+class ProductUpdate(BaseModel):
+    url: Optional[str] = None
+    name: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[Dict[str, Any]] = None
+    specs: Optional[str] = None
+    images: Optional[str] = None
+    scraped_at: Optional[str] = None
+
+class ProductResponse(ProductBase):
+    model_config = ConfigDict(from_attributes=True)
