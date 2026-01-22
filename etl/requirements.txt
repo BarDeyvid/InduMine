@@ -1,0 +1,16 @@
+asyncio
+pandas
+beautifulsoup4
+selenium
+tqdm
+pydantic-settings
+pydantic
+python-dotenv
+sqlalchemy
+pymysql
+cryptography
+paho-mqtt
+asyncio-mqtt
+aiomqtt
+undetected-chromedriver
+selenium-stealth
