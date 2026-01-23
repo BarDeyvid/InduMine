@@ -187,6 +187,10 @@ def scrape_page_discovery(url: str) -> list[str]:
         if not href or href.startswith("#"):
             continue
 
+        # Skip direct image files in discovery
+        if any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+            continue
+            
         full = normalize_url(urljoin(BASE_URL, href))
         if BASE_URL in full and is_valid_language(full):
             links.add(full)
@@ -244,24 +248,98 @@ def save_product_urls(urls: set[str]):
     logging.info(f"[DISCOVERY] Produtos encontrados: {len(products)}")
 
 def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
+    """
+    Extracts product data including images and flattens it 
+    into a list of [URL, Feature, Value] rows for CSV storage.
+    """
     rows = []
+    
     def add(feature, value):
         if feature and value: 
             rows.append([url, feature, value])
     
+    # Extract basic product info
     name = soup.select_one("h1.product-card-title")
-    if name: add("Product Name", name.get_text(strip=True))
+    if name: 
+        add("Product Name", name.get_text(strip=True))
     
     code = soup.select_one("small.product-card-info")
-    if code: add("Product Code", code.get_text(strip=True).replace("Product:", "").strip())
+    if code: 
+        add("Product Code", code.get_text(strip=True).replace("Product:", "").strip())
     
     desc = soup.select_one("div.xtt-product-description p")
-    if desc: add("Description", desc.get_text(strip=True))
-
+    if desc: 
+        add("Description", desc.get_text(strip=True))
+    
+    # Extract tables (features and details)
     for table in soup.select("div.product-info-specs table.table, table.table-striped"):
         for tr in table.select("tr"):
             th, td = tr.find("th"), tr.find("td")
-            if th and td: add(th.get_text(strip=True), td.get_text(strip=True))
+            if th and td: 
+                add(th.get_text(strip=True), td.get_text(strip=True))
+    
+    # IMAGE EXTRACTION - ADDED THIS SECTION
+    # Look for product images in various locations
+    image_selectors = [
+        # Main product image
+        "div.product-image img[src]",
+        "img.product-image[src]",
+        "div.xtt-product-image-zoom img[src]",
+        # Gallery images
+        "div.product-gallery img[src]",
+        "ul.product-thumbnails img[src]",
+        "div.carousel-item img[src]",
+        # General product images
+        "div.product-images img[src]",
+        "section.product-images img[src]",
+        # Any img tag that might contain product image
+        "img[src*='product']",
+        "img[src*='Product']",
+    ]
+    
+    seen_images = set()
+    all_images = []
+    
+    # Extract from img tags
+    for selector in image_selectors:
+        img_tags = soup.select(selector)
+        for img in img_tags:
+            src = img.get('src')
+            if src and src.strip():
+                # Handle relative URLs
+                if src.startswith('/'):
+                    full_url = urljoin(BASE_URL, src)
+                elif src.startswith('http'):
+                    full_url = src
+                else:
+                    full_url = urljoin(url, src)
+                
+                # Avoid duplicates and non-image files
+                if (full_url not in seen_images and 
+                    any(ext in full_url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp'])):
+                    all_images.append(full_url)
+                    seen_images.add(full_url)
+    
+    # Also check for image links in anchor tags (common for zoom/high-res images)
+    image_links = soup.select("a[href*='.jpg'], a[href*='.jpeg'], a[href*='.png'], a[href*='.gif'], a[href*='.webp']")
+    for link in image_links:
+        href = link.get('href')
+        if href and href.strip():
+            if href.startswith('/'):
+                full_url = urljoin(BASE_URL, href)
+            elif href.startswith('http'):
+                full_url = href
+            else:
+                full_url = urljoin(url, href)
+            
+            if full_url not in seen_images:
+                all_images.append(full_url)
+                seen_images.add(full_url)
+    
+    # Add image URLs to rows
+    for i, img_url in enumerate(all_images, 1):
+        add(f"Image URL {i}", img_url)
+    
     return rows
 
 def scrape_product_page(url: str) -> list[list[str]]:
@@ -336,21 +414,44 @@ async def product_crawl(status_callback):
 
 def process_and_upsert():
     raw_data = pd.read_csv(OUTPUT_FILE, sep=',', encoding='utf-8')
-    specs_series = (
-        raw_data.drop_duplicates(subset=['Product URL', 'Feature', 'Value'])
-        .groupby('Product URL')
-        .apply(lambda x: dict(zip(x['Feature'], x['Value'])), include_groups=False)
-    )
-    df = pd.DataFrame(specs_series).reset_index()
-    df.columns = ['url', 'specs']
-    df['id'] = df.apply(lambda r: r['specs'].get('Product Code', hashlib.md5(r['url'].encode()).hexdigest()[:20]), axis=1)
-    df['name'] = df['specs'].apply(lambda s: s.get('Product Name', 'Produto sem Nome'))
-    df['description'] = df['specs'].apply(lambda s: s.get('Description', ''))
-    df['category'] = df['url'].str.extract(r'/([^/]+)/?$')[0].fillna("Geral").str.split('-').str[0]
-    df['images'] = "[]"
-    df['scraped_at'] = pd.Timestamp.now().isoformat()
-    df = df[['id', 'url', 'name', 'category', 'description', 'specs', 'images', 'scraped_at']]
     
+    # Extract image URLs into a list
+    def extract_image_urls(group):
+        images = []
+        for _, row in group.iterrows():
+            if 'Image URL' in row['Feature']:
+                images.append(row['Value'])
+        return images
+    
+    # Group by URL to collect all data
+    grouped = raw_data.groupby('Product URL')
+    
+    records = []
+    for url, group in grouped:
+        # Convert the group to a specs dictionary
+        specs = {}
+        for _, row in group.iterrows():
+            if row['Feature'] not in ['Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5']:
+                specs[row['Feature']] = row['Value']
+        
+        # Extract image URLs
+        image_rows = group[group['Feature'].str.contains('Image URL')]
+        images = image_rows['Value'].tolist() if not image_rows.empty else []
+        
+        # Create record
+        record = {
+            'id': specs.get('Product Code', hashlib.md5(url.encode()).hexdigest()[:20]),
+            'url': url,
+            'name': specs.get('Product Name', 'Produto sem Nome'),
+            'description': specs.get('Description', ''),
+            'category': url.str.extract(r'/([^/]+)/?$')[0].fillna("Geral").str.split('-').str[0] if isinstance(url, pd.Series) else "Geral",
+            'specs': json.dumps(specs) if specs else '{}',
+            'images': json.dumps(images) if images else '[]',
+            'scraped_at': pd.Timestamp.now().isoformat()
+        }
+        records.append(record)
+    
+    df = pd.DataFrame(records)
     mysql_upsert(Products, engine, df)
 
 def mysql_upsert(table_class, engine, df):
