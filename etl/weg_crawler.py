@@ -37,7 +37,8 @@ except ImportError:
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, String, Text, JSON
+from sqlalchemy import create_engine, Column, String, Text, JSON, Integer, ForeignKey   
+import re
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.dialects.mysql import insert
 
@@ -78,14 +79,23 @@ settings = Settings()
 engine = create_engine(settings.DATABASE_URL)
 Base = declarative_base()
 
+class Categories(Base):
+    __tablename__ = 'categories'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)
+
 class Products(Base):
     __tablename__ = 'products'
     id = Column(String(50), primary_key=True)
     url = Column(Text, nullable=False)
     name = Column(String(255), nullable=False)
-    category = Column(String(100), nullable=False)
-    description = Column(JSON, nullable=True)
-    specs = Column(Text, nullable=True)
+    
+    # RELACIONAMENTO: Em vez de 'category' (string), usamos 'category_id' (int)
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
+    
+    description = Column(Text, nullable=True) # Alterado para Text conforme seu SQL
+    specs = Column(JSON, nullable=True)
     images = Column(Text, nullable=True)
     scraped_at = Column(String(50), nullable=False)
 
@@ -102,7 +112,7 @@ MAX_WORKERS = 2
 MAX_DRIVERS = 2
 
 # Linux ChromeDriver path
-CHROMEDRIVER_PATH = "/mnt/c/chromedriver/chromedriver.exe"  # Changed for Linux
+CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"  
 
 DATA_DIR = Path("data")
 PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
@@ -133,7 +143,7 @@ def create_driver_instance() -> webdriver.Chrome:
     opts.add_argument("--headless=new")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-dev-shm-usage")  # Added for Linux
+    opts.add_argument("--disable-dev-shm-usage") 
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     opts.add_argument(
@@ -204,7 +214,6 @@ def scrape_page_discovery(url: str) -> list[str]:
         if not href or href.startswith("#"):
             continue
 
-        # Skip direct image files in discovery
         if any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
             continue
             
@@ -296,8 +305,7 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
             if th and td: 
                 add(th.get_text(strip=True), td.get_text(strip=True))
     
-    # IMAGE EXTRACTION - ADDED THIS SECTION
-    # Look for product images in various locations
+
     image_selectors = [
         # Main product image
         "div.product-image img[src]",
@@ -338,7 +346,6 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
                     all_images.append(full_url)
                     seen_images.add(full_url)
     
-    # Also check for image links in anchor tags (common for zoom/high-res images)
     image_links = soup.select("a[href*='.jpg'], a[href*='.jpeg'], a[href*='.png'], a[href*='.gif'], a[href*='.webp']")
     for link in image_links:
         href = link.get('href')
@@ -354,7 +361,6 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
                 all_images.append(full_url)
                 seen_images.add(full_url)
     
-    # Add image URLs to rows
     for i, img_url in enumerate(all_images, 1):
         add(f"Image URL {i}", img_url)
     
@@ -427,50 +433,103 @@ async def product_crawl(status_callback):
     return total
 
 # ============================================================
-# ===================== DATA UPSERT ==========================
+# ================= LÓGICA DE PROCESSAMENTO ==================
 # ============================================================
 
+def simple_slugify(text):
+    """Cria um slug simples para a categoria"""
+    text = text.lower().strip()
+    text = re.sub(r'[^a-z0-9\s-]', '', text)
+    return re.sub(r'[\s-]+', '-', text)
+
+def get_or_create_category_id(session, category_name):
+    """
+    Verifica se a categoria existe. Se não, cria. Retorna o ID.
+    """
+    if not category_name:
+        category_name = "Geral"
+        
+    category = session.query(Categories).filter_by(name=category_name).first()
+    if category:
+        return category.id
+    
+    try:
+        new_slug = simple_slugify(category_name)
+        new_category = Categories(name=category_name, slug=new_slug)
+        session.add(new_category)
+        session.commit()
+        return new_category.id
+    except Exception as e:
+        session.rollback()
+        category = session.query(Categories).filter_by(name=category_name).first()
+        if category:
+            return category.id
+        return None
+
 def process_and_upsert():
+    if not OUTPUT_FILE.exists():
+        logging.warning("Output file not found.")
+        return
+
     raw_data = pd.read_csv(OUTPUT_FILE, sep=',', encoding='utf-8')
-    
-    # Extract image URLs into a list
-    def extract_image_urls(group):
-        images = []
-        for _, row in group.iterrows():
-            if 'Image URL' in row['Feature']:
-                images.append(row['Value'])
-        return images
-    
-    # Group by URL to collect all data
     grouped = raw_data.groupby('Product URL')
     
-    records = []
+    # Inicia sessão para gerir categorias
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    products_to_insert = []
+    
+    logging.info("Processando categorias e produtos...")
+
     for url, group in grouped:
-        # Convert the group to a specs dictionary
         specs = {}
         for _, row in group.iterrows():
-            if row['Feature'] not in ['Image URL 1', 'Image URL 2', 'Image URL 3', 'Image URL 4', 'Image URL 5']:
+            if row['Feature'] and 'Image URL' not in row['Feature']:
                 specs[row['Feature']] = row['Value']
         
-        # Extract image URLs
-        image_rows = group[group['Feature'].str.contains('Image URL')]
+        # Extrair imagens
+        image_rows = group[group['Feature'].str.contains('Image URL', na=False)]
         images = image_rows['Value'].tolist() if not image_rows.empty else []
         
-        # Create record
+        # --- Lógica de Extração da Categoria ---
+        category_name = "Geral"
+        try:
+            parts = url.strip('/').split('/')
+            if len(parts) > 2:
+                if 'en' in parts:
+                    idx = parts.index('en')
+                    if idx + 1 < len(parts):
+                        category_name = parts[idx+1].replace('-', ' ').title()
+                else:
+                    category_name = parts[-2].replace('-', ' ').title()
+        except Exception:
+            pass
+        
+        # Obter ID da Categoria (Relacional)
+        cat_id = get_or_create_category_id(session, category_name)
+
+        # Criar registo do produto
         record = {
             'id': specs.get('Product Code', hashlib.md5(url.encode()).hexdigest()[:20]),
             'url': url,
             'name': specs.get('Product Name', 'Produto sem Nome'),
+            'category_id': cat_id,  # Usa o ID, não o nome
             'description': specs.get('Description', ''),
-            'category': url.str.extract(r'/([^/]+)/?$')[0].fillna("Geral").str.split('-').str[0] if isinstance(url, pd.Series) else "Geral",
             'specs': json.dumps(specs) if specs else '{}',
             'images': json.dumps(images) if images else '[]',
             'scraped_at': pd.Timestamp.now().isoformat()
         }
-        records.append(record)
-    
-    df = pd.DataFrame(records)
-    mysql_upsert(Products, engine, df)
+        products_to_insert.append(record)
+
+    session.close() # Fecha a sessão usada para categorias
+
+    # Bulk Upsert dos Produtos
+    if products_to_insert:
+        df_products = pd.DataFrame(products_to_insert)
+        mysql_upsert(Products, engine, df_products)
+    else:
+        logging.warning("Nenhum produto processado.")
 
 def mysql_upsert(table_class, engine, df):
     df_clean = df.where(pd.notnull(df), None)
@@ -604,11 +663,9 @@ class CrawlerManager:
                 self.job_id = data.get("job_id", str(uuid.uuid4())[:8])
                 mode = data.get("mode", "product")
                 
-                # Cancel any existing task
                 if self.task and not self.task.done():
                     self.task.cancel()
                 
-                # Start job in background task
                 self.task = asyncio.create_task(self.execute_job(mode))
                 logging.info(f"Started job {self.job_id} in mode {mode}")
                 
@@ -699,13 +756,11 @@ class CrawlerManager:
         
         while True:
             try:
-                # Create MQTT client with optional authentication
                 client_options = {
                     "hostname": settings.MQTT_HOST,
                     "port": settings.MQTT_PORT,
                 }
                 
-                # Add authentication if credentials are provided
                 if settings.MQTT_USERNAME:
                     client_options["username"] = settings.MQTT_USERNAME
                 if settings.MQTT_PASSWORD:
@@ -737,7 +792,6 @@ class CrawlerManager:
 
 async def main_mqtt():
     """Main async entry point for MQTT mode"""
-    # Create logs directory if it doesn't exist
     Path("logs").mkdir(exist_ok=True)
     
     manager = CrawlerManager()
@@ -749,7 +803,7 @@ if __name__ == "__main__":
     import asyncio
     import argparse
     
-    # Parse command-line arguments
+    
     parser = argparse.ArgumentParser(description='WEG Web Crawler')
     parser.add_argument('--no-mqtt', action='store_true', 
                        help='Run in standalone mode without MQTT')
