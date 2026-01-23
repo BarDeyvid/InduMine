@@ -89,6 +89,7 @@ def extract_links_from_navigation(soup: BeautifulSoup, current_url: str) -> list
     product_detail_links = soup.select("td.product-code a[href]")
     product_title_links = soup.select("li.xtt-listing-grid-product h4 a[href]")
     product_selection_links = soup.select("li#products-selection a[href]")
+    product_image_links = soup.select("a.xtt-product-image-zoom[href]")  # Corrected selector
 
     all_link_tags = (
         main_menu_links + 
@@ -97,14 +98,17 @@ def extract_links_from_navigation(soup: BeautifulSoup, current_url: str) -> list
         product_list_buttons + 
         product_detail_links +
         product_title_links +
-        product_selection_links
+        product_selection_links +
+        product_image_links
     )
     
     for a in all_link_tags:
         href = a.get("href")
         if href and href.strip() != "#":
-            full_url = urljoin(BASE_URL, href)
-            next_urls.append(full_url)
+            # Skip direct image files in navigation
+            if not any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                full_url = urljoin(BASE_URL, href)
+                next_urls.append(full_url)
     
     # Pagination links (using data-href attribute)
     pagination_links = soup.select("ul.pagination a[data-href]")
@@ -124,7 +128,7 @@ def extract_links_from_navigation(soup: BeautifulSoup, current_url: str) -> list
 # ------------------------------------------------------------------
 def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
     """
-    Extracts product data based on the new logic and flattens it 
+    Extracts product data including images and flattens it 
     into a list of [URL, Feature, Value] rows for CSV storage.
     """
     data = {
@@ -132,7 +136,8 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
         "code": None,
         "description": None,
         "features": {},
-        "details": {}
+        "details": {},
+        "images": []  # Added for image URLs
     }
 
     # Nome
@@ -166,6 +171,61 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
             if th and td:
                 data["details"][th.get_text(strip=True)] = td.get_text(strip=True)
 
+    # IMAGE EXTRACTION - ADDED THIS SECTION
+    # Look for product images in various locations
+    image_selectors = [
+        # Main product image
+        "div.product-image img[src]",
+        "img.product-image[src]",
+        "div.xtt-product-image-zoom img[src]",
+        # Gallery images
+        "div.product-gallery img[src]",
+        "ul.product-thumbnails img[src]",
+        "div.carousel-item img[src]",
+        # General product images
+        "div.product-images img[src]",
+        "section.product-images img[src]",
+        # Any img tag that might contain product image
+        "img[src*='product']",
+        "img[src*='Product']",
+    ]
+    
+    seen_images = set()
+    for selector in image_selectors:
+        img_tags = soup.select(selector)
+        for img in img_tags:
+            src = img.get('src')
+            if src and src.strip():
+                # Handle relative URLs
+                if src.startswith('/'):
+                    full_url = urljoin(BASE_URL, src)
+                elif src.startswith('http'):
+                    full_url = src
+                else:
+                    full_url = urljoin(url, src)
+                
+                # Avoid duplicates and non-image files
+                if (full_url not in seen_images and 
+                    any(ext in full_url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp'])):
+                    data["images"].append(full_url)
+                    seen_images.add(full_url)
+    
+    # Also check for image links in anchor tags (common for zoom/high-res images)
+    image_links = soup.select("a[href*='.jpg'], a[href*='.jpeg'], a[href*='.png'], a[href*='.gif'], a[href*='.webp']")
+    for link in image_links:
+        href = link.get('href')
+        if href and href.strip():
+            if href.startswith('/'):
+                full_url = urljoin(BASE_URL, href)
+            elif href.startswith('http'):
+                full_url = href
+            else:
+                full_url = urljoin(url, href)
+            
+            if full_url not in seen_images:
+                data["images"].append(full_url)
+                seen_images.add(full_url)
+
     # --- Flattening to CSV Rows ---
     scraped_rows = []
     
@@ -181,6 +241,10 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
         
     for k, v in data["details"].items():
         scraped_rows.append([url, k, v])
+    
+    # Add image URLs to scraped rows - ADDED THIS
+    for i, img_url in enumerate(data["images"], 1):
+        scraped_rows.append([url, f"Image URL {i}", img_url])
 
     return scraped_rows
 
