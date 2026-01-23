@@ -46,76 +46,64 @@ InduMine é uma **plataforma full-stack de coleta, organização e visualizaçã
 
 ---
 
-## Project Structure
+## 🛠 Tech Stack
+
+| Camada | Tecnologias |
+| --- | --- |
+| **Data Scraping** | Python, Selenium (Async), BeautifulSoup4 |
+| **Backend** | FastAPI, SQLAlchemy ORM, Pydantic |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| **Database** | MySQL 8.0 |
+| **DevOps** | Docker, Docker Compose, GitHub Actions |
+
+---
+
+## 📂 Estrutura Atualizada do Projeto
 
 ```text
 .
-├── backend/                # Python API & ETL
-│   ├── database/           # SQLAlchemy models & MySQL connection
-│   ├── routes/             # API Endpoints
-│   ├── services/           # Business logic
-│   └── main.py             # FastAPI/Flask entry point
-├── etl/                    # Extraction, Transform, Load
-│   ├── Miner.py            # Async Selenium scraper (core)
-│   ├── Processor.py        # Pandas data cleaning
-│   └── loader.py           # SQLAlchemy database ingestion
-├── front-end/              # React + TypeScript + Vite Dashboard
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── hooks/          # Custom TS hooks
-│   │   ├── types/          # TypeScript interfaces/types
-│   │   └── App.tsx
-│   └── vite.config.ts
-├── data/                   # Processed CSV exports
-└── README.md
+├── backend/                # API FastAPI & Modelagem
+│   ├── models/             # Tabelas SQLAlchemy (Users, Products)
+│   ├── routes/             # Endpoints da API
+│   ├── schemas/            # Validação Pydantic
+│   └── configuration/      # Mapeamentos e categorias de extração
+├── etl/                    # Scripts de Mineração de Dados
+│   ├── weg_crawler.py      # Script de crawling específico
+│   └── Miner.py            # Core engine de scraping assíncrono
+├── front-end/              # Dashboard React + TS
+│   ├── src/components/ui/  # Componentes reutilizáveis (shadcn)
+│   └── src/App.tsx         # Orquestração da interface
+├── docker-compose.yml      # Orquestração de containers
+└── .github/workflows/      # CI/CD (GitHub Actions)
 
 ```
 
 ---
 
-## Tech Stack
+## 🚀 Como Iniciar
 
-| Layer | Technology |
-| --- | --- |
-| **Scraping** | Python, Selenium, BeautifulSoup, AsyncIO |
-| **ETL** | Pandas, NumPy |
-| **ORM** | SQLAlchemy (Python) |
-| **Database** | MySQL 8.0 |
-| **Frontend** | React 18, **TypeScript**, Vite, Tailwind CSS |
-| **DevOps** | GitHub Actions (Leaderboard Automation), `.env` |
+### 1. Requisitos
 
----
+* Docker & Docker Compose **OU**
+* Python 3.10+ e Node.js 18+
 
-## How It Works
-
-1. **Miner.py**: Realiza o crawling assíncrono do catálogo e extrai especificações técnicas.
-2. **Pandas**: Limpa strings, remove duplicatas e pivota as características técnicas.
-3. **SQLAlchemy**: Mapeia os objetos Python para tabelas relacionais no **MySQL**.
-4. **React Dashboard**: Consome os dados e exibe em uma interface tipada e performática.
-
----
-
-## Quick Start
-
-### 1. Clone & Setup
+### 2. Rodando com Docker (Recomendado)
 
 ```bash
-git clone [https://github.com/BarDeyvid/InduMine.git](https://github.com/BarDeyvid/InduMine.git)
-cd InduMine
+docker-compose up --build
 
 ```
 
-### 2. Environment Setup
+### 3. Setup Manual do Backend
 
-Crie um arquivo `.env` com suas credenciais:
-
-```env
-DATABASE_URL=mysql+pymysql://user:password@localhost:3306/indumine
-JWT_SECRET=your_secret
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
 
 ```
 
-### 3. Frontend (TS + Vite)
+### 4. Setup Manual do Frontend
 
 ```bash
 cd front-end
@@ -123,3 +111,4 @@ npm install
 npm run dev
 
 ```
+
