@@ -107,7 +107,7 @@ export default function ProductDetail() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background dark">
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
         <Header />
         <main className="container py-8">
           <ErrorState
@@ -120,7 +120,7 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background dark">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
       <Header />
       
       <main className="container py-8">
@@ -188,7 +188,13 @@ export default function ProductDetail() {
                 </div>
                 
                 <h1 className="text-3xl font-bold text-foreground">{product?.name}</h1>
-                <p className="text-muted-foreground leading-relaxed">{product?.description}</p>
+                
+                {/* Enhanced Description Display */}
+                <div className="bg-muted/40 rounded-lg p-4 border border-muted/60">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                    {product?.description}
+                  </p>
+                </div>
 
                 {product?.url && (
                   <Button variant="outline" className="gap-2" asChild>
@@ -205,7 +211,7 @@ export default function ProductDetail() {
         <Tabs defaultValue="especificacoes" className="animate-slide-up">
           <TabsList className="mb-6">
             <TabsTrigger value="especificacoes">Especificações Técnicas</TabsTrigger>
-            <TabsTrigger value="geral">Descrição</TabsTrigger>
+            <TabsTrigger value="descricao">Descrição Completa</TabsTrigger>
           </TabsList>
 
           <TabsContent value="especificacoes">
@@ -225,13 +231,17 @@ export default function ProductDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="geral">
+          <TabsContent value="descricao">
             <Card>
               <CardHeader>
-                <CardTitle>Descrição do Produto</CardTitle>
+                <CardTitle>Descrição Completa do Produto</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{product?.description}</p>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <p className="text-foreground whitespace-pre-wrap leading-relaxed">
+                    {product?.description}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
