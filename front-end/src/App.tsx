@@ -9,6 +9,7 @@ import ProductDetail from "@/pages/ProductDetail";
 import NotFound from "@/pages/NotFound";
 import Categories from "@/pages/Categories";
 import { ThemeProvider } from "./context/ThemeContext";
+import Home from "./pages/Home";
 
 const isAuthenticated = () => {
   return localStorage.getItem('auth_token') !== null;
@@ -24,7 +25,7 @@ function App() {
             <Route 
               path="/" 
             element={
-              isAuthenticated() ? <Navigate to="/dashboard" /> : <PublicHome />
+              <Home />
             } 
           />
           
