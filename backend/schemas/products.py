@@ -4,8 +4,9 @@
 # schemas/products.py
 # ============================================================================
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from datetime import datetime
 
 # ============================================================================
 # PYDANTIC SCHEMAS (Validation)
@@ -50,22 +51,24 @@ class CategorySummary(BaseModel):
     slug: str
     item_quantity: int
 
-class ProductItemResponse(BaseModel):
-    product_code: str
-    image: Optional[str]
-    url: Optional[str]
-    category_slug: Optional[str] = None
-    specifications: Dict[str, Any]
-
 class ProductBase(BaseModel):
     id: str
     url: str
     name: str
-    category: str
-    description: Optional[Dict[str, Any]] = None
-    specs: Optional[str] = None
-    images: Optional[str] = None
+    category_id: Optional[int] = None # Referência ao ID da tabela categories
+    description: Optional[str] = None
+    specs: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    images: Optional[str] = None # Mantido como string para bater com o crawler
     scraped_at: str
+
+class ProductItemResponse(BaseModel):
+    product_code: str
+    name: str
+    image: Optional[str]
+    url: Optional[str]
+    category_slug: Optional[str] = None
+    specifications: Dict[str, Any]
+    scraped_at: Optional[str]
 
 class ProductCreate(ProductBase):
     pass
@@ -74,10 +77,23 @@ class ProductUpdate(BaseModel):
     url: Optional[str] = None
     name: Optional[str] = None
     category: Optional[str] = None
-    description: Optional[Dict[str, Any]] = None
-    specs: Optional[str] = None
+    description: Optional[str] = None  # Changed from Dict to string
+    specs: Optional[Union[Dict[str, Any], str]] = None  # Can be dict or JSON string
     images: Optional[str] = None
     scraped_at: Optional[str] = None
 
 class ProductResponse(ProductBase):
     model_config = ConfigDict(from_attributes=True)
+
+class DatabaseHealthResponse(BaseModel):
+    health_percentage: int
+    total_products: int
+    total_categories: int
+    total_users: int
+    status: str  # "excellent", "good", "fair", "poor"
+
+class LastSyncResponse(BaseModel):
+    last_sync_timestamp: str
+    last_sync_formatted: str
+    total_products_synced: int
+    sync_duration_seconds: Optional[float] = None
