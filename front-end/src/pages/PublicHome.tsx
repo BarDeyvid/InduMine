@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useTheme } from "@/context/ThemeContext";
+
 import { 
   HardHat, 
   ArrowRight,
@@ -21,7 +21,6 @@ const REAL_TECH_STACK = [
 ];
 
 export default function PublicHome() {
-  const { setTheme, theme } = useTheme();
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
@@ -36,7 +35,6 @@ export default function PublicHome() {
         
         <div className="flex items-center gap-6">
           <select 
-            onChange={(e) => setTheme(e.target.value as any)}
             className="bg-transparent border border-muted px-2 py-1 rounded text-xs uppercase font-bold"
           >
             <option value="industrial">Industrial</option>
