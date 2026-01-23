@@ -61,6 +61,54 @@ export const themes = {
       "--foreground": "0 0% 98%",
       "--primary-foreground": "0 0% 100%",
     }
+  },
+  light: {
+    name: "Light",
+    preview: "#3b82f6", // Azul
+    vars: {
+      "--primary": "217 91% 60%",
+      "--background": "0 0% 98%",
+      "--card": "0 0% 100%",
+      "--muted": "210 40% 85%",
+      "--foreground": "210 40% 10%",
+      "--primary-foreground": "0 0% 100%",
+    }
+  },
+  cream: {
+    name: "Cream",
+    preview: "#d4a574", // Marrom claro
+    vars: {
+      "--primary": "30 81% 50%",
+      "--background": "30 20% 96%",
+      "--card": "30 15% 99%",
+      "--muted": "30 25% 85%",
+      "--foreground": "30 40% 15%",
+      "--primary-foreground": "0 0% 100%",
+    }
+  },
+  sage: {
+    name: "Sage",
+    preview: "#059669", // Verde-sálvia
+    vars: {
+      "--primary": "162 73% 46%",
+      "--background": "160 40% 96%",
+      "--card": "160 30% 99%",
+      "--muted": "160 30% 85%",
+      "--foreground": "160 40% 12%",
+      "--primary-foreground": "0 0% 100%",
+    }
+  },
+  slate: {
+    name: "Slate",
+    preview: "#64748b", // Cinza-ardósia
+    vars: {
+      "--primary": "215 28% 45%",
+      "--background": "210 40% 96%",
+      "--card": "210 30% 99%",
+      "--muted": "210 40% 85%",
+      "--foreground": "215 25% 15%",
+      "--primary-foreground": "0 0% 100%",
+    }
   }
 };
 
@@ -79,18 +127,29 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [themeName, setThemeName] = useState<ThemeName>('industrial');
+  const [theme, setThemeState] = useState<ThemeName>(() => {
+    const saved = localStorage.getItem("indumine-theme") as ThemeName;
+    return saved && themes[saved] ? saved : 'industrial';
+  });
+
+  const setTheme = (name: ThemeName) => {
+    setThemeState(name);
+    localStorage.setItem("indumine-theme", name);
+  };
 
   useEffect(() => {
     const root = window.document.documentElement;
-    const config = themes[themeName].vars;
-    Object.entries(config).forEach(([key, value]) => {
+    const themeConfig = themes[theme];
+    
+    Object.entries(themeConfig.vars).forEach(([key, value]) => {
       root.style.setProperty(key, value);
     });
-  }, [themeName]);
+
+    root.classList.add('dark'); 
+  }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme: themeName, setTheme: setThemeName }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
