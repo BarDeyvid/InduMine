@@ -20,7 +20,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tqdm.asyncio import tqdm_asyncio
 
-import aiomqtt
+try:
+    import aiomqtt
+    MQTT_AVAILABLE = True
+except ImportError:
+    print("Warning: aiomqtt not installed. Running without MQTT support.")
+    MQTT_AVAILABLE = False
+    # Create a dummy class for when MQTT is not available
+    class MockMqttClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def subscribe(self, *args): pass
+        async def publish(self, *args): pass
+        async def __aiter__(self): 
+            while True: await asyncio.sleep(3600)  # Sleep forever
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
 from dotenv import load_dotenv
@@ -88,12 +101,16 @@ WAIT_TIMEOUT = 30
 MAX_WORKERS = 2
 MAX_DRIVERS = 2
 
-CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"
+# Linux ChromeDriver path
+CHROMEDRIVER_PATH = "/usr/bin/chromedriver"  # Changed for Linux
 
 DATA_DIR = Path("data")
 PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
 OUTPUT_FILE = DATA_DIR / "weg_products_final.csv"
-DATA_DIR.mkdir(exist_ok=True)
+
+# Create directories before logging
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+Path("logs").mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -116,6 +133,7 @@ def create_driver_instance() -> webdriver.Chrome:
     opts.add_argument("--headless=new")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")  # Added for Linux
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     opts.add_argument(
@@ -140,7 +158,6 @@ def normalize_url(url: str) -> str:
 
 def looks_like_product(url: str) -> bool:
     u = url.lower()
-    # Reverting to your more comprehensive list
     return any(x in u for x in [
         "/product/", "/products/", "/produtos/", "/catalog/", 
         "/industrial/", "/motors/", "/drives/", "/automation/", "/p/"
@@ -246,6 +263,7 @@ def save_product_urls(urls: set[str]):
             w.writerow([u])
 
     logging.info(f"[DISCOVERY] Produtos encontrados: {len(products)}")
+    print(f"Found {len(products)} product URLs")
 
 def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
     """
@@ -478,6 +496,69 @@ def mysql_upsert(table_class, engine, df):
         session.close()
 
 # ============================================================
+# ================ COMMAND LINE INTERFACE ====================
+# ============================================================
+
+async def run_standalone_mode(job_type="full"):
+    """Run the crawler in standalone mode without MQTT"""
+    print("=" * 60)
+    print(f"WEG CRAWLER - STANDALONE MODE")
+    print(f"Job: {job_type}")
+    print("=" * 60)
+    
+    start_time = time.time()
+    
+    # Create logs directory if it doesn't exist
+    Path("logs").mkdir(exist_ok=True)
+    
+    # Initialize database
+    print("\n[1/4] Initializing database...")
+    init_db()
+    
+    # Initialize drivers
+    print("[2/4] Initializing Chrome drivers...")
+    for _ in range(min(4, MAX_DRIVERS)):
+        try: 
+            CHROME_POOL.put_nowait(create_driver_instance())
+        except Exception as e:
+            print(f"Warning: Failed to initialize driver: {e}")
+    
+    if job_type in ["discovery", "full"]:
+        print("[3/4] Running discovery crawl...")
+        urls = await discovery_crawl(settings.START_URL, passes=1)
+        save_product_urls(urls)
+        print(f"Discovery complete: Found {len(urls)} URLs")
+    
+    if job_type in ["product", "full"]:
+        if not PRODUCT_URLS_FILE.exists():
+            print("Error: Product URLs file not found. Run discovery first.")
+            return
+        
+        print("[4/4] Scraping product data...")
+        
+        async def progress_callback(processed, total):
+            print(f"Progress: {processed}/{total} ({processed/total*100:.1f}%)", end='\r')
+        
+        total = await product_crawl(progress_callback)
+        print(f"\nScraping complete: {total} products")
+        
+        # Process and save to database
+        print("\nProcessing and saving to database...")
+        process_and_upsert()
+    
+    # Cleanup
+    print("\nCleaning up...")
+    while not CHROME_POOL.empty():
+        try: 
+            driver = CHROME_POOL.get_nowait()
+            driver.quit()
+        except:
+            pass
+    
+    elapsed = time.time() - start_time
+    print(f"\n✅ Done! Total time: {elapsed:.2f}s")
+
+# ============================================================
 # =================== MQTT CONTROL MANAGER ===================
 # ============================================================
 
@@ -654,20 +735,47 @@ class CrawlerManager:
                 logging.error(f"Unexpected error: {e}", exc_info=True)
                 await asyncio.sleep(reconnect_interval)
 
-async def main():
-    """Main async entry point"""
+async def main_mqtt():
+    """Main async entry point for MQTT mode"""
     # Create logs directory if it doesn't exist
     Path("logs").mkdir(exist_ok=True)
     
     manager = CrawlerManager()
     await manager.run()
 
+
 if __name__ == "__main__":
     import sys
     import asyncio
-
+    import argparse
+    
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='WEG Web Crawler')
+    parser.add_argument('--no-mqtt', action='store_true', 
+                       help='Run in standalone mode without MQTT')
+    parser.add_argument('--job', choices=['discovery', 'product', 'full'], default='full',
+                       help='Job type: discovery (find URLs), product (scrape data), full (both)')
+    parser.add_argument('--mqtt-host', type=str, 
+                       help='MQTT broker host (default: mqtt-broker)')
+    parser.add_argument('--mqtt-port', type=int, 
+                       help='MQTT broker port (default: 1883)')
+    
+    args = parser.parse_args()
+    
+    # Update settings if command-line args provided
+    if args.mqtt_host:
+        settings.MQTT_HOST = args.mqtt_host
+    if args.mqtt_port:
+        settings.MQTT_PORT = args.mqtt_port
+    
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     
-    # Run the async main function
-    asyncio.run(main())
+    if args.no_mqtt:
+        # Run in standalone mode without MQTT
+        print("Running in standalone mode (no MQTT)...")
+        asyncio.run(run_standalone_mode(args.job))
+    else:
+        # Run with MQTT (default)
+        print(f"Running with MQTT (host: {settings.MQTT_HOST}:{settings.MQTT_PORT})...")
+        asyncio.run(main_mqtt())
