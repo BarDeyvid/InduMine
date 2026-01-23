@@ -4,7 +4,7 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { StatsCard } from "@/components/StatsCard";
 import { RecentProductsTable } from "@/components/RecentProductsTable";
 import { CategoryCardSkeleton } from "@/components/SkeletonCard";
-import { getCategories } from "@/lib/api";
+import { getCategories, last_sync, database_health } from "@/lib/api";
 import { getRecentProducts } from "@/lib/storage";
 import { Package, Folder, Activity, Clock } from "lucide-react";
 import type { CategorySummary, RecentProduct } from "@/types";
@@ -13,7 +13,8 @@ export default function Index() {
   const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [recentProducts, setRecentProducts] = useState<RecentProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [lastSync, setLastSync] = useState<any>(null);
+  const [databaseHealth, setDatabaseHealth] = useState<any>(null);
   useEffect(() => {
     // Simulate API fetch
     const fetchData = async () => {
@@ -22,19 +23,29 @@ export default function Index() {
       const categoriesData = await getCategories();
       setCategories(categoriesData);
       setRecentProducts(getRecentProducts());
+      
+      try {
+        const lastSyncData = await last_sync();
+        setLastSync(lastSyncData);
+      } catch (error) {
+        console.error("Error fetching last sync:", error);
+        setLastSync(null);
+      }
+      
+      try {
+        const databaseHealthData = await database_health();
+        setDatabaseHealth(databaseHealthData);
+      } catch (error) {
+        console.error("Error fetching database health:", error);
+        setDatabaseHealth(null);
+      }
+
       setIsLoading(false);
     };
     fetchData();
   }, []);
 
   const totalProducts = categories.reduce((acc, cat) => acc + cat.item_quantity, 0);
-  const lastSync = new Date().toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -84,13 +95,13 @@ export default function Index() {
           />
           <StatsCard
             title="Saúde da Base"
-            value="56%"
+            value={databaseHealth ? `${databaseHealth.health_percentage}%` : '...'}
             icon={Activity}
             trend={{ value: 4, label: "desde último mês" }}
           />
           <StatsCard
             title="Última Sincronização"
-            value={lastSync}
+            value={lastSync ? lastSync.last_sync_formatted : '...'}
             icon={Clock}
           />
         </div>

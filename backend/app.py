@@ -4,7 +4,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import time
 
 from config import settings
-from routes import products
+from routes import products, users
 from database import engine, Base
 # Import other models as needed
 
@@ -62,6 +62,7 @@ async def unified_middleware(request: Request, call_next):
 
 # Register routes
 app.include_router(products.router)
+app.include_router(users.router)
 
 # Health check endpoint
 @app.get("/health")

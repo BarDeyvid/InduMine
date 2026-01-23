@@ -218,3 +218,39 @@ export const updateCurrentUser = async (userData: any) => {
 
   return handleResponse(response);
 };
+
+export const last_sync = async () => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+  const response = await fetch(`${API_BASE_URL}/sync/last`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+  return handleResponse(response);
+}
+
+export const database_health = async () => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+  const response = await fetch(`${API_BASE_URL}/health/database`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+  return handleResponse(response);
+}

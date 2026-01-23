@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import PublicHome from "@/pages/PublicHome"; // Add this import
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -9,6 +8,7 @@ import ProductDetail from "@/pages/ProductDetail";
 import NotFound from "@/pages/NotFound";
 import Categories from "@/pages/Categories";
 import { ThemeProvider } from "./context/ThemeContext";
+import Home from "./pages/Home";
 
 const isAuthenticated = () => {
   return localStorage.getItem('auth_token') !== null;
@@ -24,7 +24,7 @@ function App() {
             <Route 
               path="/" 
             element={
-              isAuthenticated() ? <Navigate to="/dashboard" /> : <PublicHome />
+              <Home />
             } 
           />
           
