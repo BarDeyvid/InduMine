@@ -102,7 +102,7 @@ MAX_WORKERS = 2
 MAX_DRIVERS = 2
 
 # Linux ChromeDriver path
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"  # Changed for Linux
+CHROMEDRIVER_PATH = "/mnt/c/chromedriver/chromedriver.exe"  # Changed for Linux
 
 DATA_DIR = Path("data")
 PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
