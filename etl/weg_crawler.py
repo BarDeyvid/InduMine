@@ -6,6 +6,7 @@ import logging
 import time
 import json
 import uuid
+import argparse  # Added for CLI arguments
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from queue import Queue, Empty, Full
@@ -622,18 +623,16 @@ async def run_standalone_mode(job_type="full"):
 # ============================================================
 
 class CrawlerManager:
-    def __init__(self):
+    def __init__(self, use_mqtt=True):
         self.state = "idle"
         self.job_id = None
         self.client = None
+        self.use_mqtt = use_mqtt and MQTT_AVAILABLE
         self.topic_command = "indumine/crawler/command"
         self.topic_status = "indumine/crawler/status"
         self.task = None
 
     async def publish_status(self, processed=0, total=0, message=""):
-        if self.client is None:
-            return
-            
         payload = {
             "job_id": self.job_id,
             "state": self.state,
@@ -642,12 +641,20 @@ class CrawlerManager:
             "message": message,
             "timestamp": pd.Timestamp.now().isoformat()
         }
-        
-        try:
-            await self.client.publish(self.topic_status, json.dumps(payload))
-            logging.debug(f"Published status: {payload}")
-        except Exception as e:
-            logging.error(f"MQTT Publish Error: {e}")
+
+        # If using MQTT, try to publish
+        if self.use_mqtt and self.client:
+            try:
+                await self.client.publish(self.topic_status, json.dumps(payload))
+                logging.debug(f"MQTT Publish: {payload}")
+            except Exception as e:
+                logging.error(f"MQTT Publish Error: {e}")
+        else:
+            # Fallback to standard logging if MQTT is off
+            if total > 0:
+                logging.info(f"[STATUS] {message} | Progress: {processed}/{total}")
+            else:
+                logging.info(f"[STATUS] {message}")
 
     async def handle_command(self, message):
         try:
@@ -690,10 +697,16 @@ class CrawlerManager:
         try:
             await self.publish_status(message=f"Starting mode: {mode}")
             
+            # Ensure DB is ready
             init_db()
             
             # Initialize drivers
             logging.info("Initializing Chrome drivers...")
+            # Ensure we don't overfill if retrying
+            while not CHROME_POOL.empty():
+                try: CHROME_POOL.get_nowait().quit()
+                except: pass
+
             for _ in range(min(4, MAX_DRIVERS)):
                 try: 
                     CHROME_POOL.put_nowait(create_driver_instance())
@@ -707,7 +720,6 @@ class CrawlerManager:
                 urls = await discovery_crawl(settings.START_URL, passes=1)
                 save_product_urls(urls)
                 await self.publish_status(message=f"Discovery finished. Found {len(urls)} URLs")
-                logging.info(f"Discovery finished. Found {len(urls)} URLs")
                 
             elif mode == "product":
                 if not PRODUCT_URLS_FILE.exists():
@@ -724,7 +736,6 @@ class CrawlerManager:
             
             self.state = "idle"
             await self.publish_status(message="Job completed successfully")
-            logging.info(f"Job {self.job_id} completed successfully")
             
         except asyncio.CancelledError:
             self.state = "cancelled"
@@ -747,8 +758,12 @@ class CrawlerManager:
                     logging.warning(f"Error cleaning up driver: {e}")
             self.job_id = None
 
-    async def run(self):
-        """Main async run method"""
+    async def run_mqtt(self):
+        """Main loop for MQTT mode"""
+        if not self.use_mqtt:
+            logging.error("MQTT requested but aiomqtt not installed or disabled.")
+            return
+
         logging.info("Starting async MQTT crawler manager...")
         logging.info(f"MQTT Host: {settings.MQTT_HOST}:{settings.MQTT_PORT}")
         
@@ -769,14 +784,10 @@ class CrawlerManager:
                 async with aiomqtt.Client(**client_options) as client:
                     self.client = client
                     
-                    # Subscribe to command topic
                     await client.subscribe(self.topic_command)
                     logging.info(f"Subscribed to {self.topic_command}")
-                    
-                    # Publish initial status
                     await self.publish_status(message="Crawler started and ready")
                     
-                    # Process incoming messages
                     async for message in client.messages:
                         logging.info(f"Received message on topic: {message.topic} | Payload: {message.payload.decode()}")
                         if str(message.topic) == self.topic_command:
