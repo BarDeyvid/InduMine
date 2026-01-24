@@ -146,6 +146,8 @@ export const login = async (username: string, password: string) => {
   // Salva o token no localStorage para usar nas próximas requisições
   if (data.access_token) {
     localStorage.setItem('auth_token', data.access_token);
+    // Dispatch event to notify AuthContext of login
+    window.dispatchEvent(new Event('auth-login'));
   }
   
   return data;
