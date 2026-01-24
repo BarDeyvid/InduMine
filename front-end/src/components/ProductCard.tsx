@@ -10,9 +10,20 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  // Get first 2 specs for badges
+  // Get first 2 specs for badges, filtering out system fields
+  const systemFields = [
+    'Category_Path',
+    'Category_Level_1',
+    'Category_Level_2',
+    'Category_Level_3',
+    'Category_Level_4',
+    'Category_Level_5',
+    'Product Name',
+    'Product Code'
+  ];
+
   const specEntries = Object.entries(product.main_specs || {})
-    .filter(([, value]) => value !== null && value !== '')
+    .filter(([key, value]) => !systemFields.includes(key) && value !== null && value !== '')
     .slice(0, 2);
 
   return (
@@ -41,12 +52,9 @@ export function ProductCard({ product }: ProductCardProps) {
           <p className="text-xs font-mono text-muted-foreground mb-1">
             {product.product_code}
           </p>
-          <h3 className="font-semibold text-card-foreground line-clamp-1 mb-2 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-card-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {product.description}
-          </p>
           {specEntries.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {specEntries.map(([key, value]) => (
