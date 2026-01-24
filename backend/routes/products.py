@@ -13,7 +13,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, status, Query, Body
 from datetime import datetime
 from sqlalchemy import or_, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from typing import List, Optional
 import logging
 from slowapi import Limiter
@@ -31,20 +31,31 @@ logger = logging.getLogger(__name__)
 
 # Import security helpers
 from config import settings
-from utils.security import (
-    get_current_user, 
-    require_role,
-    get_password_hash,
-    create_tokens,
-    verify_token,
-    TokenResponse,
-    verify_password
-)
+from utils.security import *
 
 # Rate limiter instance
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="")
+
+def get_category_descendants(db, category_slug):
+    """Get all descendant category IDs for a given category slug (including itself)"""
+    # Using recursive CTE to get all descendants
+    category = aliased(Category, name='category')
+    category_tree = (
+        db.query(category.id)
+        .filter(category.slug == category_slug)
+        .cte(name='category_tree', recursive=True)
+    )
+    
+    child = aliased(Category, name='child')
+    category_tree = category_tree.union_all(
+        db.query(child.id)
+        .filter(child.parent_id == category_tree.c.id)
+    )
+    
+    return category_tree
+
 
 # Auth routes (unchanged)
 @router.post("/auth/register", response_model=UserResponse)
@@ -218,46 +229,115 @@ def check_email_availability(
     }
 
 # Helper function for category access check
-def has_access_to_category(user: User, category_slug: str) -> bool:
-    """Check if user has access to a specific category"""
+def has_access_to_category(user: User, category_slug: str, db: Session) -> bool:
+    """Check if user has access to a specific category or any of its ancestors"""
     if user.role == "admin":
         return True
     
-    user_categories = user.allowed_categories or []
-    return category_slug in user_categories
+    # Get the category by slug
+    category = db.query(Category).filter(Category.slug == category_slug).first()
+    if not category:
+        return False
+    
+    # Check the allowed_categories list for the category and all its ancestors
+    current_category = category
+    while current_category:
+        if current_category.slug in (user.allowed_categories or []):
+            return True
+        current_category = current_category.parent
+    
+    return False
 
 # Product routes with category validation
 @router.get("/products/{category_slug}", response_model=list[ProductItemResponse])
 def get_products_by_category(category_slug: str, db: Session = Depends(get_db)):
-    # 1. Encontra a categoria pelo slug
-    category = db.query(Category).filter(Category.slug == category_slug).first()
+    # 1. Get the category tree (all descendant categories)
+    category_tree = get_category_descendants(db, category_slug)
     
-    if not category:
+    # 2. Get category IDs from the tree
+    category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+    
+    if not category_ids:
         return []
-
-    # 2. Procura os produtos associados ao ID desta categoria
-    products = db.query(Products).filter(Products.category_id == category.id).all()
     
-    # 3. Usa o helper row_to_dict para formatar a resposta
-    return [row_to_dict(p, slug=category.slug) for p in products]
+    # 3. Get products from all descendant categories
+    products = db.query(Products).filter(Products.category_id.in_(category_ids)).all()
+    
+    # 4. Format response
+    return [row_to_dict(p, slug=category_slug) for p in products]
 
 @router.get("/categories", response_model=list[CategorySummary])
 def get_categories(db: Session = Depends(get_db)):
-    # 1. Consulta todas as categorias que o crawler inseriu no banco de dados
-    categories = db.query(Category).all()
+    top_categories = db.query(Category).filter(Category.parent_id == None).all()
     
     results = []
-    for cat in categories:
-        # 2. Conta quantos produtos existem para cada categoria
-        count = db.query(func.count(Products.id)).filter(Products.category_id == cat.id).scalar()
+    for cat in top_categories:
+        category_tree = get_category_descendants(db, cat.slug)
+        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        
+        count = db.query(func.count(Products.id)).filter(
+            Products.category_id.in_(category_ids)
+        ).scalar()
         
         results.append({
             "name": cat.name,
             "slug": cat.slug,
-            "item_quantity": count or 0
+            "item_quantity": count or 0,
+            "has_children": len(cat.children) > 0
         })
     
     return results
+
+@router.get("/categories/tree", response_model=list[dict])
+def get_category_tree(db: Session = Depends(get_db)):
+    """Get the complete category hierarchy tree"""
+    def build_tree(category):
+        category_tree = get_category_descendants(db, category.slug)
+        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        count = db.query(func.count(Products.id)).filter(
+            Products.category_id.in_(category_ids)
+        ).scalar()
+        
+        node = {
+            "id": category.id,
+            "name": category.name,
+            "slug": category.slug,
+            "item_quantity": count or 0,
+            "children": []
+        }
+        
+        for child in sorted(category.children, key=lambda x: x.name):
+            node["children"].append(build_tree(child))
+        
+        return node
+    
+    top_categories = db.query(Category).filter(Category.parent_id == None).all()
+    return [build_tree(cat) for cat in sorted(top_categories, key=lambda x: x.name)]
+
+@router.get("/categories/{slug}/children")
+def get_category_children(slug: str, db: Session = Depends(get_db)):
+    """Get direct children of a category"""
+    category = db.query(Category).filter(Category.slug == slug).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    children = []
+    for child in category.children:
+        category_tree = get_category_descendants(db, child.slug)
+        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        count = db.query(func.count(Products.id)).filter(
+            Products.category_id.in_(category_ids)
+        ).scalar()
+        
+        children.append({
+            "id": child.id,
+            "name": child.name,
+            "slug": child.slug,
+            "item_quantity": count or 0,
+            "has_children": len(child.children) > 0
+        })
+    
+    return children
 
 @router.get("/products/code/{product_code}", response_model=ProductItemResponse)
 def get_product_globally(
@@ -275,7 +355,7 @@ def get_product_globally(
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Check if user has access to this product's category
-    if not has_access_to_category(current_user, product.category_rel.slug):
+    if not has_access_to_category(current_user, product.category_rel.slug, db):
         raise HTTPException(
             status_code=403,
             detail="Access denied to this product's category"
@@ -291,18 +371,20 @@ def get_product_detail(
     db: Session = Depends(get_db)
 ):
     # 1. Security Check
-    if not has_access_to_category(current_user, category_slug):
+    if not has_access_to_category(current_user, category_slug, db):
         raise HTTPException(status_code=403, detail="Access denied to this category")
     
-    # 2. Validate category exists
-    category = db.query(Category).filter(Category.slug == category_slug).first()
-    if not category:
+    # 2. Get the category tree
+    category_tree = get_category_descendants(db, category_slug)
+    category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+    
+    if not category_ids:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    # 3. Find Product
+    # 3. Find Product in the category tree
     product = db.query(Products).filter(
         Products.id == product_code,
-        Products.category_id == category.id
+        Products.category_id.in_(category_ids)
     ).first()
     
     if not product:
@@ -320,19 +402,27 @@ def search_products(
     """
     Search products across all categories the user has access to.
     """
+    # Get all categories the user has access to
     user_categories = current_user.allowed_categories or []
     
-    # Build query with user's accessible categories
+    # Build a list of all accessible category IDs (including descendants)
+    accessible_category_ids = set()
+    for category_slug in user_categories:
+        category_tree = get_category_descendants(db, category_slug)
+        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        accessible_category_ids.update(category_ids)
+    
+    # Build query
     query = db.query(Products)
     
     if current_user.role != "admin":
-        query = query.filter(Products.category.in_(user_categories))
+        query = query.filter(Products.category_id.in_(accessible_category_ids))
     
     # Add search filters
     search_filter = or_(
         Products.name.ilike(f"%{q}%"),
         Products.id.ilike(f"%{q}%"),
-        Products.category.ilike(f"%{q}%")
+        Products.description.ilike(f"%{q}%")
     )
     query = query.filter(search_filter)
     
@@ -340,7 +430,7 @@ def search_products(
     products = query.limit(limit).all()
     
     # Convert to response format
-    results = [row_to_dict(p, slug=p.category) for p in products]
+    results = [row_to_dict(p) for p in products]
     return [r for r in results if r is not None]
 
 # Admin endpoints for product management
@@ -363,7 +453,7 @@ def create_product(
         id=product.id,
         url=product.url,
         name=product.name,
-        category=product.category,
+        category_id=product.category_id,
         description=product.description,
         specs=product.specs,
         images=",".join(product.images) if product.images else None,
@@ -402,7 +492,7 @@ def update_product(
     
     # Handle images conversion
     if 'images' in update_data and update_data['images']:
-        update_data['images'] = update_data['images']  # Keep as string
+        update_data['images'] = ",".join(update_data['images'])  # Convert list to comma-separated string
     
     for field, value in update_data.items():
         setattr(product, field, value)
