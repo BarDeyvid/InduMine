@@ -61,15 +61,21 @@ class ProductBase(BaseModel):
     images: Optional[str] = None # Mantido como string para bater com o crawler
     scraped_at: str
 
+class CategorySummary(BaseModel):
+    name: str
+    slug: str
+    item_quantity: int
+    has_children: bool = False
+
 class ProductItemResponse(BaseModel):
     product_code: str
     name: str
     image: Optional[str]
     url: Optional[str]
     category_slug: Optional[str] = None
+    category_path: Optional[str] = None
     specifications: Dict[str, Any]
     scraped_at: Optional[str]
-
 class ProductCreate(ProductBase):
     pass
 
