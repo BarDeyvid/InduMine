@@ -30,7 +30,7 @@ Nenhum dado proprietário, sigiloso, autenticado ou protegido é utilizado.
 
 Este projeto atingiu sua arquitetura principal (v1.0) após **mais de 100 commits solo** do fundador, expandindo-se posteriormente para um esforço colaborativo.
 
-| <img loading="lazy" src="https://github.com/BarDeyvid.png" width="115"><br><sub><a href="https://github.com/BarDeyvid">Deyvid Barcelos</a><br><span style="color:#00BFFF">🏗️ Lead Architect</span></sub> | <img loading="lazy" src="https://github.com/luclc13241.png" width="115"><br><sub><a href="https://github.com/luclc13241">Lucas G. S. Nardes</a><br><span style="color:#00BFFF">💻 Desenvolvedor</span></sub> | <img loading="lazy" src="https://github.com/kauamdsouza.png" width="115"><br><sub><a href="https://github.com/kauamdsouza">Kaua M. De Souza</a><br><span style="color:#00BFFF">💻 Desenvolvedor</span></sub> |
+| <img loading="lazy" src="https://github.com/BarDeyvid.png" width="115"><br><sub><a href="https://github.com/BarDeyvid">Deyvid Barcelos</a><br><span style="color:#00BFFF">🏗️ Lead Architect</span></sub> | <img loading="lazy" src="https://avatars.githubusercontent.com/u/255575500?v=4" width="115"><br><sub><a href="https://github.com/luclc13241">Lucas G. S. Nardes</a><br><span style="color:#00BFFF">💻 Desenvolvedor</span></sub> | <img loading="lazy" src="https://github.com/kauamdsouza.png" width="115"><br><sub><a href="https://github.com/kauamdsouza">Kaua M. De Souza</a><br><span style="color:#00BFFF">💻 Desenvolvedor</span></sub> |
 | :---: | :---: | :---: |
 
 ---
