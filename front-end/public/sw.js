@@ -46,6 +46,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip caching non-HTTP(S) requests (chrome-extension, etc.)
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
   // Handle API requests
   if (url.pathname.startsWith('/api')) {
     event.respondWith(networkFirstStrategy(request));
@@ -77,9 +82,14 @@ function networkFirstStrategy(request) {
       }
       
       const responseToCache = response.clone();
-      caches.open(API_CACHE).then((cache) => {
-        cache.put(request, responseToCache);
-      });
+      const url = new URL(request.url);
+      
+      // Only cache HTTP(S) GET requests (not POST, PUT, DELETE, etc.)
+      if (url.protocol.startsWith('http') && request.method === 'GET') {
+        caches.open(API_CACHE).then((cache) => {
+          cache.put(request, responseToCache);
+        });
+      }
       
       return response;
     })
@@ -102,9 +112,14 @@ function cacheFirstStrategy(request, cacheName) {
         }
         
         const responseToCache = response.clone();
-        caches.open(cacheName).then((cache) => {
-          cache.put(request, responseToCache);
-        });
+        const url = new URL(request.url);
+        
+        // Only cache HTTP(S) GET requests (not POST, PUT, DELETE, etc.)
+        if (url.protocol.startsWith('http') && request.method === 'GET') {
+          caches.open(cacheName).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
         
         return response;
       })
@@ -128,7 +143,11 @@ function staleWhileRevalidateStrategy(request) {
       const fetchPromise = fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            cache.put(request, networkResponse.clone());
+            const url = new URL(request.url);
+            // Only cache HTTP(S) GET requests (not POST, PUT, DELETE, etc.)
+            if (url.protocol.startsWith('http') && request.method === 'GET') {
+              cache.put(request, networkResponse.clone());
+            }
           }
           return networkResponse;
         })

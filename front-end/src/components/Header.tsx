@@ -10,7 +10,8 @@ import {
   Save,
   X,
   Briefcase,
-  Loader2
+  Loader2,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -254,6 +255,12 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-6">
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">Dashboard</Link>
           <Link to="/categories" className="text-sm font-medium text-muted-foreground hover:text-foreground">Categorias</Link>
+          {userData?.role === "admin" && (
+            <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <Shield className="w-4 h-4" />
+              Admin
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -380,7 +387,7 @@ export function Header() {
               {/* Edit Profile Section */}
               <div className="p-2 space-y-3">
                 {isEditing ? (
-                  <>
+                  <form onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }} className="space-y-3">
                     <div className="space-y-2">
                       <label 
                         className="text-xs font-medium"
@@ -418,6 +425,7 @@ export function Header() {
                           color: 'hsl(var(--foreground))'
                         }}
                         placeholder="seu@email.com"
+                        autoComplete="email"
                       />
                     </div>
                     
@@ -438,14 +446,15 @@ export function Header() {
                           color: 'hsl(var(--foreground))'
                         }}
                         placeholder="••••••••"
+                        autoComplete="new-password"
                       />
                     </div>
                     
                     <div className="flex gap-2 pt-2">
                       <Button
+                        type="submit"
                         size="sm"
                         className="flex-1 gap-2"
-                        onClick={handleSaveProfile}
                         disabled={saving}
                       >
                         {saving ? (
@@ -456,6 +465,7 @@ export function Header() {
                         Salvar
                       </Button>
                       <Button
+                        type="button"
                         size="sm"
                         variant="outline"
                         onClick={() => {
@@ -467,7 +477,7 @@ export function Header() {
                         <X className="w-3 h-3" />
                       </Button>
                     </div>
-                  </>
+                  </form>
                 ) : (
                   <>
                     <DropdownMenuItem 

@@ -3,7 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "./context/ThemeContext";
 import { NetworkProvider } from "./context/NetworkContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AdminRoute, PrivateRoute } from "./components/PrivateRoute";
 import Home from "./pages/Home";
+import { Loader2 } from "lucide-react";
 
 // Lazy load pages for code splitting - improves initial load time
 const Index = lazy(() => import("@/pages/Index"));
@@ -13,70 +16,85 @@ const CategoryDetail = lazy(() => import("@/pages/CategoryDetail"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Categories = lazy(() => import("@/pages/Categories"));
+const Admin = lazy(() => import("@/pages/Admin"));
 
 // Loading fallback for slow networks
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
 }
 
-const isAuthenticated = () => {
-  return localStorage.getItem('auth_token') !== null;
-};
+// Routes component that uses auth context
+function AppRoutes() {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public homepage for non-logged users, dashboard for logged users */}
+        <Route 
+          path="/" 
+          element={<Home />}
+        />
+        
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected routes */}
+        <Route element={<PrivateRoute />}>
+          <Route 
+            path="/dashboard" 
+            element={<Index />}
+          />
+          
+          <Route 
+            path="/categories/:slug" 
+            element={<CategoryDetail />}
+          />
+          
+          <Route 
+            path="/categories"
+            element={<Categories />}
+          />
+          
+          <Route 
+            path="/products/:id" 
+            element={<ProductDetail />}
+          />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<Admin />} />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
+  );
+}
 
 function App() {
   return (
     <ThemeProvider>
-      <NetworkProvider>
-        <Router>
-          <Toaster />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Public homepage for non-logged users, dashboard for logged users */}
-              <Route 
-                path="/" 
-                element={<Home />}
-              />
-              
-              {/* Protected dashboard route */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  isAuthenticated() ? <Index /> : <Navigate to="/login" />
-                } 
-              />
-              
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route 
-                path="/categories/:slug" 
-                element={
-                  isAuthenticated() ? <CategoryDetail /> : <Navigate to="/login" />
-                } 
-              />
-              <Route 
-                path="/categories"
-                element={
-                  isAuthenticated() ? <Categories /> : <Navigate to="/login" />
-                }
-              />
-              <Route 
-                path="/products/:id" 
-                element={
-                  isAuthenticated() ? <ProductDetail /> : <Navigate to="/login" />
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </NetworkProvider>
+      <AuthProvider>
+        <NetworkProvider>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Toaster />
+            <AppRoutes />
+          </Router>
+        </NetworkProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

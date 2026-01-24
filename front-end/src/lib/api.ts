@@ -165,6 +165,8 @@ export const registerUser = async (userData: UserCreate) => {
 
 export const logout = () => {
   localStorage.removeItem('auth_token');
+  // Dispatch custom event so other components know about logout
+  window.dispatchEvent(new Event('auth-logout'));
   window.location.href = '/login'; // Redireciona após deslogar
 };
 
@@ -254,3 +256,187 @@ export const database_health = async () => {
   }
   return handleResponse(response);
 }
+
+// ========== ADMIN ENDPOINTS ==========
+
+export const listUsers = async (skip: number = 0, limit: number = 10, role?: string) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  let url = `${API_BASE_URL}/users?skip=${skip}&limit=${limit}`;
+  if (role) {
+    url += `&role=${role}`;
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const getUserStats = async () => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/counts/stats`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const getUser = async (userId: number) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const updateUser = async (userId: number, userData: any) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const updateUserRole = async (userId: number, role: string) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/role`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role }),
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const updateUserCategories = async (userId: number, categories: string[]) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/categories`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ allowed_categories: categories }),
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const updateUserStatus = async (userId: number, isActive: boolean) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ is_active: isActive }),
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};
+
+export const deleteUser = async (userId: number) => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessão expirada.");
+  }
+
+  return handleResponse(response);
+};

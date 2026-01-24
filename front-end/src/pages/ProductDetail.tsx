@@ -178,12 +178,14 @@ export default function ProductDetail() {
             {product?.category_path ? (
               <>
                 {product.category_path.split(' > ').slice(0, -1).map((categoryName, index, array) => (
-                  <BreadcrumbItem key={index}>
-                    <BreadcrumbPage className="text-sm">
-                      {categoryName}
-                    </BreadcrumbPage>
+                  <div key={`breadcrumb-${categoryName}-${index}`} className="flex items-center gap-1.5">
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="text-sm">
+                        {categoryName}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
                     {index < array.length - 1 && <BreadcrumbSeparator />}
-                  </BreadcrumbItem>
+                  </div>
                 ))}
                 <BreadcrumbSeparator />
               </>

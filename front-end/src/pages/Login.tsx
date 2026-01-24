@@ -78,6 +78,7 @@ export default function Login() {
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
+                autoComplete="current-password"
                 className="bg-background/50 border-primary/10 focus-visible:ring-primary/30"
               />
             </div>
