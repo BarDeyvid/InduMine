@@ -49,20 +49,57 @@ export default function CategoryDetail() {
         // 2. Fetch Raw Products
         const rawProducts: any[] = await getProductsByCategory(slug || '');
         
-        // 3. TRANSFORM DATA: Map Backend "product_code" to Frontend "id"
-        // The backend returns { product_code, specifications, ... } but no ID or Name column
+        // Helper function to parse image array from JSON string
+        const parseImageUrl = (imageData: string | string[]): string | null => {
+          try {
+            if (typeof imageData === 'string') {
+              if (imageData.startsWith('[')) {
+                const parsed = JSON.parse(imageData);
+                return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+              }
+              return imageData;
+            }
+            if (Array.isArray(imageData)) {
+              return imageData.length > 0 ? imageData[0] : null;
+            }
+            return null;
+          } catch {
+            return null;
+          }
+        };
+
+        // Filter out metadata specs that shouldn't be displayed
+        const filterSystemSpecs = (specs: Record<string, string>) => {
+          const systemFields = [
+            'Category_Path',
+            'Category_Level_1',
+            'Category_Level_2',
+            'Category_Level_3',
+            'Category_Level_4',
+            'Category_Level_5',
+            'Product Name',
+            'Product Code'
+          ];
+          return Object.entries(specs)
+            .filter(([key]) => !systemFields.includes(key))
+            .reduce((acc, [key, value]) => {
+              acc[key] = value;
+              return acc;
+            }, {} as Record<string, string>);
+        };
+        
+        // 3. TRANSFORM DATA: Map Backend response to Frontend Product type
         const validProducts: Product[] = rawProducts.map((p) => ({
-          id: p.product_code, // [FIX] Use product_code as the unique ID
+          id: p.product_code,
           product_code: p.product_code,
-          // Try to find a name in specifications, or fallback to product code
-          name: p.specifications?.Model || p.specifications?.['Type'] || p.product_code, 
-          description: p.specifications?.Description || '',
-          photo: p.image,
+          name: p.name,
+          description: p.name,
+          photo: parseImageUrl(p.image),
           url: p.url,
           status: 'active',
-          category_slug: slug || '',
-          main_specs: p.specifications, // Pass specs to be displayed
-          dimension_specs: {}, 
+          category_slug: p.category_slug || slug || '',
+          category_path: p.category_path || '',
+          main_specs: filterSystemSpecs(p.specifications || {}),
         }));
 
         setProducts(validProducts);
