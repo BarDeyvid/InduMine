@@ -38,7 +38,7 @@ except ImportError:
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, String, Text, JSON, Integer, ForeignKey   
+from sqlalchemy import create_engine, Column, String, Text, JSON, Integer, ForeignKey, UniqueConstraint
 import re
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.dialects.mysql import insert
@@ -83,19 +83,18 @@ Base = declarative_base()
 class Categories(Base):
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), unique=True, nullable=False)
-    slug = Column(String(100), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(255), nullable=False)
+    parent_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
+    __table_args__ = (UniqueConstraint('name', 'parent_id', name='_name_parent_uc'),)
 
 class Products(Base):
     __tablename__ = 'products'
     id = Column(String(50), primary_key=True)
     url = Column(Text, nullable=False)
     name = Column(String(255), nullable=False)
-    
-    # RELACIONAMENTO: Em vez de 'category' (string), usamos 'category_id' (int)
     category_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
-    
-    description = Column(Text, nullable=True) # Alterado para Text conforme seu SQL
+    description = Column(Text, nullable=True)
     specs = Column(JSON, nullable=True)
     images = Column(Text, nullable=True)
     scraped_at = Column(String(50), nullable=False)
@@ -116,7 +115,7 @@ MAX_DRIVERS = 2
 CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"
 
 DATA_DIR = Path("data")
-PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
+PRODUCT_URLS_FILE = DATA_DIR / "product_urls_test.csv"
 OUTPUT_FILE = DATA_DIR / "weg_products_final.csv"
 
 # Create directories before logging
@@ -281,15 +280,23 @@ def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
     into a list of [URL, Feature, Value] rows for CSV storage.
     """
     rows = []
-    
     def add(feature, value):
         if feature and value: 
             rows.append([url, feature, value])
     
-    # Extract basic product info
+    breadcrumb_elements = soup.select('ol.breadcrumb li span[itemprop="name"]')
+    if breadcrumb_elements:
+        levels = [b.get_text(strip=True) for b in breadcrumb_elements]
+        path_levels = levels[1:-1] 
+        
+        full_path = " > ".join(path_levels)
+        add("Category_Path", full_path)
+        
+        for i, level in enumerate(path_levels):
+            add(f"Category_Level_{i+1}", level)
+            
     name = soup.select_one("h1.product-card-title")
-    if name: 
-        add("Product Name", name.get_text(strip=True))
+    if name: add("Product Name", name.get_text(strip=True))
     
     code = soup.select_one("small.product-card-info")
     if code: 
@@ -443,29 +450,28 @@ def simple_slugify(text):
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     return re.sub(r'[\s-]+', '-', text)
 
-def get_or_create_category_id(session, category_name):
+def get_or_create_category_path(session, breadcrumb_list):
     """
-    Verifica se a categoria existe. Se não, cria. Retorna o ID.
+    Takes a list like ['Industrial Automation', 'Controls', 'Capacitors']
+    and returns the ID of the last category, creating parents as needed.
     """
-    if not category_name:
-        category_name = "Geral"
-        
-    category = session.query(Categories).filter_by(name=category_name).first()
-    if category:
-        return category.id
+    parent_id = None
+    last_cat_id = None
     
-    try:
-        new_slug = simple_slugify(category_name)
-        new_category = Categories(name=category_name, slug=new_slug)
-        session.add(new_category)
-        session.commit()
-        return new_category.id
-    except Exception as e:
-        session.rollback()
-        category = session.query(Categories).filter_by(name=category_name).first()
-        if category:
-            return category.id
-        return None
+    for cat_name in breadcrumb_list:
+        slug = simple_slugify(cat_name)
+        category = session.query(Categories).filter_by(name=cat_name, parent_id=parent_id).first()
+        
+        if not category:
+            category = Categories(name=cat_name, slug=slug, parent_id=parent_id)
+            session.add(category)
+            session.commit()
+            session.refresh(category)
+            
+        parent_id = category.id
+        last_cat_id = category.id
+        
+    return last_cat_id
 
 def process_and_upsert():
     if not OUTPUT_FILE.exists():
@@ -475,47 +481,37 @@ def process_and_upsert():
     raw_data = pd.read_csv(OUTPUT_FILE, sep=',', encoding='utf-8')
     grouped = raw_data.groupby('Product URL')
     
-    # Inicia sessão para gerir categorias
     Session = sessionmaker(bind=engine)
     session = Session()
 
     products_to_insert = []
-    
-    logging.info("Processando categorias e produtos...")
+    logging.info("Processing hierarchical categories and products...")
 
     for url, group in grouped:
         specs = {}
         for _, row in group.iterrows():
-            if row['Feature'] and 'Image URL' not in row['Feature']:
+            if pd.notna(row['Feature']) and 'Image URL' not in str(row['Feature']):
                 specs[row['Feature']] = row['Value']
         
-        # Extrair imagens
         image_rows = group[group['Feature'].str.contains('Image URL', na=False)]
         images = image_rows['Value'].tolist() if not image_rows.empty else []
         
-        # --- Lógica de Extração da Categoria ---
-        category_name = "Geral"
-        try:
-            parts = url.strip('/').split('/')
-            if len(parts) > 2:
-                if 'en' in parts:
-                    idx = parts.index('en')
-                    if idx + 1 < len(parts):
-                        category_name = parts[idx+1].replace('-', ' ').title()
-                else:
-                    category_name = parts[-2].replace('-', ' ').title()
-        except Exception:
-            pass
+        breadcrumb_path = []
+        i = 1
+        while f"Category_Level_{i}" in specs:
+            breadcrumb_path.append(specs[f"Category_Level_{i}"])
+            i += 1
         
-        # Obter ID da Categoria (Relacional)
-        cat_id = get_or_create_category_id(session, category_name)
+        if not breadcrumb_path:
+            breadcrumb_path = ["Geral"]
+            
+        cat_id = get_or_create_category_path(session, breadcrumb_path)
 
-        # Criar registo do produto
         record = {
             'id': specs.get('Product Code', hashlib.md5(url.encode()).hexdigest()[:20]),
             'url': url,
             'name': specs.get('Product Name', 'Produto sem Nome'),
-            'category_id': cat_id,  # Usa o ID, não o nome
+            'category_id': cat_id,
             'description': specs.get('Description', ''),
             'specs': json.dumps(specs) if specs else '{}',
             'images': json.dumps(images) if images else '[]',
@@ -523,14 +519,13 @@ def process_and_upsert():
         }
         products_to_insert.append(record)
 
-    session.close() # Fecha a sessão usada para categorias
+    session.close()
 
-    # Bulk Upsert dos Produtos
     if products_to_insert:
         df_products = pd.DataFrame(products_to_insert)
         mysql_upsert(Products, engine, df_products)
     else:
-        logging.warning("Nenhum produto processado.")
+        logging.warning("No products were processed.")
 
 def mysql_upsert(table_class, engine, df):
     df_clean = df.where(pd.notnull(df), None)
@@ -849,7 +844,7 @@ if __name__ == "__main__":
     
     # Update settings if command-line args provided
     if args.mqtt_host:
-        settings.MQTT_HOST = args.mqtt_host
+        settings.MQTT_HOST = args.mqtt_hostr
     if args.mqtt_port:
         settings.MQTT_PORT = args.mqtt_port
     
