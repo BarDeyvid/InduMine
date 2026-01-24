@@ -45,19 +45,63 @@ export default function ProductDetail() {
           return;
         }
 
-        // 2. Mapeia os dados da API (image e specifications) para o estado do componente
+        // Helper function to parse image array from JSON string
+        const parseImageUrl = (imageData: string | string[]): string | null => {
+          try {
+            if (typeof imageData === 'string') {
+              // If it's a JSON string array
+              if (imageData.startsWith('[')) {
+                const parsed = JSON.parse(imageData);
+                return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+              }
+              // If it's a direct URL string
+              return imageData;
+            }
+            if (Array.isArray(imageData)) {
+              return imageData.length > 0 ? imageData[0] : null;
+            }
+            return null;
+          } catch {
+            return null;
+          }
+        };
+
+        // Filter out metadata specs that shouldn't be displayed
+        const filterSystemSpecs = (specs: Record<string, string>) => {
+          const systemFields = [
+            'Category_Path',
+            'Category_Level_1',
+            'Category_Level_2',
+            'Category_Level_3',
+            'Category_Level_4',
+            'Category_Level_5',
+            'Product Name',
+            'Product Code'
+          ];
+          return Object.entries(specs)
+            .filter(([key]) => !systemFields.includes(key))
+            .reduce((acc, [key, value]) => {
+              acc[key] = value;
+              return acc;
+            }, {} as Record<string, string>);
+        };
+
+        // 2. Mapeia os dados da API para o estado do componente
         const formattedProduct: Product = {
           ...found,
           id: found.product_code,
-          name: found.specifications?.Model || found.specifications?.Name || found.product_code,
-          photo: found.image, // Mapeia 'image' do JSON para 'photo'
-          description: found.specifications?.Description || "Sem descrição disponível.",
-          main_specs: found.specifications, // Usa o objeto de especificações da API
-          status: 'active'
+          name: found.name,
+          photo: parseImageUrl(found.image),
+          description: `${found.name}`,
+          main_specs: filterSystemSpecs(found.specifications),
+          status: 'active',
+          url: found.url,
+          category_slug: found.category_slug,
+          category_path: found.category_path,
         };
 
         // 3. Busca produtos relacionados da mesma categoria
-        const categorySlug = (found as any).category_slug || '';
+        const categorySlug = found.category_slug || '';
         const rawRelated = await getProductsByCategory(categorySlug);
         
         const related = (rawRelated as any[])
@@ -65,15 +109,14 @@ export default function ProductDetail() {
           .map((p) => ({
             id: p.product_code,
             product_code: p.product_code,
-            name: p.specifications?.Model || p.product_code,
-            photo: p.image,
+            name: p.name,
+            photo: parseImageUrl(p.image),
             category_slug: categorySlug,
-            // FIX: Use 'as const' or cast to the specific allowed literal
-            status: 'active' as const, 
-            price: 0,
-            description: p.specifications?.Description || "Sem descrição disponível.",
-            main_specs: p.specifications || {},
-            dimension_specs: {},
+            status: 'active' as const,
+            description: p.name,
+            main_specs: filterSystemSpecs(p.specifications),
+            url: p.url,
+            category_path: p.category_path,
           }))
           .slice(0, 4);
 
@@ -84,7 +127,7 @@ export default function ProductDetail() {
           id: found.product_code,
           product_code: found.product_code,
           name: formattedProduct.name,
-          photo: found.image,
+          photo: formattedProduct.photo,
           category_slug: categorySlug,
         });
 
@@ -130,7 +173,21 @@ export default function ProductDetail() {
               <BreadcrumbLink asChild><Link to="/">Home</Link></BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
-            {category && (
+            
+            {/* Mostrar category path completo se disponível */}
+            {product?.category_path ? (
+              <>
+                {product.category_path.split(' > ').slice(0, -1).map((categoryName, index, array) => (
+                  <BreadcrumbItem key={index}>
+                    <BreadcrumbPage className="text-sm">
+                      {categoryName}
+                    </BreadcrumbPage>
+                    {index < array.length - 1 && <BreadcrumbSeparator />}
+                  </BreadcrumbItem>
+                ))}
+                <BreadcrumbSeparator />
+              </>
+            ) : category && (
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
@@ -140,6 +197,7 @@ export default function ProductDetail() {
                 <BreadcrumbSeparator />
               </>
             )}
+            
             <BreadcrumbItem>
               <BreadcrumbPage>
                 {isLoading ? <Skeleton className="h-4 w-32" /> : product?.name}

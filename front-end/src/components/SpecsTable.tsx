@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface SpecsTableProps {
-  specs: Record<string, string | number | null>;
+  specs: Record<string, string | null>;
   title?: string;
   className?: string;
 }

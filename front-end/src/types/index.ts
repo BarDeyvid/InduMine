@@ -9,9 +9,13 @@ export interface CategorySummary {
 
 export interface ProductItemResponse {
   product_code: string;
-  image: string | null;
-  url: string | null;
-  specifications: Record<string, unknown>;
+  name: string;
+  image: string; 
+  url: string;
+  category_slug: string;
+  category_path: string;
+  specifications: Record<string, string>;
+  scraped_at: string;
 }
 
 export interface Product {
@@ -20,11 +24,11 @@ export interface Product {
   name: string;
   description: string;
   photo: string | null;
-  url?: string | null;
+  url: string;
   status: 'active' | 'inactive' | 'revision';
-  main_specs: Record<string, string | number | null>;
-  dimension_specs: Record<string, string | number | null>;
+  main_specs: Record<string, string | null>;
   category_slug: string;
+  category_path: string;
   related_products?: Product[];
   variants?: ProductVariant[];
   history?: ProductHistoryEntry[];
