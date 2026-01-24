@@ -21,17 +21,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tqdm.asyncio import tqdm_asyncio
 
-# Make aiomqtt optional for standalone users who might not have it installed
 try:
     import aiomqtt
     MQTT_AVAILABLE = True
 except ImportError:
+    print("Warning: aiomqtt not installed. Running without MQTT support.")
     MQTT_AVAILABLE = False
-
+    # Create a dummy class for when MQTT is not available
+    class MockMqttClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def subscribe(self, *args): pass
+        async def publish(self, *args): pass
+        async def __aiter__(self): 
+            while True: await asyncio.sleep(3600)  # Sleep forever
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, String, Text, JSON
+from sqlalchemy import create_engine, Column, String, Text, JSON, Integer, ForeignKey   
+import re
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.dialects.mysql import insert
 
@@ -72,14 +80,23 @@ settings = Settings()
 engine = create_engine(settings.DATABASE_URL)
 Base = declarative_base()
 
+class Categories(Base):
+    __tablename__ = 'categories'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)
+
 class Products(Base):
     __tablename__ = 'products'
     id = Column(String(50), primary_key=True)
     url = Column(Text, nullable=False)
     name = Column(String(255), nullable=False)
-    category = Column(String(100), nullable=False)
-    description = Column(JSON, nullable=True)
-    specs = Column(Text, nullable=True)
+    
+    # RELACIONAMENTO: Em vez de 'category' (string), usamos 'category_id' (int)
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
+    
+    description = Column(Text, nullable=True) # Alterado para Text conforme seu SQL
+    specs = Column(JSON, nullable=True)
     images = Column(Text, nullable=True)
     scraped_at = Column(String(50), nullable=False)
 
@@ -101,7 +118,10 @@ CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"
 DATA_DIR = Path("data")
 PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
 OUTPUT_FILE = DATA_DIR / "weg_products_final.csv"
-DATA_DIR.mkdir(exist_ok=True)
+
+# Create directories before logging
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+Path("logs").mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -124,6 +144,7 @@ def create_driver_instance() -> webdriver.Chrome:
     opts.add_argument("--headless=new")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage") 
     opts.add_argument("--log-level=3")
     opts.add_experimental_option("excludeSwitches", ["enable-logging"])
     opts.add_argument(
@@ -194,6 +215,9 @@ def scrape_page_discovery(url: str) -> list[str]:
         if not href or href.startswith("#"):
             continue
 
+        if any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+            continue
+            
         full = normalize_url(urljoin(BASE_URL, href))
         if BASE_URL in full and is_valid_language(full):
             links.add(full)
@@ -249,26 +273,98 @@ def save_product_urls(urls: set[str]):
             w.writerow([u])
 
     logging.info(f"[DISCOVERY] Produtos encontrados: {len(products)}")
+    print(f"Found {len(products)} product URLs")
 
 def extract_product_data(soup: BeautifulSoup, url: str) -> list[list[str]]:
+    """
+    Extracts product data including images and flattens it 
+    into a list of [URL, Feature, Value] rows for CSV storage.
+    """
     rows = []
+    
     def add(feature, value):
         if feature and value: 
             rows.append([url, feature, value])
     
+    # Extract basic product info
     name = soup.select_one("h1.product-card-title")
-    if name: add("Product Name", name.get_text(strip=True))
+    if name: 
+        add("Product Name", name.get_text(strip=True))
     
     code = soup.select_one("small.product-card-info")
-    if code: add("Product Code", code.get_text(strip=True).replace("Product:", "").strip())
+    if code: 
+        add("Product Code", code.get_text(strip=True).replace("Product:", "").strip())
     
     desc = soup.select_one("div.xtt-product-description p")
-    if desc: add("Description", desc.get_text(strip=True))
-
+    if desc: 
+        add("Description", desc.get_text(strip=True))
+    
+    # Extract tables (features and details)
     for table in soup.select("div.product-info-specs table.table, table.table-striped"):
         for tr in table.select("tr"):
             th, td = tr.find("th"), tr.find("td")
-            if th and td: add(th.get_text(strip=True), td.get_text(strip=True))
+            if th and td: 
+                add(th.get_text(strip=True), td.get_text(strip=True))
+    
+
+    image_selectors = [
+        # Main product image
+        "div.product-image img[src]",
+        "img.product-image[src]",
+        "div.xtt-product-image-zoom img[src]",
+        # Gallery images
+        "div.product-gallery img[src]",
+        "ul.product-thumbnails img[src]",
+        "div.carousel-item img[src]",
+        # General product images
+        "div.product-images img[src]",
+        "section.product-images img[src]",
+        # Any img tag that might contain product image
+        "img[src*='product']",
+        "img[src*='Product']",
+    ]
+    
+    seen_images = set()
+    all_images = []
+    
+    # Extract from img tags
+    for selector in image_selectors:
+        img_tags = soup.select(selector)
+        for img in img_tags:
+            src = img.get('src')
+            if src and src.strip():
+                # Handle relative URLs
+                if src.startswith('/'):
+                    full_url = urljoin(BASE_URL, src)
+                elif src.startswith('http'):
+                    full_url = src
+                else:
+                    full_url = urljoin(url, src)
+                
+                # Avoid duplicates and non-image files
+                if (full_url not in seen_images and 
+                    any(ext in full_url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp'])):
+                    all_images.append(full_url)
+                    seen_images.add(full_url)
+    
+    image_links = soup.select("a[href*='.jpg'], a[href*='.jpeg'], a[href*='.png'], a[href*='.gif'], a[href*='.webp']")
+    for link in image_links:
+        href = link.get('href')
+        if href and href.strip():
+            if href.startswith('/'):
+                full_url = urljoin(BASE_URL, href)
+            elif href.startswith('http'):
+                full_url = href
+            else:
+                full_url = urljoin(url, href)
+            
+            if full_url not in seen_images:
+                all_images.append(full_url)
+                seen_images.add(full_url)
+    
+    for i, img_url in enumerate(all_images, 1):
+        add(f"Image URL {i}", img_url)
+    
     return rows
 
 def scrape_product_page(url: str) -> list[list[str]]:
@@ -338,35 +434,103 @@ async def product_crawl(status_callback):
     return total
 
 # ============================================================
-# ===================== DATA UPSERT ==========================
+# ================= LÓGICA DE PROCESSAMENTO ==================
 # ============================================================
+
+def simple_slugify(text):
+    """Cria um slug simples para a categoria"""
+    text = text.lower().strip()
+    text = re.sub(r'[^a-z0-9\s-]', '', text)
+    return re.sub(r'[\s-]+', '-', text)
+
+def get_or_create_category_id(session, category_name):
+    """
+    Verifica se a categoria existe. Se não, cria. Retorna o ID.
+    """
+    if not category_name:
+        category_name = "Geral"
+        
+    category = session.query(Categories).filter_by(name=category_name).first()
+    if category:
+        return category.id
+    
+    try:
+        new_slug = simple_slugify(category_name)
+        new_category = Categories(name=category_name, slug=new_slug)
+        session.add(new_category)
+        session.commit()
+        return new_category.id
+    except Exception as e:
+        session.rollback()
+        category = session.query(Categories).filter_by(name=category_name).first()
+        if category:
+            return category.id
+        return None
 
 def process_and_upsert():
     if not OUTPUT_FILE.exists():
-        logging.warning("No output file to process.")
+        logging.warning("Output file not found.")
         return
 
     raw_data = pd.read_csv(OUTPUT_FILE, sep=',', encoding='utf-8')
-    if raw_data.empty:
-        logging.warning("Output file is empty.")
-        return
-
-    specs_series = (
-        raw_data.drop_duplicates(subset=['Product URL', 'Feature', 'Value'])
-        .groupby('Product URL')
-        .apply(lambda x: dict(zip(x['Feature'], x['Value'])), include_groups=False)
-    )
-    df = pd.DataFrame(specs_series).reset_index()
-    df.columns = ['url', 'specs']
-    df['id'] = df.apply(lambda r: r['specs'].get('Product Code', hashlib.md5(r['url'].encode()).hexdigest()[:20]), axis=1)
-    df['name'] = df['specs'].apply(lambda s: s.get('Product Name', 'Produto sem Nome'))
-    df['description'] = df['specs'].apply(lambda s: s.get('Description', ''))
-    df['category'] = df['url'].str.extract(r'/([^/]+)/?$')[0].fillna("Geral").str.split('-').str[0]
-    df['images'] = "[]"
-    df['scraped_at'] = pd.Timestamp.now().isoformat()
-    df = df[['id', 'url', 'name', 'category', 'description', 'specs', 'images', 'scraped_at']]
+    grouped = raw_data.groupby('Product URL')
     
-    mysql_upsert(Products, engine, df)
+    # Inicia sessão para gerir categorias
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    products_to_insert = []
+    
+    logging.info("Processando categorias e produtos...")
+
+    for url, group in grouped:
+        specs = {}
+        for _, row in group.iterrows():
+            if row['Feature'] and 'Image URL' not in row['Feature']:
+                specs[row['Feature']] = row['Value']
+        
+        # Extrair imagens
+        image_rows = group[group['Feature'].str.contains('Image URL', na=False)]
+        images = image_rows['Value'].tolist() if not image_rows.empty else []
+        
+        # --- Lógica de Extração da Categoria ---
+        category_name = "Geral"
+        try:
+            parts = url.strip('/').split('/')
+            if len(parts) > 2:
+                if 'en' in parts:
+                    idx = parts.index('en')
+                    if idx + 1 < len(parts):
+                        category_name = parts[idx+1].replace('-', ' ').title()
+                else:
+                    category_name = parts[-2].replace('-', ' ').title()
+        except Exception:
+            pass
+        
+        # Obter ID da Categoria (Relacional)
+        cat_id = get_or_create_category_id(session, category_name)
+
+        # Criar registo do produto
+        record = {
+            'id': specs.get('Product Code', hashlib.md5(url.encode()).hexdigest()[:20]),
+            'url': url,
+            'name': specs.get('Product Name', 'Produto sem Nome'),
+            'category_id': cat_id,  # Usa o ID, não o nome
+            'description': specs.get('Description', ''),
+            'specs': json.dumps(specs) if specs else '{}',
+            'images': json.dumps(images) if images else '[]',
+            'scraped_at': pd.Timestamp.now().isoformat()
+        }
+        products_to_insert.append(record)
+
+    session.close() # Fecha a sessão usada para categorias
+
+    # Bulk Upsert dos Produtos
+    if products_to_insert:
+        df_products = pd.DataFrame(products_to_insert)
+        mysql_upsert(Products, engine, df_products)
+    else:
+        logging.warning("Nenhum produto processado.")
 
 def mysql_upsert(table_class, engine, df):
     df_clean = df.where(pd.notnull(df), None)
@@ -392,7 +556,70 @@ def mysql_upsert(table_class, engine, df):
         session.close()
 
 # ============================================================
-# =================== CRAWLER MANAGER ========================
+# ================ COMMAND LINE INTERFACE ====================
+# ============================================================
+
+async def run_standalone_mode(job_type="full"):
+    """Run the crawler in standalone mode without MQTT"""
+    print("=" * 60)
+    print(f"WEG CRAWLER - STANDALONE MODE")
+    print(f"Job: {job_type}")
+    print("=" * 60)
+    
+    start_time = time.time()
+    
+    # Create logs directory if it doesn't exist
+    Path("logs").mkdir(exist_ok=True)
+    
+    # Initialize database
+    print("\n[1/4] Initializing database...")
+    init_db()
+    
+    # Initialize drivers
+    print("[2/4] Initializing Chrome drivers...")
+    for _ in range(min(4, MAX_DRIVERS)):
+        try: 
+            CHROME_POOL.put_nowait(create_driver_instance())
+        except Exception as e:
+            print(f"Warning: Failed to initialize driver: {e}")
+    
+    if job_type in ["discovery", "full"]:
+        print("[3/4] Running discovery crawl...")
+        urls = await discovery_crawl(settings.START_URL, passes=1)
+        save_product_urls(urls)
+        print(f"Discovery complete: Found {len(urls)} URLs")
+    
+    if job_type in ["product", "full"]:
+        if not PRODUCT_URLS_FILE.exists():
+            print("Error: Product URLs file not found. Run discovery first.")
+            return
+        
+        print("[4/4] Scraping product data...")
+        
+        async def progress_callback(processed, total):
+            print(f"Progress: {processed}/{total} ({processed/total*100:.1f}%)", end='\r')
+        
+        total = await product_crawl(progress_callback)
+        print(f"\nScraping complete: {total} products")
+        
+        # Process and save to database
+        print("\nProcessing and saving to database...")
+        process_and_upsert()
+    
+    # Cleanup
+    print("\nCleaning up...")
+    while not CHROME_POOL.empty():
+        try: 
+            driver = CHROME_POOL.get_nowait()
+            driver.quit()
+        except:
+            pass
+    
+    elapsed = time.time() - start_time
+    print(f"\n✅ Done! Total time: {elapsed:.2f}s")
+
+# ============================================================
+# =================== MQTT CONTROL MANAGER ===================
 # ============================================================
 
 class CrawlerManager:
@@ -443,11 +670,9 @@ class CrawlerManager:
                 self.job_id = data.get("job_id", str(uuid.uuid4())[:8])
                 mode = data.get("mode", "product")
                 
-                # Cancel any existing task
                 if self.task and not self.task.done():
                     self.task.cancel()
                 
-                # Start job in background task
                 self.task = asyncio.create_task(self.execute_job(mode))
                 logging.info(f"Started job {self.job_id} in mode {mode}")
                 
@@ -550,6 +775,7 @@ class CrawlerManager:
                     "hostname": settings.MQTT_HOST,
                     "port": settings.MQTT_PORT,
                 }
+                
                 if settings.MQTT_USERNAME:
                     client_options["username"] = settings.MQTT_USERNAME
                 if settings.MQTT_PASSWORD:
@@ -575,14 +801,8 @@ class CrawlerManager:
                 logging.error(f"Unexpected error: {e}", exc_info=True)
                 await asyncio.sleep(reconnect_interval)
 
-    async def run_standalone(self, job_mode):
-        """Run a single job immediately without MQTT"""
-        logging.info(f"Running in STANDALONE mode: {job_mode}")
-        self.job_id = "CLI-RUN"
-        await self.execute_job(job_mode)
-
-async def main():
-    """Main entry point with argument parsing"""
+async def main_mqtt():
+    """Main async entry point for MQTT mode"""
     Path("logs").mkdir(exist_ok=True)
     
     parser = argparse.ArgumentParser(description="WEG Crawler Service")
@@ -608,13 +828,39 @@ async def main():
 
         await manager.run_mqtt()
 
+
 if __name__ == "__main__":
     import sys
+    import asyncio
+    import argparse
+    
+    
+    parser = argparse.ArgumentParser(description='WEG Web Crawler')
+    parser.add_argument('--no-mqtt', action='store_true', 
+                       help='Run in standalone mode without MQTT')
+    parser.add_argument('--job', choices=['discovery', 'product', 'full'], default='full',
+                       help='Job type: discovery (find URLs), product (scrape data), full (both)')
+    parser.add_argument('--mqtt-host', type=str, 
+                       help='MQTT broker host (default: mqtt-broker)')
+    parser.add_argument('--mqtt-port', type=int, 
+                       help='MQTT broker port (default: 1883)')
+    
+    args = parser.parse_args()
+    
+    # Update settings if command-line args provided
+    if args.mqtt_host:
+        settings.MQTT_HOST = args.mqtt_host
+    if args.mqtt_port:
+        settings.MQTT_PORT = args.mqtt_port
     
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logging.info("Process interrupted by user.")
+    if args.no_mqtt:
+        # Run in standalone mode without MQTT
+        print("Running in standalone mode (no MQTT)...")
+        asyncio.run(run_standalone_mode(args.job))
+    else:
+        # Run with MQTT (default)
+        print(f"Running with MQTT (host: {settings.MQTT_HOST}:{settings.MQTT_PORT})...")
+        asyncio.run(main_mqtt())
