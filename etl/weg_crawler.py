@@ -112,8 +112,8 @@ WAIT_TIMEOUT = 30
 MAX_WORKERS = 2
 MAX_DRIVERS = 2
 
-# Linux ChromeDriver path
-CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"  
+# Adjust path or use environment variable for flexibility
+CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"
 
 DATA_DIR = Path("data")
 PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
@@ -805,8 +805,28 @@ async def main_mqtt():
     """Main async entry point for MQTT mode"""
     Path("logs").mkdir(exist_ok=True)
     
-    manager = CrawlerManager()
-    await manager.run()
+    parser = argparse.ArgumentParser(description="WEG Crawler Service")
+    parser.add_argument("--no-mqtt", action="store_true", help="Disable MQTT and run in standalone mode")
+    parser.add_argument("--job", type=str, choices=["discovery", "product"], help="Job to run in standalone mode (required if --no-mqtt is used)")
+    
+    args = parser.parse_args()
+    
+    # Determine mode
+    if args.no_mqtt:
+        if not args.job:
+            logging.error("You must specify --job [discovery|product] when using --no-mqtt")
+            return
+        
+        manager = CrawlerManager(use_mqtt=False)
+        await manager.run_standalone(args.job)
+    else:
+        manager = CrawlerManager(use_mqtt=True)
+        if not MQTT_AVAILABLE:
+            logging.warning("aiomqtt not found. Falling back to simple log mode (Service will start but cannot receive commands).")
+            logging.error("Cannot start MQTT mode without 'aiomqtt'. Please install it or use --no-mqtt.")
+            return
+
+        await manager.run_mqtt()
 
 
 if __name__ == "__main__":
