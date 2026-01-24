@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SpecBadge } from "@/components/ui/spec-badge";
 import { Package } from "lucide-react";
+import { AdaptiveImage } from "@/components/AdaptiveImage";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
@@ -31,19 +32,21 @@ export function ProductCard({ product }: ProductCardProps) {
       <Card className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/30 hover:-translate-y-1">
         <div className="aspect-[4/3] relative bg-muted/30 overflow-hidden">
           {product.photo ? (
-            <img
+            <AdaptiveImage
               src={product.photo}
               alt={product.name}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+              fallback={
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+                  <Package className="w-16 h-16 text-muted-foreground/30" />
+                </div>
+              }
             />
-          ) : null}
-          <div className={`absolute inset-0 flex items-center justify-center ${product.photo ? 'hidden' : ''}`}>
-            <Package className="w-16 h-16 text-muted-foreground/30" />
-          </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Package className="w-16 h-16 text-muted-foreground/30" />
+            </div>
+          )}
           <div className="absolute top-3 right-3">
             <StatusBadge status={product.status} />
           </div>

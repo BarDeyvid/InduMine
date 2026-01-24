@@ -2,19 +2,60 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
+    <!-- Mobile-first viewport configuration -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes" />
+    
+    <!-- Performance: Enable service worker and preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- Resource hints for API -->
+    <link rel="preconnect" href="/api" crossorigin>
+    <link rel="dns-prefetch" href="/api" />
+    
+    <!-- Title and Meta Tags -->
     <title>InduMine</title>
-    <meta name="description" content="InduMine application" />
+    <meta name="description" content="InduMine application - Industrial catalog management" />
     <meta name="author" content="BarDeyvid" />
-
-    <meta property="og:title" content="InduMine" />
-    <meta property="og:description" content="InduMine application" />
+    
+    <!-- Theme and PWA Meta Tags -->
+    <meta name="theme-color" content="#a78bfa" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="InduMine" />
+    
+    <!-- Open Graph -->
+    <property="og:title" content="InduMine" />
+    <meta property="og:description" content="InduMine application - Industrial catalog management" />
     <meta property="og:type" content="website" />
+    
+    <!-- Offline support -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Performance: Disable automatic prefetch for slow networks -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" as="style">
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Progressive enhancement: Register service worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.warn('Service Worker registration failed:', err)
+          })
+        })
+      }
+    </script>
   </body>
 </html>

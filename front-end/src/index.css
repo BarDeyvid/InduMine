@@ -6,6 +6,17 @@
 
 /* InduMine Industrial Design System - Dark Purple Theme */
 
+/* Performance: Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 240 10% 92%;
@@ -122,10 +133,53 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* Improve font rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent text selection delays on mobile */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   html {
     @apply scroll-smooth;
+    /* Improve scrolling performance on mobile */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Optimize touches on mobile */
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve input performance on mobile */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-size: 16px; /* Prevents zoom on focus for iOS */
+  }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 640px) {
+    body {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    /* Increase touch targets on mobile */
+    button,
+    a[role="button"],
+    input[type="button"],
+    input[type="submit"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 }
 
@@ -149,6 +203,13 @@
   .status-revision {
     @apply bg-warning/20 text-warning border border-warning/30;
   }
+
+  /* Mobile-optimized container */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-4;
+    }
+  }
 }
 
 @layer utilities {
@@ -158,6 +219,15 @@
 
   .animate-slide-up {
     animation: slideUp 0.4s ease-out;
+  }
+
+  /* Reduce animations on slow networks */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-slide-up {
+      animation: none;
+      opacity: 1;
+    }
   }
 
   @keyframes fadeIn {
@@ -174,5 +244,20 @@
       opacity: 1; 
       transform: translateY(0); 
     }
+  }
+
+  /* Improve scrolling performance */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  /* Optimize images for responsive design */
+  img {
+    @apply block max-w-full;
+  }
+
+  /* Better touch targets on mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
   }
 }

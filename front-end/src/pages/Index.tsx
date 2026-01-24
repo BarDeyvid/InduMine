@@ -4,6 +4,7 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { StatsCard } from "@/components/StatsCard";
 import { RecentProductsTable } from "@/components/RecentProductsTable";
 import { CategoryCardSkeleton } from "@/components/SkeletonCard";
+import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 import { getCategories, last_sync, database_health } from "@/lib/api";
 import { getRecentProducts } from "@/lib/storage";
 import { Package, Folder, Activity, Clock } from "lucide-react";
@@ -50,6 +51,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Header />
+      <NetworkStatusIndicator />
       
       <main className="container py-8">
         {/* Page Header */}
