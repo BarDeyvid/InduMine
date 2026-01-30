@@ -48,10 +48,17 @@ export function Header() {
     password: "",
   });
   const [saving, setSaving] = useState(false);
+  const [lang, setLang] = useState<string>(() => localStorage.getItem('lang') || 'pt');
 
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('lang', lang);
+    // notify other components/request helpers
+    window.dispatchEvent(new Event('lang-changed'));
+  }, [lang]);
 
   const fetchUserData = async () => {
     try {
@@ -264,6 +271,19 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Language selector */}
+          <div className="hidden sm:flex items-center gap-2">
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              className="px-2 py-1 text-sm rounded bg-background border"
+              style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+            >
+              <option value="pt">Português</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+          </div>
           {/* Theme Selector Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

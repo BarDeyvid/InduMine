@@ -1,6 +1,14 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 import type { UserCreate } from "@/types";
 
+const getLang = () => localStorage.getItem('lang') || 'pt';
+
+const withLang = (url: string) => {
+  const lang = getLang();
+  if (!lang) return url;
+  return url.includes('?') ? `${url}&lang=${encodeURIComponent(lang)}` : `${url}?lang=${encodeURIComponent(lang)}`;
+}
+
 // Função auxiliar para tratar erros
 async function handleResponse(response: Response) {
   if (!response.ok) {
@@ -15,7 +23,7 @@ async function handleResponse(response: Response) {
 export const getCategories = async () => {
   const token = getAuthToken(); // 1. Pega o token
   
-  const response = await fetch(`${API_BASE_URL}/categories`, {
+  const response = await fetch(withLang(`${API_BASE_URL}/categories`), {
     headers: {
       'Authorization': `Bearer ${token}`, // 2. Envia o token
       'Content-Type': 'application/json',
@@ -34,7 +42,7 @@ export const getCategories = async () => {
 export const getCategoryBySlug = async (slug: string) => {
   const token = getAuthToken(); // 1. Pega o token
 
-  const response = await fetch(`${API_BASE_URL}/products/${slug}`, {
+  const response = await fetch(withLang(`${API_BASE_URL}/products/${slug}`), {
     headers: {
       'Authorization': `Bearer ${token}`, // 2. Envia o token
       'Content-Type': 'application/json',
@@ -54,7 +62,7 @@ export const getCategoryBySlug = async (slug: string) => {
 export const getProducts = async () => {
   const token = getAuthToken();
   
-  const response = await fetch(`${API_BASE_URL}/products`, {
+  const response = await fetch(withLang(`${API_BASE_URL}/products`), {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -73,7 +81,7 @@ export const getProducts = async () => {
 export const getProductsByCategory = async (categorySlug: string) => {
   const token = getAuthToken();
 
-  const response = await fetch(`${API_BASE_URL}/products/${categorySlug}`, {
+  const response = await fetch(withLang(`${API_BASE_URL}/products/${categorySlug}`), {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -91,7 +99,7 @@ export const getProductsByCategory = async (categorySlug: string) => {
 export const getProductById = async (id: string) => {
   const token = getAuthToken();
 
-  const response = await fetch(`${API_BASE_URL}/products/code/${id}`, {
+  const response = await fetch(withLang(`${API_BASE_URL}/products/code/${id}`), {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -109,7 +117,7 @@ export const getProductById = async (id: string) => {
 export const getProductByCode = async (code: string) => {
   const token = getAuthToken();
 
-  const response = await fetch(`${API_BASE_URL}/products/code/${code}`, {
+  const response = await fetch(withLang(`${API_BASE_URL}/products/code/${code}`), {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
