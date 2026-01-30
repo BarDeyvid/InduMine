@@ -24,7 +24,7 @@ from schemas.products import *
 from schemas.auth import *
 from models.users import User
 from models.products import Category, Products
-from utils.helpers import row_to_dict
+from utils.helpers import row_to_dict, get_translator
 from configuration.categories import CATEGORY_CONFIG, get_all_categories, get_category_display_name
 
 logger = logging.getLogger(__name__)
@@ -250,7 +250,7 @@ def has_access_to_category(user: User, category_slug: str, db: Session) -> bool:
 
 # Product routes with category validation
 @router.get("/products/{category_slug}", response_model=list[ProductItemResponse])
-def get_products_by_category(category_slug: str, db: Session = Depends(get_db)):
+def get_products_by_category(category_slug: str, db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
     # 1. Get the category tree (all descendant categories)
     category_tree = get_category_descendants(db, category_slug)
     
@@ -262,15 +262,18 @@ def get_products_by_category(category_slug: str, db: Session = Depends(get_db)):
     
     # 3. Get products from all descendant categories
     products = db.query(Products).filter(Products.category_id.in_(category_ids)).all()
-    
-    # 4. Format response
+    # Attach requested language to each instance for translation in row_to_dict
+    for p in products:
+        setattr(p, "_response_lang", lang)
+
     return [row_to_dict(p, slug=category_slug) for p in products]
 
 @router.get("/categories", response_model=list[CategorySummary])
-def get_categories(db: Session = Depends(get_db)):
+def get_categories(db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
     top_categories = db.query(Category).filter(Category.parent_id == None).all()
     
     results = []
+    translator = get_translator(lang)
     for cat in top_categories:
         category_tree = get_category_descendants(db, cat.slug)
         category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
@@ -278,9 +281,8 @@ def get_categories(db: Session = Depends(get_db)):
         count = db.query(func.count(Products.id)).filter(
             Products.category_id.in_(category_ids)
         ).scalar()
-        
         results.append({
-            "name": cat.name,
+            "name": translator(cat.name or ""),
             "slug": cat.slug,
             "item_quantity": count or 0,
             "has_children": len(cat.children) > 0
@@ -289,49 +291,51 @@ def get_categories(db: Session = Depends(get_db)):
     return results
 
 @router.get("/categories/tree", response_model=list[dict])
-def get_category_tree(db: Session = Depends(get_db)):
+def get_category_tree(db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
     """Get the complete category hierarchy tree"""
+    translator = get_translator(lang)
+
     def build_tree(category):
         category_tree = get_category_descendants(db, category.slug)
         category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
         count = db.query(func.count(Products.id)).filter(
             Products.category_id.in_(category_ids)
         ).scalar()
-        
+
         node = {
             "id": category.id,
-            "name": category.name,
+            "name": translator(category.name or ""),
             "slug": category.slug,
             "item_quantity": count or 0,
             "children": []
         }
-        
+
         for child in sorted(category.children, key=lambda x: x.name):
             node["children"].append(build_tree(child))
-        
+
         return node
     
     top_categories = db.query(Category).filter(Category.parent_id == None).all()
     return [build_tree(cat) for cat in sorted(top_categories, key=lambda x: x.name)]
 
 @router.get("/categories/{slug}/children")
-def get_category_children(slug: str, db: Session = Depends(get_db)):
+def get_category_children(slug: str, db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
     """Get direct children of a category"""
     category = db.query(Category).filter(Category.slug == slug).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
     children = []
+    translator = get_translator(lang)
     for child in category.children:
         category_tree = get_category_descendants(db, child.slug)
         category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
         count = db.query(func.count(Products.id)).filter(
             Products.category_id.in_(category_ids)
         ).scalar()
-        
         children.append({
             "id": child.id,
-            "name": child.name,
+            "name": translator(child.name or ""),
             "slug": child.slug,
             "item_quantity": count or 0,
             "has_children": len(child.children) > 0
@@ -343,7 +347,8 @@ def get_category_children(slug: str, db: Session = Depends(get_db)):
 def get_product_globally(
     product_code: str, 
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    lang: str = Query("pt", description="Language code: en, es, pt")
 ):
     """
     Searches for a product across ALL categories in the single products table.
@@ -361,6 +366,7 @@ def get_product_globally(
             detail="Access denied to this product's category"
         )
     
+    setattr(product, "_response_lang", lang)
     return row_to_dict(product, slug=product.category_rel.slug)
 
 @router.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
@@ -368,7 +374,8 @@ def get_product_detail(
     category_slug: str,
     product_code: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    lang: str = Query("pt", description="Language code: en, es, pt")
 ):
     # 1. Security Check
     if not has_access_to_category(current_user, category_slug, db):
@@ -390,6 +397,7 @@ def get_product_detail(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found in this category")
         
+    setattr(product, "_response_lang", lang)
     return row_to_dict(product, slug=category_slug)
 
 @router.get("/search", response_model=List[ProductItemResponse])
@@ -397,7 +405,8 @@ def search_products(
     q: str = Query(..., description="Search query"),
     limit: int = Query(20, ge=1, le=50),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    lang: str = Query("pt", description="Language code: en, es, pt")
 ):
     """
     Search products across all categories the user has access to.
@@ -428,8 +437,10 @@ def search_products(
     
     # Execute query
     products = query.limit(limit).all()
-    
-    # Convert to response format
+    for p in products:
+        setattr(p, "_response_lang", lang)
+
+    # Convert to response format (default to Portuguese unless caller provided param)
     results = [row_to_dict(p) for p in products]
     return [r for r in results if r is not None]
 

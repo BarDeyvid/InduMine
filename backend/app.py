@@ -8,6 +8,14 @@ from routes import products, users
 from database import engine, Base
 # Import other models as needed
 
+# Optional: auto-install Argos Translate models on startup
+try:
+    from argostranslate import package as _argos_package
+    from argostranslate import translate as _argos_translate
+    _ARGOS_AVAILABLE = True
+except Exception:
+    _ARGOS_AVAILABLE = False
+
 app = FastAPI(
     title="InduMine Modular Backend",
     debug=settings.DEBUG,
@@ -63,6 +71,67 @@ async def unified_middleware(request: Request, call_next):
 # Register routes
 app.include_router(products.router)
 app.include_router(users.router)
+
+
+async def _ensure_argos_models():
+    """Ensure English->Portuguese and English->Spanish Argos models are installed.
+
+    This runs asynchronously and will try to download/install missing models.
+    """
+    if not _ARGOS_AVAILABLE:
+        print("Argos Translate not available; skipping model installation")
+        return
+
+    try:
+        installed = _argos_translate.get_installed_languages()
+        installed_codes = {getattr(l, 'code', '') for l in installed}
+    except Exception:
+        installed_codes = set()
+
+    needed = {"pt", "es"}
+    present = set()
+    for code in installed_codes:
+        # normalize codes like 'pt' or 'pt_br'
+        if not code:
+            continue
+        present.add(code.split("_")[0].split("-")[0])
+
+    missing = needed - present
+    if not missing:
+        print("Argos Translate models already installed:", present)
+        return
+
+    try:
+        available = _argos_package.get_available_packages()
+        import urllib.request
+        import tempfile
+
+        for pkg in available:
+            # pkg has attributes: from_code, to_code, download_url
+            if getattr(pkg, 'from_code', '').startswith('en') and getattr(pkg, 'to_code', '') in missing:
+                print(f"Installing Argos package {pkg.from_code}->{pkg.to_code}")
+                tmpfile, _ = urllib.request.urlretrieve(pkg.download_url)
+                _argos_package.install_from_path(tmpfile)
+                missing.discard(pkg.to_code)
+                if not missing:
+                    break
+
+        if missing:
+            print("Some Argos models are still missing:", missing)
+        else:
+            print("Argos Translate models installed successfully")
+    except Exception as e:
+        print("Failed to auto-install Argos models:", str(e))
+
+
+@app.on_event("startup")
+async def _on_startup_install_models():
+    # Run model installation in background to avoid delaying server start
+    try:
+        import asyncio
+        asyncio.create_task(_ensure_argos_models())
+    except Exception:
+        pass
 
 # Health check endpoint
 @app.get("/health")
