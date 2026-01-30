@@ -31,19 +31,40 @@ def get_translator(to_code: str):
         return _TRANSLATOR_CACHE[to_code]
 
     if not _ARGOSTRANS_AVAILABLE:
+        print(f"Warning: Argostranslate not available; no translation for {to_code}")
         _TRANSLATOR_CACHE[to_code] = lambda s: s
         return _TRANSLATOR_CACHE[to_code]
 
     try:
         installed = _arg_translate.get_installed_languages()
-        from_lang = next((l for l in installed if l.code and l.code.startswith("en")), None)
-        to_lang = next((l for l in installed if l.code and l.code.startswith(to_code)), None)
-        if not from_lang or not to_lang:
+        installed_codes = [(l.code, l) for l in installed if l.code]
+        
+        # Find English language
+        from_lang = None
+        for code, lang_obj in installed_codes:
+            if code.startswith('en'):
+                from_lang = lang_obj
+                break
+        
+        # Find target language with exact or prefix match
+        to_lang = None
+        for code, lang_obj in installed_codes:
+            if code == to_code or code.startswith(to_code + '_') or code.startswith(to_code + '-'):
+                to_lang = lang_obj
+                break
+        
+        if not from_lang:
+            print(f"Warning: English language not found in Argos. Available: {[c for c, _ in installed_codes]}")
+            _TRANSLATOR_CACHE[to_code] = lambda s: s
+        elif not to_lang:
+            print(f"Warning: Language {to_code} not found in Argos. Available: {[c for c, _ in installed_codes]}")
             _TRANSLATOR_CACHE[to_code] = lambda s: s
         else:
             translation = from_lang.get_translation(to_lang)
+            print(f"Successfully loaded translator: English -> {to_code}")
             _TRANSLATOR_CACHE[to_code] = translation.translate
-    except Exception:
+    except Exception as e:
+        print(f"Error loading translator for {to_code}: {e}")
         _TRANSLATOR_CACHE[to_code] = lambda s: s
 
     return _TRANSLATOR_CACHE[to_code]
@@ -61,7 +82,7 @@ def row_to_dict(instance, slug=None):
     """Convert a SQLAlchemy instance (product) to a serializable dict.
 
     Accepts optional `lang` parameter (language code) to translate
-    human-readable fields (name, category_path). Default translation is noop.
+    human-readable fields (name, category_path, and specifications). Default translation is noop.
     """
     if instance is None:
         return None
@@ -89,10 +110,20 @@ def row_to_dict(instance, slug=None):
         except (json.JSONDecodeError, ValueError):
             specs = {"raw_data": specs}
 
-    # Perform translations for `name` and `category_path` when requested
+    # Perform translations for `name`, `category_path`, and `specifications` when requested
     translator = get_translator(lang)
     translated_name = translator(data.get("name") or "")
     translated_category_path = translator(category_path or "")
+    
+    # Translate specifications (both keys and values)
+    translated_specs = {}
+    if isinstance(specs, dict):
+        for key, value in specs.items():
+            translated_key = translator(key)
+            translated_value = translator(str(value)) if value is not None else ""
+            translated_specs[translated_key] = translated_value
+    else:
+        translated_specs = specs
 
     return {
         "product_code": data.get("id"),
@@ -101,7 +132,7 @@ def row_to_dict(instance, slug=None):
         "url": data.get("url"),
         "category_slug": slug,
         "category_path": translated_category_path,
-        "specifications": specs,
+        "specifications": translated_specs,
         "scraped_at": data.get("scraped_at")
     }
 

@@ -85,7 +85,9 @@ async def _ensure_argos_models():
     try:
         installed = _argos_translate.get_installed_languages()
         installed_codes = {getattr(l, 'code', '') for l in installed}
-    except Exception:
+        print(f"Currently installed Argos languages: {installed_codes}")
+    except Exception as e:
+        print(f"Error checking installed languages: {e}")
         installed_codes = set()
 
     needed = {"pt", "es"}
@@ -94,44 +96,61 @@ async def _ensure_argos_models():
         # normalize codes like 'pt' or 'pt_br'
         if not code:
             continue
-        present.add(code.split("_")[0].split("-")[0])
+        normalized = code.split("_")[0].split("-")[0]
+        present.add(normalized)
 
     missing = needed - present
     if not missing:
-        print("Argos Translate models already installed:", present)
+        print(f"Argos Translate models already installed: {present}")
         return
 
+    print(f"Missing Argos models: {missing}. Attempting to download...")
+    
     try:
         available = _argos_package.get_available_packages()
         import urllib.request
         import tempfile
+        import os
 
         for pkg in available:
             # pkg has attributes: from_code, to_code, download_url
-            if getattr(pkg, 'from_code', '').startswith('en') and getattr(pkg, 'to_code', '') in missing:
-                print(f"Installing Argos package {pkg.from_code}->{pkg.to_code}")
-                tmpfile, _ = urllib.request.urlretrieve(pkg.download_url)
-                _argos_package.install_from_path(tmpfile)
-                missing.discard(pkg.to_code)
-                if not missing:
-                    break
+            from_code = getattr(pkg, 'from_code', '')
+            to_code = getattr(pkg, 'to_code', '')
+            
+            if from_code.startswith('en') and to_code in missing:
+                try:
+                    print(f"  Downloading Argos package {from_code}->{to_code}...")
+                    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+                        tmpfile_path = tmpfile.name
+                    
+                    urllib.request.urlretrieve(pkg.download_url, tmpfile_path)
+                    print(f"  Installing {from_code}->{to_code}...")
+                    _argos_package.install_from_path(tmpfile_path)
+                    os.unlink(tmpfile_path)
+                    
+                    missing.discard(to_code)
+                    print(f"  Successfully installed {from_code}->{to_code}")
+                    
+                    if not missing:
+                        break
+                except Exception as e:
+                    print(f"  Failed to install {from_code}->{to_code}: {e}")
 
         if missing:
-            print("Some Argos models are still missing:", missing)
+            print(f"Some Argos models are still missing: {missing}")
         else:
             print("Argos Translate models installed successfully")
     except Exception as e:
-        print("Failed to auto-install Argos models:", str(e))
+        print(f"Failed to auto-install Argos models: {e}")
 
 
 @app.on_event("startup")
 async def _on_startup_install_models():
-    # Run model installation in background to avoid delaying server start
+    # Install Argos models on startup (may take a few seconds)
     try:
-        import asyncio
-        asyncio.create_task(_ensure_argos_models())
-    except Exception:
-        pass
+        await _ensure_argos_models()
+    except Exception as e:
+        print(f"Error during Argos model installation: {e}")
 
 # Health check endpoint
 @app.get("/health")
