@@ -112,21 +112,21 @@ async def _ensure_argos_models():
         import tempfile
         import os
 
+        _argos_package.update_package_index()
+        available = _argos_package.get_available_packages()
+
         for pkg in available:
-            # pkg has attributes: from_code, to_code, download_url
             from_code = getattr(pkg, 'from_code', '')
             to_code = getattr(pkg, 'to_code', '')
             
-            if from_code.startswith('en') and to_code in missing:
+            # Match English to our missing languages
+            if from_code == 'en' and to_code in missing:
                 try:
-                    print(f"  Downloading Argos package {from_code}->{to_code}...")
-                    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-                        tmpfile_path = tmpfile.name
+                    print(f"  Downloading and installing Argos package {from_code}->{to_code}...")
                     
-                    urllib.request.urlretrieve(pkg.download_url, tmpfile_path)
-                    print(f"  Installing {from_code}->{to_code}...")
-                    _argos_package.install_from_path(tmpfile_path)
-                    os.unlink(tmpfile_path)
+                    # The modern Argos API handles the download to a temp file for you
+                    download_path = pkg.download()
+                    _argos_package.install_from_path(download_path)
                     
                     missing.discard(to_code)
                     print(f"  Successfully installed {from_code}->{to_code}")

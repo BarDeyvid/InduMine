@@ -29,4 +29,4 @@ EXPOSE 8000
 # Copy and make startup script executable
 RUN chmod +x scripts/wait_and_start.sh
 
-ENTRYPOINT ["/bin/sh", "-c", "backend/scripts/wait_and_start.sh"]
+ENTRYPOINT ["/bin/sh", "-c", "scripts/wait_and_start.sh"]
