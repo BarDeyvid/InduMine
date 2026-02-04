@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { UserPlus, ArrowLeft, Loader2 } from "lucide-react";
 import { registerUser } from "@/lib/api";
+import { t } from "@/i8n";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -46,16 +47,16 @@ export default function Register() {
       });
 
       toast({ 
-        title: "Conta criada com sucesso!", 
-        description: "Faça login para continuar." 
+        title: t("register.success_title"), 
+        description: t("register.success_description") 
       });
       navigate("/login");
       
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        title: "Erro no cadastro", 
-        description: error.message || "Não foi possível criar a conta." 
+        title: t("register.error_title"), 
+        description: error.message || t("register.error_description") 
       });
     } finally {
       setIsLoading(false);
@@ -73,16 +74,16 @@ export default function Register() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-2 ring-1 ring-primary/20">
             <UserPlus className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Criar Conta</CardTitle>
-          <CardDescription>Junte-se ao InduMine.</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight">{t("register.title")}</CardTitle>
+          <CardDescription>{t("register.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="full_name">Nome Completo</Label>
+              <Label htmlFor="full_name">{t("register.full_name_label")}</Label>
               <Input 
                 id="full_name"
-                placeholder="Seu nome" 
+                placeholder={t("register.full_name_placeholder")} 
                 value={formData.full_name} 
                 onChange={handleChange} 
                 className="bg-background/50 border-primary/10"
@@ -91,10 +92,10 @@ export default function Register() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Usuário</Label>
+                <Label htmlFor="username">{t("register.username_label")}</Label>
                 <Input 
                   id="username"
-                  placeholder="user.name" 
+                  placeholder={t("register.username_placeholder")} 
                   value={formData.username} 
                   onChange={handleChange} 
                   required 
@@ -102,11 +103,11 @@ export default function Register() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("register.email_label")}</Label>
                 <Input 
                   id="email"
                   type="email"
-                  placeholder="email@corp.com" 
+                  placeholder={t("register.email_placeholder")} 
                   value={formData.email} 
                   onChange={handleChange} 
                   required 
@@ -116,7 +117,7 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">{t("register.password_label")}</Label>
               <Input 
                 id="password"
                 type="password" 
@@ -128,7 +129,7 @@ export default function Register() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="confirmPassword">{t("register.confirm_password_label")}</Label>
               <Input 
                 id="confirmPassword"
                 type="password" 
@@ -143,10 +144,10 @@ export default function Register() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Cadastrando...
+                  {t("register.creating_account")}
                 </>
               ) : (
-                "Finalizar Cadastro"
+                t("register.register_button")
               )}
             </Button>
           </form>
@@ -155,7 +156,7 @@ export default function Register() {
           <Link to="/login">
             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-primary">
               <ArrowLeft className="w-4 h-4" />
-              Voltar ao Login
+              {t("register.back_to_login")}
             </Button>
           </Link>
         </CardFooter>

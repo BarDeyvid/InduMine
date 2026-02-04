@@ -12,6 +12,7 @@ import { Package, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { RecentProduct } from "@/types";
+import { t } from "@/i8n";
 
 interface RecentProductsTableProps {
   products: RecentProduct[];
@@ -24,13 +25,13 @@ export function RecentProductsTable({ products }: RecentProductsTableProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Clock className="w-5 h-5 text-primary" />
-            Últimos Produtos Acessados
+            {t("recent_products_table.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>Nenhum produto visualizado recentemente.</p>
+            <p>{t("recent_products_table.empty")}</p>
           </div>
         </CardContent>
       </Card>
@@ -42,7 +43,7 @@ export function RecentProductsTable({ products }: RecentProductsTableProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Clock className="w-5 h-5 text-primary" />
-          Últimos Produtos Acessados
+          {t("recent_products_table.title")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -50,10 +51,10 @@ export function RecentProductsTable({ products }: RecentProductsTableProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome do Produto</TableHead>
-                <TableHead className="hidden sm:table-cell">Foto</TableHead>
-                <TableHead>Código</TableHead>
-                <TableHead className="text-right">Data</TableHead>
+                <TableHead>{t("recent_products_table.product_name")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("recent_products_table.photo")}</TableHead>
+                <TableHead>{t("recent_products_table.product_code")}</TableHead>
+                <TableHead className="text-right">{t("recent_products_table.date")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,10 +88,9 @@ export function RecentProductsTable({ products }: RecentProductsTableProps) {
                     {product.product_code}
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(product.viewedAt), {
-                      addSuffix: true,
-                      locale: ptBR,
-                    })}
+                    {t("recent_products_table.date-suffix")}
+                    {formatDistanceToNow(new Date(product.viewedAt), {})}
+                    {t("recent_products_table.date-prefix")}
                   </TableCell>
                 </TableRow>
               ))}

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Folder, ArrowRight } from "lucide-react";
 import type { CategorySummary } from "@/types";
+import { t } from "@/i8n";
 
 interface CategoryCardProps {
   category: CategorySummary;
@@ -23,7 +24,7 @@ export function CategoryCard({ category, variant = 'default' }: CategoryCardProp
                   {category.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {category.item_quantity} produtos
+                  {category.item_quantity} {t("category.products")}
                 </p>
               </div>
             </div>
@@ -47,7 +48,7 @@ export function CategoryCard({ category, variant = 'default' }: CategoryCardProp
           <p className="text-2xl font-bold text-primary mb-2">
             {category.item_quantity}
           </p>
-          <p className="text-sm text-muted-foreground">produtos</p>
+          <p className="text-sm text-muted-foreground">{t("category.products")}</p>
         </CardContent>
       </Card>
     </Link>

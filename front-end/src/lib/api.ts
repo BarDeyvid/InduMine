@@ -1,7 +1,7 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 import type { UserCreate } from "@/types";
 
-const getLang = () => localStorage.getItem('lang') || 'pt';
+const getLang = () => localStorage.getItem('lang') || 'pb';
 
 const withLang = (url: string) => {
   const lang = getLang();

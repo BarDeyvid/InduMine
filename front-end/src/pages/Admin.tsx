@@ -68,6 +68,7 @@ import {
 } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import type { CategorySummary } from "@/types";
+import { t } from "@/i8n";
 
 interface User {
   id: number;
@@ -258,8 +259,8 @@ export default function Admin() {
       <main className="container py-8">
         {/* Page Header */}
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Painel de Administração</h1>
-          <p className="text-muted-foreground">Gerenciar usuários, papéis e permissões</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{t("admin.page_title")}</h1>
+          <p className="text-muted-foreground">{t("admin.page_description")}</p>
         </div>
 
         {/* Error Alert */}
@@ -267,7 +268,7 @@ export default function Admin() {
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-medium text-destructive">Erro</p>
+              <p className="font-medium text-destructive">{t("error.loading_title")}</p>
               <p className="text-sm text-destructive/80">{error}</p>
             </div>
           </div>
@@ -276,21 +277,21 @@ export default function Admin() {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatCard title="Total de Usuários" value={stats.total_users} icon={Users} />
+            <StatCard title={t("admin.total_users")} value={stats.total_users} icon={Users} />
             <StatCard
-              title="Usuários Ativos"
+              title={t("admin.active_users")}
               value={stats.active_users}
               icon={UserCheck}
               color="success"
             />
             <StatCard
-              title="Administradores"
+              title={t("admin.admin_users")}
               value={stats.admin_users}
               icon={Shield}
               color="warning"
             />
             <StatCard
-              title="Inativos"
+              title={t("admin.inactive_users")}
               value={stats.inactive_users}
               icon={UserX}
               color="destructive"
@@ -302,17 +303,17 @@ export default function Admin() {
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="flex-1 min-w-[200px]">
             <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              Filtrar por Papel
+              {t("admin.filter_by_role")}
             </label>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Todos os papéis" />
+                <SelectValue placeholder={t("admin.select_role_placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os papéis</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="moderator">Moderador</SelectItem>
-                <SelectItem value="user">Usuário</SelectItem>
+                <SelectItem value="all">{t("admin.all_roles")}</SelectItem>
+                <SelectItem value="admin">{t("admin.admin_role")}</SelectItem>
+                <SelectItem value="moderator">{t("admin.moderator_role")}</SelectItem>
+                <SelectItem value="user">{t("admin.user_role")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -320,12 +321,12 @@ export default function Admin() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Carregando...
+                {t("admin.updating")}
               </>
             ) : (
               <>
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Atualizar
+                {t("admin.update_button")}
               </>
             )}
           </Button>
@@ -334,25 +335,25 @@ export default function Admin() {
         {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Gerenciamento de Usuários</CardTitle>
+            <CardTitle>{t("admin.users_management")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Papel</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-12">Ações</TableHead>
+                    <TableHead>{t("admin.user_table_header")}</TableHead>
+                    <TableHead>{t("admin.email_table_header")}</TableHead>
+                    <TableHead>{t("admin.role_table_header")}</TableHead>
+                    <TableHead>{t("admin.status_table_header")}</TableHead>
+                    <TableHead className="w-12">{t("admin.actions_table_header")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        Nenhum usuário encontrado
+                        {t("admin.no_users_found")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -387,18 +388,18 @@ export default function Admin() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                              <DropdownMenuLabel>{t("admin.actions_label")}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                 <Edit2 className="w-4 h-4 mr-2" />
-                                Editar
+                                {t("admin.edit_button")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => openDeleteDialog(user)}
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Deletar
+                                {t("admin.delete_button")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -417,9 +418,9 @@ export default function Admin() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogTitle>{t("admin.edit_user_dialog_title")}</DialogTitle>
             <DialogDescription>
-              Atualize os dados do usuário {selectedUser?.username}
+              {t("admin.edit_user_dialog_description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -427,36 +428,36 @@ export default function Admin() {
             {/* User Info Read-Only */}
             <div className="bg-muted/50 p-4 rounded-lg space-y-2">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Nome de usuário</p>
+                <p className="text-xs font-medium text-muted-foreground">{t("admin.username_label")}</p>
                 <p className="font-medium">{selectedUser?.username}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Email</p>
+                <p className="text-xs font-medium text-muted-foreground">{t("admin.email_label")}</p>
                 <p className="font-medium">{selectedUser?.email}</p>
               </div>
             </div>
 
             {/* Role Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Papel</label>
+              <label className="text-sm font-medium">{t("admin.role_label")}</label>
               <Select value={editData.role} onValueChange={(role) => setEditData({ ...editData, role })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">Usuário</SelectItem>
-                  <SelectItem value="moderator">Moderador</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="user">{t("admin.user_role")}</SelectItem>
+                  <SelectItem value="moderator">{t("admin.moderator_role")}</SelectItem>
+                  <SelectItem value="admin">{t("admin.admin_role")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Categories Multi-Select */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Categorias Permitidas</label>
+              <label className="text-sm font-medium">{t("header.categories")}</label>
               <div className="border border-border rounded-lg p-3 space-y-2 max-h-[200px] overflow-y-auto">
                 {categories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma categoria disponível</p>
+                  <p className="text-sm text-muted-foreground">{t("admin.no_categories_available")}</p>
                 ) : (
                   categories.map((category) => (
                     <label key={category.slug} className="flex items-center gap-2 cursor-pointer">
@@ -497,9 +498,9 @@ export default function Admin() {
                 className="rounded"
               />
               <label htmlFor="is_active" className="flex-1 cursor-pointer">
-                <p className="text-sm font-medium">Usuário ativo</p>
+                <p className="text-sm font-medium">{t("admin.user_active_label")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Usuários inativos não podem fazer login
+                  {t("admin.user_inactive_description")}
                 </p>
               </label>
             </div>
@@ -507,16 +508,16 @@ export default function Admin() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
+              {t("admin.cancel_button")}
             </Button>
             <Button onClick={handleSaveUser} disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
+                  {t("admin.saving_label")}
                 </>
               ) : (
-                "Salvar Alterações"
+                t("admin.save_changes_button")
               )}
             </Button>
           </DialogFooter>
@@ -527,15 +528,14 @@ export default function Admin() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deletar Usuário</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.delete_user_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja deletar o usuário{" "}
-              <span className="font-semibold">{userToDelete?.username}</span>? Esta ação não pode
-              ser desfeita.
+              {t("admin.delete_user_confirmation")}{" "}
+              <span className="font-semibold">{userToDelete?.username}</span>? {t("admin.delete_user_warning")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("admin.cancel_button")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteUser}
               disabled={isSaving}

@@ -3,24 +3,12 @@
 # ============================================================================
 # config/categories.py
 # ============================================================================
+from database import SessionLocal
+from models.products import Category
 
-# Define available categories and their configuration
-CATEGORY_CONFIG = {
-    # Define categories that exist in your system
-    "electronics": {
-        "name": "Electronics",
-        "display_name": "Electronics"
-    },
-    "clothing": {
-        "name": "Clothing",
-        "display_name": "Clothing"
-    },
-    "home-garden": {
-        "name": "Home & Garden",
-        "display_name": "Home & Garden"
-    },
-    # Add more categories as needed
-}
+db = SessionLocal()
+
+CATEGORY_CONFIG = query = db.query(Category).all()
 
 def get_all_categories():
     """Return list of all available category slugs"""

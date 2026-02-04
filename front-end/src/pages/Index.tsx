@@ -9,6 +9,7 @@ import { getCategories, last_sync, database_health } from "@/lib/api";
 import { getRecentProducts } from "@/lib/storage";
 import { Package, Folder, Activity, Clock } from "lucide-react";
 import type { CategorySummary, RecentProduct } from "@/types";
+import { t } from "@/i8n";
 
 export default function Index() {
   const [categories, setCategories] = useState<CategorySummary[]>([]);
@@ -57,10 +58,10 @@ export default function Index() {
         {/* Page Header */}
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Dashboard
+            {t("index.welcome_title")}
           </h1>
           <p className="text-muted-foreground">
-            Bem-vindo ao catálogo técnico InduMine
+            {t("index.welcome_subtitle")}
           </p>
         </div>
 
@@ -86,23 +87,23 @@ export default function Index() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatsCard
-            title="Total de Produtos"
-            value={isLoading ? "..." : totalProducts.toLocaleString('pt-BR')}
+            title={t("index.total_products")}
+            value={isLoading ? "..." : totalProducts.toLocaleString('pb')}
             icon={Package}
           />
           <StatsCard
-            title="Categorias Mapeadas"
+            title={t("index.mapped_categories")}
             value={isLoading ? "..." : categories.length}
             icon={Folder}
           />
           <StatsCard
-            title="Saúde da Base"
+            title={t("index.database_health")}
             value={databaseHealth ? `${databaseHealth.health_percentage}%` : '...'}
             icon={Activity}
-            trend={{ value: 4, label: "desde último mês" }}
+            trend={{ value: 4, label: t("index.health_trend_label") }}
           />
           <StatsCard
-            title="Última Sincronização"
+            title={t("index.last_sync")}
             value={lastSync ? lastSync.last_sync_formatted : '...'}
             icon={Clock}
           />
@@ -116,7 +117,7 @@ export default function Index() {
         {/* Categories Grid */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-foreground mb-4">
-            Explorar Categorias
+            {t("index.explore_categories")}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {isLoading

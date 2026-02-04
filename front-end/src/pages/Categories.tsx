@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, Folder, LayoutGrid } from "lucide-react";
 import { getCategories } from "@/lib/api";
 import type { CategorySummary } from "@/types";
+import { t } from "@/i8n";
 
 export default function Categories() {
   const [categories, setCategories] = useState<CategorySummary[]>([]);
@@ -51,12 +52,12 @@ export default function Categories() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
+                <Link to="/">{t("categories.home")}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Categorias</BreadcrumbPage>
+              <BreadcrumbPage>{t("categories.categories")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -65,7 +66,7 @@ export default function Categories() {
         <Link to="/">
           <Button variant="ghost" size="sm" className="mb-4 gap-2">
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao Dashboard
+            {t("categories.back_to_dashboard")}
           </Button>
         </Link>
 
@@ -78,15 +79,15 @@ export default function Categories() {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                  Todas as Categorias
+                  {t("categories.all_categories")}
                 </h1>
                 <p className="text-muted-foreground mb-4">
-                  Navegue pelos setores técnicos e explore nossa base de dados modular.
+                  {t("categories.description")}
                 </p>
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary/50 text-secondary-foreground">
                   <Folder className="w-4 h-4" />
                   <span className="font-semibold">{categories.length}</span>
-                  <span className="opacity-70">categorias mapeadas</span>
+                  <span className="opacity-70">{t("categories.mapped_categories")}</span>
                 </div>
               </div>
             </div>

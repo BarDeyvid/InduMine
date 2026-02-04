@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { t } from "@/i8n";
 
 interface SpecsTableProps {
   specs: Record<string, string | null>;
@@ -15,7 +16,7 @@ export function SpecsTable({ specs, title, className }: SpecsTableProps) {
   if (filteredSpecs.length === 0) {
     return (
       <div className="text-sm text-muted-foreground py-4">
-        Nenhuma especificação disponível.
+        {t("specs_table.empty")}
       </div>
     );
   }
