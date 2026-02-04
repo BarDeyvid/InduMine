@@ -108,14 +108,14 @@ def init_db():
 
 BASE_URL = "https://www.weg.net"
 WAIT_TIMEOUT = 30
-MAX_WORKERS = 2
-MAX_DRIVERS = 2
+MAX_WORKERS = 8
+MAX_DRIVERS = 8
 
 # Adjust path or use environment variable for flexibility
 CHROMEDRIVER_PATH = r"C:\chromedriver\chromedriver.exe"
 
 DATA_DIR = Path("data")
-PRODUCT_URLS_FILE = DATA_DIR / "product_urls_test.csv"
+PRODUCT_URLS_FILE = DATA_DIR / "product_urls.csv"
 OUTPUT_FILE = DATA_DIR / "weg_products_final.csv"
 
 # Create directories before logging
