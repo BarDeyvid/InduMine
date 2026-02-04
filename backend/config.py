@@ -30,10 +30,13 @@ class Settings(BaseSettings):
     BCRYPT_ROUNDS: int = 12
     ALLOWED_ORIGINS: list[str] = [
         "https://indumine.duckdns.org",
-        "https://api-indumine.duckdns.org",
-        "http://localhost:8080",      # Added :8080
-        "http://127.0.0.1:8080",    # Added :8080
+        "http://localhost:5173",      # Vite dev server
+        "http://localhost:3000",      # Production fallback
+        "http://localhost:8080",      # Alternative port
         "http://localhost",
+        "http://127.0.0.1:5173",    # Vite dev server localhost
+        "http://127.0.0.1:3000",    # Production fallback localhost
+        "http://127.0.0.1:8080",    # Alternative port localhost
         "http://127.0.0.1"
     ]
     

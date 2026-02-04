@@ -90,10 +90,10 @@ async def _ensure_argos_models():
         print(f"Error checking installed languages: {e}")
         installed_codes = set()
 
-    needed = {"pt", "es"}
+    needed = {"pb", "es"}
     present = set()
     for code in installed_codes:
-        # normalize codes like 'pt' or 'pt_br'
+        # normalize codes like 'pb' or 'pt_br'
         if not code:
             continue
         normalized = code.split("_")[0].split("-")[0]

@@ -18,10 +18,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Attempt to install Argos Translate models at image build time
-RUN if [ -f scripts/install_argos_models.py ]; then \
-	  python scripts/install_argos_models.py || echo "Argos model install failed"; \
-	fi
 
 # Expose port used by backend
 EXPOSE 8000
@@ -29,4 +25,5 @@ EXPOSE 8000
 # Copy and make startup script executable
 RUN chmod +x scripts/wait_and_start.sh
 
-ENTRYPOINT ["/bin/sh", "-c", "scripts/wait_and_start.sh"]
+# Start the application
+CMD ["./scripts/wait_and_start.sh"]
