@@ -12,9 +12,12 @@
     "full-name-placeholder": "Seu nome completo",
     "email": "Email",
     "new-password": "Nova Senha"
-  },
-  "actions": {
-    "save": "Salvar",
-    "logout": "Sair"
-  }
+    },
+    "actions": {
+        "save": "Salvar",
+        "logout": "Sair"
+    },
+    "category": {
+        "products": "produtos"
+    }
 }

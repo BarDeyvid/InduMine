@@ -12,9 +12,12 @@
     "full-name-placeholder": "Your full name",
     "email": "Email",
     "new-password": "New Password"
-  },
-  "actions": {
-    "save": "Save",
-    "logout": "Logout"
-  }
+    },
+    "actions": {
+        "save": "Save",
+        "logout": "Logout"
+    },
+    "category": {
+        "products": "products"
+    }
 }

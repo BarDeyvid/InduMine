@@ -12,9 +12,12 @@
     "full-name-placeholder": "Tu nombre completo",
     "email": "Correo Electrónico",
     "new-password": "Nueva Contraseña"
-  },
-  "actions": {
-    "save": "Guardar",
-    "logout": "Cerrar sesión"
-  }
+    },
+    "actions": {
+        "save": "Guardar",
+        "logout": "Cerrar sesión"
+    },
+    "category": {
+        "products": "productos"
+    }
 }
