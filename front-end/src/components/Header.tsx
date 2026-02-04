@@ -48,7 +48,7 @@ export function Header() {
     password: "",
   });
   const [saving, setSaving] = useState(false);
-  const [lang, setLang] = useState<string>(() => localStorage.getItem('lang') || 'pt');
+  const [lang, setLang] = useState<string>(() => localStorage.getItem('lang') || 'pb');
 
   useEffect(() => {
     fetchUserData();
