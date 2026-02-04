@@ -38,5 +38,15 @@
         "offline": "Parece que estás desconectado. Algunas funciones pueden estar limitadas.",
         "slow_network": "Red lenta detectada. Cargando contenido optimizado...",
         "save_data_mode": "Modo de ahorro de datos activado. Minimizando el uso de datos."
+    },
+    "recent_products_table": {
+        "title": "Productos Vistos Recientemente",
+        "empty": "No hay productos vistos recientemente.",
+        "product_name": "Nombre del Producto",
+        "photo": "Foto",
+        "product_code": "Código",
+        "date": "Fecha",
+        "date-suffix": "hace ",
+        "date-prefix": " "
     }
 }
