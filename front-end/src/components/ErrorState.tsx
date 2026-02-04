@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
+import { t } from "@/i8n";
 
 interface ErrorStateProps {
   title?: string;
@@ -9,8 +10,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ 
-  title = "Erro ao carregar dados",
-  message = "Não foi possível carregar as informações. Verifique sua conexão e tente novamente.",
+  title = t("error.loading_title"),
+  message = t("error.loading_message"),
   onRetry 
 }: ErrorStateProps) {
   const navigate = useNavigate();
@@ -25,12 +26,12 @@ export function ErrorState({
       <div className="flex gap-3">
         <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Voltar
+          {t("error.go_back")}
         </Button>
         {onRetry && (
           <Button onClick={onRetry} className="gap-2">
             <RefreshCw className="w-4 h-4" />
-            Tentar novamente
+            {t("error.retry")}
           </Button>
         )}
       </div>

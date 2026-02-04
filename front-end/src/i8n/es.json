@@ -19,5 +19,11 @@
     },
     "category": {
         "products": "productos"
+    },
+    "error": {
+        "loading_title": "Error al cargar datos",
+        "loading_message": "No se pudo cargar la información. Por favor, verifica tu conexión e inténtalo de nuevo.",
+        "go_back": "Regresar",
+        "retry": "Reintentar"
     }
 }
