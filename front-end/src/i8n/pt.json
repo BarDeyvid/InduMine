@@ -89,5 +89,13 @@
         "role_label": "Cargo",
         "actions_label": "Ações",
         "edit_button": "Editar"
+    },
+    "categories": {
+        "home": "Início",
+        "categories": "Categorias",
+        "back_to_dashboard": "Voltar ao Painel",
+        "all_categories": "Todas as Categorias",
+        "description": "Navegue pelos setores técnicos e explore nossa base de dados modular.",
+        "mapped_categories": "categorias mapeadas"
     }
 }

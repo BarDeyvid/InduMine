@@ -89,5 +89,13 @@
         "role_label": "Role",
         "actions_label": "Actions",
         "edit_button": "Edit"
+    },
+    "categories": {
+        "home": "Home",
+        "categories": "Categories",
+        "back_to_dashboard": "Back to Dashboard",
+        "all_categories": "All Categories",
+        "description": "Browse through technical sectors and explore our modular database.",
+        "mapped_categories": "mapped categories"
     }
 }

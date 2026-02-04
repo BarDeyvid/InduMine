@@ -87,5 +87,13 @@
         "edit_button": "Editar",
         "user_inactive_description": "Los usuarios inactivos no pueden iniciar sesión",
         "save_changes_button": "Guardar Cambios"
+    },
+    "categories": {
+        "home": "Inicio",
+        "categories": "Categorías",
+        "back_to_dashboard": "Volver al Tablero",
+        "all_categories": "Todas las Categorías",
+        "description": "Navega por los sectores técnicos y explora nuestra base de datos modular.",
+        "mapped_categories": "categorías mapeadas"
     }
 }
