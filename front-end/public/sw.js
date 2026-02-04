@@ -93,8 +93,21 @@ function networkFirstStrategy(request) {
       
       return response;
     })
-    .catch(() => {
-      return caches.match(request);
+    .catch((error) => {
+      console.error('Fetch error:', error);
+      return caches.match(request).then((response) => {
+        if (response) {
+          return response;
+        }
+        // Return error response if nothing in cache
+        return new Response('Network error and no cached response available', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'text/plain'
+          })
+        });
+      });
     });
 }
 
@@ -112,48 +125,61 @@ function cacheFirstStrategy(request, cacheName) {
         }
         
         const responseToCache = response.clone();
+        caches.open(cacheName).then((cache) => {
+          cache.put(request, responseToCache);
+        });
+        
+        return response;
+      })
+      .catch((error) => {
+        console.error('Fetch error in cacheFirstStrategy:', error);
+        return new Response('Network error and no cached response available', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'text/plain'
+          })
+        });
+      });
+  });
+}
+
+// Stale while revalidate strategy: return cache, update in background
+function staleWhileRevalidateStrategy(request) {
+  return caches.match(request).then((response) => {
+    const fetchPromise = fetch(request)
+      .then((response) => {
+        if (!response || response.status !== 200) {
+          return response;
+        }
+        
+        const responseToCache = response.clone();
         const url = new URL(request.url);
         
-        // Only cache HTTP(S) GET requests (not POST, PUT, DELETE, etc.)
-        if (url.protocol.startsWith('http') && request.method === 'GET') {
-          caches.open(cacheName).then((cache) => {
+        if (url.protocol.startsWith('http')) {
+          caches.open(STATIC_CACHE).then((cache) => {
             cache.put(request, responseToCache);
           });
         }
         
         return response;
       })
-      .catch(() => {
-        // Return a placeholder response for images
-        if (request.destination === 'image') {
-          return new Response(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="#f3f4f6" width="100" height="100"/><text x="50" y="50" font-size="12" fill="#d1d5db" text-anchor="middle" dominant-baseline="middle">Offline</text></svg>',
-            { headers: { 'Content-Type': 'image/svg+xml' } }
-          );
+      .catch((error) => {
+        console.error('Fetch error in staleWhileRevalidateStrategy:', error);
+        // If fetch fails and we have cache, just return it silently
+        if (response) {
+          return response;
         }
-        return new Response('Offline - Content not available', { status: 503 });
+        return new Response('Network error and no cached response available', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'text/plain'
+          })
+        });
       });
-  });
-}
-
-// Stale-while-revalidate strategy
-function staleWhileRevalidateStrategy(request) {
-  return caches.open(CACHE_NAME).then((cache) => {
-    return cache.match(request).then((response) => {
-      const fetchPromise = fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const url = new URL(request.url);
-            // Only cache HTTP(S) GET requests (not POST, PUT, DELETE, etc.)
-            if (url.protocol.startsWith('http') && request.method === 'GET') {
-              cache.put(request, networkResponse.clone());
-            }
-          }
-          return networkResponse;
-        })
-        .catch(() => response);
-
-      return response || fetchPromise;
-    });
+    
+    // Return cached response immediately if available, fetch in background
+    return response || fetchPromise;
   });
 }
