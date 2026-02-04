@@ -96,6 +96,9 @@
         "back_to_dashboard": "Back to Dashboard",
         "all_categories": "All Categories",
         "description": "Browse through technical sectors and explore our modular database.",
-        "mapped_categories": "mapped categories"
+        "mapped_categories": "mapped categories",
+        "no_products": "This category has no products registered yet.",
+        "empty": "No products available",
+        "related_categories": "Related Categories"
     }
 }

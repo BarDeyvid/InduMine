@@ -96,6 +96,9 @@
         "back_to_dashboard": "Voltar ao Painel",
         "all_categories": "Todas as Categorias",
         "description": "Navegue pelos setores técnicos e explore nossa base de dados modular.",
-        "mapped_categories": "categorias mapeadas"
+        "mapped_categories": "categorias mapeadas",
+        "no_products": "Esta categoria ainda não possui produtos cadastrados.",
+        "empty": "Nenhum produto encontrado",
+        "related_categories": "Categorias Relacionadas"
     }
 }

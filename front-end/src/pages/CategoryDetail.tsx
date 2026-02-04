@@ -19,6 +19,7 @@ import {
 import { ArrowLeft, Folder, Package } from "lucide-react";
 import { getCategoryBySlug, getProductsByCategory, getCategories } from "@/lib/api";
 import type { CategorySummary, Product } from "@/types";
+import { t } from "@/i8n";
 
 export default function CategoryDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -112,7 +113,7 @@ export default function CategoryDetail() {
 
       } catch (err) {
         console.error(err);
-        setError('Erro ao carregar dados');
+        setError(t('error.loading_message'));
       } finally {
         setIsLoading(false);
       }
@@ -127,8 +128,8 @@ export default function CategoryDetail() {
         <Header />
         <main className="container py-8">
           <ErrorState
-            title="Categoria não encontrada"
-            message="A categoria que você está procurando não existe ou foi removida."
+            title={t('error.loading_title')}
+            message={t('error.loading_message')}
           />
         </main>
       </div>
@@ -145,7 +146,7 @@ export default function CategoryDetail() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
+                <Link to="/">{t('categories.home')}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -161,7 +162,7 @@ export default function CategoryDetail() {
         <Link to="/">
           <Button variant="ghost" size="sm" className="mb-4 gap-2">
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao Dashboard
+            {t('categories.back_to_dashboard')}
           </Button>
         </Link>
 
@@ -190,7 +191,7 @@ export default function CategoryDetail() {
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
                       <Package className="w-4 h-4" />
                       <span className="font-semibold">{products.length}</span>
-                      <span className="text-primary/70">produtos</span>
+                      <span className="text-primary/70">{t('categories.products')}</span>
                     </div>
                   </>
                 )}
@@ -202,7 +203,7 @@ export default function CategoryDetail() {
         {/* Products Grid */}
         <div className="mb-12">
           <h2 className="text-xl font-semibold text-foreground mb-6">
-            Produtos
+            {t('categories.products')}
           </h2>
           
           {isLoading ? (
@@ -229,10 +230,10 @@ export default function CategoryDetail() {
               <CardContent className="py-16 text-center">
                 <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
                 <h3 className="text-lg font-medium text-foreground mb-2">
-                  Nenhum produto encontrado
+                  {t('categories.empty')}
                 </h3>
                 <p className="text-muted-foreground">
-                  Esta categoria ainda não possui produtos cadastrados.
+                  {t('categories.no_products')}
                 </p>
               </CardContent>
             </Card>
@@ -243,7 +244,7 @@ export default function CategoryDetail() {
         {relatedCategories.length > 0 && (
           <div className="animate-slide-up">
             <h2 className="text-xl font-semibold text-foreground mb-6">
-              Categorias Relacionadas
+              {t('categories.related_categories')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {relatedCategories.map((cat) => (
