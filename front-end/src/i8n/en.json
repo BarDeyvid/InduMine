@@ -24,6 +24,9 @@
         "loading_title": "Error loading data",
         "loading_message": "Unable to load information. Please check your connection and try again.",
         "go_back": "Go Back",
+        "go_home": "Go Home",
+        "not_found_title": "Page Not Found",
+        "not_found_message": "The page you are looking for does not exist or has been moved to another address.",
         "retry": "Retry"
     },
     "pipeline": {
@@ -110,5 +113,15 @@
         "health_trend_label": "since last month",
         "last_sync": "Last Sync",
         "explore_categories": "Explore Categories"
+    },
+    "login": {
+        "title": "InduMine Access",
+        "subtitle": "Log in with your corporate credentials.",
+        "username_label": "Username",
+        "password_label": "Password",
+        "authenticating": "Authenticating",
+        "access_platform": "Access Platform",
+        "no_account": "New collaborator? ",
+        "create_account": "Create account"
     }
 }

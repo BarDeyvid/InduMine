@@ -24,6 +24,9 @@
         "loading_title": "Erro ao carregar dados",
         "loading_message": "Não foi possível carregar as informações. Verifique sua conexão e tente novamente.",
         "go_back": "Voltar",
+        "go_home": "Ir para o início",
+        "not_found_title": "Página não encontrada",
+        "not_found_message": "A página que você está procurando não existe ou foi movida para outro endereço.",
         "retry": "Tentar novamente"
     },
     "pipeline": {
@@ -110,5 +113,15 @@
         "health_trend_label": "desde o último mês",
         "last_sync": "Última Sincronização",
         "explore_categories": "Explorar Categorias"
+    },
+    "login": {
+        "title": "Acesso ao InduMine",
+        "subtitle": "Inicie sessão com suas credenciais corporativas.",
+        "username_label": "Nome de Usuário",
+        "password_label": "Senha",
+        "authenticating": "Autenticando...",
+        "access_platform": "Acessar Plataforma",
+        "no_account": "Novo colaborador? ",
+        "create_account": "Criar conta"
     }
 }

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { HardHat, ArrowRight, Loader2 } from "lucide-react";
 import { login } from "@/lib/api";
+import { t } from "@/i8n";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -49,15 +50,15 @@ export default function Login() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 ring-1 ring-primary/20">
             <HardHat className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Acesso InduMine</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">{t("login.title")}</CardTitle>
           <CardDescription>
-            Entre com suas credenciais corporativas.
+            {t("login.subtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="username">{t("login.username_label")}</Label>
               <Input 
                 id="username"
                 placeholder="Ex: admin.user" 
@@ -69,7 +70,7 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">{t("login.password_label")}</Label>
               </div>
               <Input 
                 id="password"
@@ -86,11 +87,11 @@ export default function Login() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Autenticando...
+                  {t("login.authenticating")}
                 </>
               ) : (
                 <>
-                  Acessar Plataforma
+                  {t("login.access_platform")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
@@ -99,9 +100,9 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex justify-center border-t border-border/40 pt-6">
           <p className="text-sm text-muted-foreground">
-            Novo colaborador?{" "}
+            {t("login.no_account")}{" "}
             <Link to="/register" className="text-primary hover:text-primary/80 hover:underline font-medium transition-colors">
-              Criar conta
+              {t("login.create_account")}
             </Link>
           </p>
         </CardFooter>
