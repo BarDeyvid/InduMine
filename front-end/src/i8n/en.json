@@ -100,5 +100,15 @@
         "no_products": "This category has no products registered yet.",
         "empty": "No products available",
         "related_categories": "Related Categories"
+    },
+    "index": {
+        "welcome_title": "Welcome to the Dashboard",
+        "welcome_subtitle": "Welcome to the InduMine technical catalog",
+        "total_products": "Total Products",
+        "mapped_categories": "Mapped Categories",
+        "database_health": "Database Health",
+        "health_trend_label": "since last month",
+        "last_sync": "Last Sync",
+        "explore_categories": "Explore Categories"
     }
 }

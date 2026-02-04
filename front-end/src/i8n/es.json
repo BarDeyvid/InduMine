@@ -98,5 +98,15 @@
         "no_products": "Esta categoría aún no tiene productos registrados.",
         "empty": "No hay productos disponibles",
         "related_categories": "Categorías Relacionadas"
+    },
+    "index": {
+        "welcome_title": "Bienvenido al Tablero",
+        "welcome_subtitle": "Explora las estadísticas y el estado de la base de datos técnica de InduMine.",
+        "total_products": "Total de Productos",
+        "mapped_categories": "Categorías Mapeadas",
+        "database_health": "Salud de la Base de Datos",
+        "health_trend_label": "desde el último mes",
+        "last_sync": "Última Sincronización",
+        "explore_categories": "Explorar Categorías"
     }
 }

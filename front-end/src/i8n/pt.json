@@ -93,12 +93,22 @@
     "categories": {
         "home": "Início",
         "categories": "Categorias",
-        "back_to_dashboard": "Voltar ao Painel",
+        "back_to_dashboard": "Voltar ao Dashboard",
         "all_categories": "Todas as Categorias",
         "description": "Navegue pelos setores técnicos e explore nossa base de dados modular.",
         "mapped_categories": "categorias mapeadas",
         "no_products": "Esta categoria ainda não possui produtos cadastrados.",
         "empty": "Nenhum produto encontrado",
         "related_categories": "Categorias Relacionadas"
+    },
+    "index": {
+        "welcome_title": "Bem-vindo ao Dashboard",
+        "welcome_subtitle": "Explore o catálogo técnico InduMine",
+        "total_products": "Total de Produtos",
+        "mapped_categories": "Categorias Mapeadas",
+        "database_health": "Saúde da Base de Dados",
+        "health_trend_label": "desde o último mês",
+        "last_sync": "Última Sincronização",
+        "explore_categories": "Explorar Categorias"
     }
 }
