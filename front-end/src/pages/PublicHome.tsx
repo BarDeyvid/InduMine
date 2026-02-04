@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTheme, ThemeName, availableThemes } from "@/context/ThemeContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from "@radix-ui/react-dropdown-menu";
 import { LiveStack } from "@/components/LiveStack";
+import { t } from "@/i8n";
 
 import {
   HardHat,
@@ -23,23 +24,23 @@ import {
 
 const CORE_FEATURES = [
   {
-    title: "Catálogo Técnico Centralizado",
-    desc: "Peças, códigos e fornecedores padronizados para ambientes industriais.",
+    title: t("index.catalog_title"),
+    desc: t("index.catalog_desc"),
     icon: Database
   },
   {
-    title: "Operação Offline",
-    desc: "Funciona mesmo sem internet em campo ou áreas subterrâneas.",
+    title: t("index.offline_title"),
+    desc: t("index.offline_desc"),
     icon: Cpu
   },
   {
-    title: "Segurança Zero Trust",
-    desc: "Controle rigoroso de acesso e rastreabilidade total.",
+    title: t("index.global_title"),
+    desc: t("index.global_desc"),
     icon: ShieldCheck
   },
   {
-    title: "Atualização em Tempo Real",
-    desc: "Sincronização automática quando a conexão retorna.",
+    title: t("index.realtime_title"),
+    desc: t("index.realtime_desc"),
     icon: Zap
   }
 ];
@@ -133,7 +134,7 @@ export default function PublicHome() {
                 className="gap-2 border-primary/20 hover:bg-primary/5 transition-colors"
               >
                 <Palette className="w-4 h-4" />
-                <span className="hidden sm:inline">Tema</span>
+                <span className="hidden sm:inline">{t("header.theme")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
@@ -147,7 +148,7 @@ export default function PublicHome() {
             >
               <DropdownMenuLabel className="flex items-center gap-2">
                 <Palette className="w-4 h-4" />
-                Selecionar Tema
+                {t("header.select-theme")}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               
@@ -175,7 +176,7 @@ export default function PublicHome() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Button variant="ghost" className="font-bold uppercase tracking-widest text-xs" asChild>
-            <Link to="/login">Entrar</Link>
+            <Link to="/login">{t("register.login")}</Link>
           </Button>
         </div>
       </nav>
@@ -185,35 +186,34 @@ export default function PublicHome() {
         <section className="max-w-4xl space-y-8">
 
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">Ambiente Crítico</Badge>
-            <Badge variant="outline">Offline-First</Badge>
-            <Badge variant="outline">Alta Confiabilidade</Badge>
+            <Badge variant="outline">{t("index.critical_environment")}</Badge>
+            <Badge variant="outline">{t("index.offline_first")}</Badge>
+            <Badge variant="outline">{t("index.reliable")}</Badge>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-black tracking-tight uppercase leading-[0.95]">
-            Gestão Industrial  
+            {t("index.indumine_title")}  
             <br />
             <span className="text-primary italic">
-              sem dependência de rede.
+              {t("index.indumine_subtitle")}
             </span>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl">
-            O InduMine é uma plataforma projetada para ambientes industriais reais:
-            minas, fábricas e operações onde a internet não é garantida.
+            {t("index.indumine_description")}
           </p>
 
           <div className="flex flex-wrap gap-4 pt-4">
             <Button size="lg" className="font-bold" asChild>
               <Link to="/register" className="flex items-center gap-2">
-                Iniciar Operação
+                {t("index.get_started")}
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
 
             <Button size="lg" variant="outline" asChild>
               <Link to="/login">
-                Acessar Sistema
+                {t("index.access_system")}
               </Link>
             </Button>
           </div>
@@ -228,7 +228,7 @@ export default function PublicHome() {
         {/* FEATURES */}
         <section className="mt-32">
           <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-8">
-            Capacidades Principais
+            {t("index.core_capabilities")}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -257,7 +257,7 @@ export default function PublicHome() {
         <section className="mt-32 border-t border-muted pt-12">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <CheckCircle2 className="w-4 h-4 text-primary" />
-            Desenvolvido para ambientes industriais reais, não para demos.
+            {t("index.developed_for_industrial_environments")}
           </div>
         </section>
       </main>
