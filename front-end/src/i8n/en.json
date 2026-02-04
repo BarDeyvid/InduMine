@@ -25,5 +25,13 @@
         "loading_message": "Unable to load information. Please check your connection and try again.",
         "go_back": "Go Back",
         "retry": "Retry"
+    },
+    "pipeline": {
+        "live_stack": "Live Data Pipeline",
+        "scraper_desc": "External data collection",
+        "mqtt_desc": "Status updates",
+        "mysql_desc": "Central persistence",
+        "backend_desc": "Processing and rules",
+        "frontend_desc": "Visualization and operation"
     }
 }

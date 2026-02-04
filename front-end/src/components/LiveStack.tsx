@@ -8,31 +8,32 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { t } from "@/i8n";
 
 const PIPELINE = [
   {
     name: "Scraper",
-    desc: "Coleta de dados externos",
+    desc: t("pipeline.scraper_desc"),
     icon: Cpu,
   },
   {
     name: "MQTT Broker",
-    desc: "Atualização de status",
+    desc: t("pipeline.mqtt_desc"),
     icon: Zap,
   },
   {
     name: "MySQL",
-    desc: "Persistência central",
+    desc: t("pipeline.mysql_desc"),
     icon: Database,
   },
   {
     name: "Backend API",
-    desc: "Processamento e regras",
+    desc: t("pipeline.backend_desc"),
     icon: Settings2,
   },
   {
     name: "Frontend",
-    desc: "Visualização e operação",
+    desc: t("pipeline.frontend_desc"),
     icon: Globe,
   },
 ];
@@ -51,7 +52,7 @@ export function LiveStack() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
-        Pipeline de Dados em Execução
+        {t("pipeline.live_stack")}
       </h2>
 
       <div className="flex items-center gap-4 flex-wrap">

@@ -25,5 +25,13 @@
         "loading_message": "Não foi possível carregar as informações. Verifique sua conexão e tente novamente.",
         "go_back": "Voltar",
         "retry": "Tentar novamente"
+    },
+    "pipeline": {
+        "live_stack": "Pipeline de Dados em Tempo Real",
+        "scraper_desc": "Coleta de dados externos",
+        "mqtt_desc": "Atualizações de status",
+        "mysql_desc": "Persistência central",
+        "backend_desc": "Processamento e regras",
+        "frontend_desc": "Visualização e operação"
     }
 }

@@ -25,5 +25,13 @@
         "loading_message": "No se pudo cargar la información. Por favor, verifica tu conexión e inténtalo de nuevo.",
         "go_back": "Regresar",
         "retry": "Reintentar"
+    },
+    "pipeline": {
+        "live_stack": "Pipeline de Datos en Vivo",
+        "scraper_desc": "Recolección de datos externos",
+        "mqtt_desc": "Actualizaciones de estado",
+        "mysql_desc": "Persistencia central",
+        "backend_desc": "Procesamiento y reglas",
+        "frontend_desc": "Visualización y operación"
     }
 }
