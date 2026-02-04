@@ -250,7 +250,7 @@ def has_access_to_category(user: User, category_slug: str, db: Session) -> bool:
 
 # Product routes with category validation
 @router.get("/products/{category_slug}", response_model=list[ProductItemResponse])
-def get_products_by_category(category_slug: str, db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
+def get_products_by_category(category_slug: str, db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
     # 1. Get the category tree (all descendant categories)
     category_tree = get_category_descendants(db, category_slug)
     
@@ -269,7 +269,7 @@ def get_products_by_category(category_slug: str, db: Session = Depends(get_db), 
     return [row_to_dict(p, slug=category_slug) for p in products]
 
 @router.get("/categories", response_model=list[CategorySummary])
-def get_categories(db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
+def get_categories(db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
     top_categories = db.query(Category).filter(Category.parent_id == None).all()
     
     results = []
@@ -291,7 +291,7 @@ def get_categories(db: Session = Depends(get_db), lang: str = Query("pt", descri
     return results
 
 @router.get("/categories/tree", response_model=list[dict])
-def get_category_tree(db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
+def get_category_tree(db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
     """Get the complete category hierarchy tree"""
     translator = get_translator(lang)
 
@@ -319,7 +319,7 @@ def get_category_tree(db: Session = Depends(get_db), lang: str = Query("pt", des
     return [build_tree(cat) for cat in sorted(top_categories, key=lambda x: x.name)]
 
 @router.get("/categories/{slug}/children")
-def get_category_children(slug: str, db: Session = Depends(get_db), lang: str = Query("pt", description="Language code: en, es, pt")):
+def get_category_children(slug: str, db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
     """Get direct children of a category"""
     category = db.query(Category).filter(Category.slug == slug).first()
     if not category:
@@ -348,7 +348,7 @@ def get_product_globally(
     product_code: str, 
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    lang: str = Query("pt", description="Language code: en, es, pt")
+    lang: str = Query("pb", description="Language code: en, es, pb")
 ):
     """
     Searches for a product across ALL categories in the single products table.
@@ -375,7 +375,7 @@ def get_product_detail(
     product_code: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    lang: str = Query("pt", description="Language code: en, es, pt")
+    lang: str = Query("pb", description="Language code: en, es, pb")
 ):
     # 1. Security Check
     if not has_access_to_category(current_user, category_slug, db):
@@ -406,7 +406,7 @@ def search_products(
     limit: int = Query(20, ge=1, le=50),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    lang: str = Query("pt", description="Language code: en, es, pt")
+    lang: str = Query("pb", description="Language code: en, es, pb")
 ):
     """
     Search products across all categories the user has access to.
