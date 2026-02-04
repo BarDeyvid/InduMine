@@ -48,5 +48,8 @@
         "date": "Data",
         "date-suffix": "há ",
         "date-prefix": " "
+    },
+    "specs_table": {
+        "empty": "Nenhuma especificação disponível."
     }
 }

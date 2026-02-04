@@ -48,5 +48,8 @@
         "date": "Date",
         "date-suffix": " ",
         "date-prefix": " ago"
+    },
+    "specs_table": {
+        "empty": "No specifications available."
     }
 }

@@ -48,5 +48,8 @@
         "date": "Fecha",
         "date-suffix": "hace ",
         "date-prefix": " "
+    },
+    "specs_table": {
+        "empty": "No hay especificaciones disponibles."
     }
 }
