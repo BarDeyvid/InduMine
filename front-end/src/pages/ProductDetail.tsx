@@ -22,6 +22,7 @@ import { Package, ArrowLeft, ExternalLink } from "lucide-react";
 import { getProductById, getProductsByCategory, getCategoryBySlug } from "@/lib/api"; 
 import { addRecentProduct } from "@/lib/storage";
 import type { CategorySummary, Product } from "@/types";
+import { t } from "@/i8n";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -154,8 +155,8 @@ export default function ProductDetail() {
         <Header />
         <main className="container py-8">
           <ErrorState
-            title="Produto não encontrado"
-            message="O produto que você está procurando não existe ou foi removido."
+            title={t("error.not_found_title")}
+            message={t("error.not_found_message")}
           />
         </main>
       </div>
@@ -170,7 +171,7 @@ export default function ProductDetail() {
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink asChild><Link to="/">Home</Link></BreadcrumbLink>
+              <BreadcrumbLink asChild><Link to="/">{t("header.dashboard")}</Link></BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             
@@ -210,7 +211,7 @@ export default function ProductDetail() {
 
         <Link to={category ? `/categories/${category.slug}` : '/'}>
           <Button variant="ghost" size="sm" className="mb-4 gap-2">
-            <ArrowLeft className="w-4 h-4" /> Voltar
+            <ArrowLeft className="w-4 h-4" /> {t("header.back_to_dashboard")}
           </Button>
         </Link>
 
@@ -259,7 +260,7 @@ export default function ProductDetail() {
                 {product?.url && (
                   <Button variant="outline" className="gap-2" asChild>
                     <a href={product.url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4" /> Ver no fabricante
+                      <ExternalLink className="w-4 h-4" /> {t("product.view_on_supplier_site")}
                     </a>
                   </Button>
                 )}
@@ -270,14 +271,14 @@ export default function ProductDetail() {
 
         <Tabs defaultValue="especificacoes" className="animate-slide-up">
           <TabsList className="mb-6">
-            <TabsTrigger value="especificacoes">Especificações Técnicas</TabsTrigger>
-            <TabsTrigger value="descricao">Descrição Completa</TabsTrigger>
+            <TabsTrigger value="especificacoes">{t("product.specifications")}</TabsTrigger>
+            <TabsTrigger value="descricao">{t("product.full_description")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="especificacoes">
             <Card>
               <CardHeader>
-                <CardTitle>Detalhes Técnicos</CardTitle>
+                <CardTitle>{t("product.specifications")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -285,7 +286,7 @@ export default function ProductDetail() {
                 ) : product?.main_specs ? (
                   <SpecsTable specs={product.main_specs} /> 
                 ) : (
-                  <p className="text-muted-foreground">Especificações não disponíveis.</p>
+                  <p className="text-muted-foreground">{t("specs_table.empty")}</p>
                 )}
               </CardContent>
             </Card>
@@ -294,7 +295,7 @@ export default function ProductDetail() {
           <TabsContent value="descricao">
             <Card>
               <CardHeader>
-                <CardTitle>Descrição Completa do Produto</CardTitle>
+                <CardTitle>{t("product.full_description")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm dark:prose-invert max-w-none">

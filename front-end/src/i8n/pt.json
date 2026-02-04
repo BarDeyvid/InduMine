@@ -11,14 +11,15 @@
     "full-name": "Nome Completo",
     "full-name-placeholder": "Seu nome completo",
     "email": "Email",
-    "new-password": "Nova Senha"
+    "new-password": "Nova Senha",
+    "back_to_dashboard": "Voltar ao Dashboard"
     },
     "actions": {
         "save": "Salvar",
         "logout": "Sair"
     },
     "category": {
-        "products": "produtos"
+        "products": "Produtos"
     },
     "error": {
         "loading_title": "Erro ao carregar dados",
@@ -123,5 +124,10 @@
         "access_platform": "Acessar Plataforma",
         "no_account": "Novo colaborador? ",
         "create_account": "Criar conta"
+    },
+    "product": {
+        "view_on_supplier_site": "Ver no Site do Fornecedor",
+        "specifications": "Especificações",
+        "full_description": "Descrição Completa"
     }
 }

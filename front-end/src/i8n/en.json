@@ -11,14 +11,15 @@
     "full-name": "Full Name",
     "full-name-placeholder": "Your full name",
     "email": "Email",
-    "new-password": "New Password"
+    "new-password": "New Password",
+    "back_to_dashboard": "Back to Dashboard"
     },
     "actions": {
         "save": "Save",
         "logout": "Logout"
     },
     "category": {
-        "products": "products"
+        "products": "Products"
     },
     "error": {
         "loading_title": "Error loading data",
@@ -123,5 +124,10 @@
         "access_platform": "Access Platform",
         "no_account": "New collaborator? ",
         "create_account": "Create account"
+    },
+    "product": {
+        "view_on_supplier_site": "View on Supplier Site",
+        "specifications": "Specifications",
+        "full_description": "Full Description"
     }
 }

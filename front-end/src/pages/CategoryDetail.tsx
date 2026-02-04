@@ -191,7 +191,7 @@ export default function CategoryDetail() {
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
                       <Package className="w-4 h-4" />
                       <span className="font-semibold">{products.length}</span>
-                      <span className="text-primary/70">{t('categories.products')}</span>
+                      <span className="text-primary/70">{t('category.products')}</span>
                     </div>
                   </>
                 )}
@@ -203,7 +203,7 @@ export default function CategoryDetail() {
         {/* Products Grid */}
         <div className="mb-12">
           <h2 className="text-xl font-semibold text-foreground mb-6">
-            {t('categories.products')}
+            {t('category.products')}
           </h2>
           
           {isLoading ? (
