@@ -56,8 +56,7 @@ def get_category_descendants(db, category_slug):
     
     return category_tree
 
-
-# Auth routes (unchanged)
+# Auth routes
 @router.post("/auth/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(or_(User.email == user.email, User.username == user.username)).first()
@@ -66,9 +65,8 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
     hashed_pw = get_password_hash(user.password)
 
-    # By default, new users might get access to everything or nothing.
-    # Here we default to access all categories if none provided, for testing ease.
-    categories_to_assign = user.allowed_categories if user.allowed_categories else list(CATEGORY_CONFIG.keys())
+    # New users start with no category access until an admin assigns allowed_categories.
+    categories_to_assign = user.allowed_categories if user.allowed_categories else []
 
     new_user = User(
         email=user.email,
@@ -250,8 +248,16 @@ def has_access_to_category(user: User, category_slug: str, db: Session) -> bool:
 
 # Product routes with category validation
 @router.get("/products/{category_slug}", response_model=list[ProductItemResponse])
-def get_products_by_category(category_slug: str, db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
-    # 1. Get the category tree (all descendant categories)
+def get_products_by_category(
+    category_slug: str, 
+    db: Session = Depends(get_db), 
+    lang: str = Query("pb"),
+    current_user: User = Depends(get_current_user) # Adicionado
+):
+    # Validação de acesso
+    if not has_access_to_category(current_user, category_slug, db):
+        raise HTTPException(status_code=403, detail="Você não tem permissão para esta categoria")
+
     category_tree = get_category_descendants(db, category_slug)
     
     # 2. Get category IDs from the tree
@@ -269,8 +275,17 @@ def get_products_by_category(category_slug: str, db: Session = Depends(get_db), 
     return [row_to_dict(p, slug=category_slug) for p in products]
 
 @router.get("/categories", response_model=list[CategorySummary])
-def get_categories(db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
-    top_categories = db.query(Category).filter(Category.parent_id == None).all()
+def get_categories(
+    db: Session = Depends(get_db), 
+    lang: str = Query("pb", description="Language code: en, es, pb"),
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Category).filter(Category.parent_id == None)
+
+    if current_user.role != "admin":
+        query = query.filter(Category.slug.in_(current_user.allowed_categories or []))
+
+    top_categories = query.all()
     
     results = []
     translator = get_translator(lang)
@@ -291,7 +306,12 @@ def get_categories(db: Session = Depends(get_db), lang: str = Query("pb", descri
     return results
 
 @router.get("/categories/tree", response_model=list[dict])
-def get_category_tree(db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
+def get_category_tree(
+    db: Session = Depends(get_db), 
+    lang: str = Query("pb", description="Language code: en, es, pb"), 
+    current_user: User = Depends(get_current_user)
+
+):
     """Get the complete category hierarchy tree"""
     translator = get_translator(lang)
 
@@ -315,12 +335,27 @@ def get_category_tree(db: Session = Depends(get_db), lang: str = Query("pb", des
 
         return node
     
-    top_categories = db.query(Category).filter(Category.parent_id == None).all()
+    query = db.query(Category).filter(Category.parent_id == None)
+    
+    # Filtro de segurança
+    if current_user.role != "admin":
+        query = query.filter(Category.slug.in_(current_user.allowed_categories or []))
+        
+    top_categories = query.all()
     return [build_tree(cat) for cat in sorted(top_categories, key=lambda x: x.name)]
 
 @router.get("/categories/{slug}/children")
-def get_category_children(slug: str, db: Session = Depends(get_db), lang: str = Query("pb", description="Language code: en, es, pb")):
+def get_category_children(
+    slug: str, 
+    db: Session = Depends(get_db), 
+    lang: str = Query("pb"),
+    current_user: User = Depends(get_current_user)
+):
     """Get direct children of a category"""
+    
+    if not has_access_to_category(current_user, slug, db):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     category = db.query(Category).filter(Category.slug == slug).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
