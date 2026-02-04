@@ -1,0 +1,20 @@
+{
+  "header": {
+    "dashboard": "Tablero",
+    "categories": "Categorías",
+    "admin": "Admin",
+    "role": "Función",
+    "theme": "Tema",
+    "select-theme": "Seleccionar Tema",
+    "edit-profile": "Editar Perfil",
+    "allowed-categories": "Categorías Permitidas",
+    "full-name": "Nombre Completo",
+    "full-name-placeholder": "Tu nombre completo",
+    "email": "Correo Electrónico",
+    "new-password": "Nueva Contraseña"
+  },
+  "actions": {
+    "save": "Guardar",
+    "logout": "Cerrar sesión"
+  }
+}

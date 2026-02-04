@@ -25,6 +25,7 @@ import { logout, getAuthToken, API_BASE_URL } from "@/lib/api";
 import { useTheme, ThemeName, availableThemes } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { t } from "@/i8n";
 
 interface UserData {
   id: number;
@@ -260,12 +261,12 @@ export function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">Dashboard</Link>
-          <Link to="/categories" className="text-sm font-medium text-muted-foreground hover:text-foreground">Categorias</Link>
+          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">{t("header.dashboard")}</Link>
+          <Link to="/categories" className="text-sm font-medium text-muted-foreground hover:text-foreground">{t("header.categories")}</Link>
           {userData?.role === "admin" && (
             <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
               <Shield className="w-4 h-4" />
-              Admin
+              {t("header.admin")}
             </Link>
           )}
         </nav>
@@ -293,7 +294,7 @@ export function Header() {
                 className="gap-2 border-primary/20 hover:bg-primary/5 transition-colors"
               >
                 <Palette className="w-4 h-4" />
-                <span className="hidden sm:inline">Tema</span>
+                <span className="hidden sm:inline">{t("header.theme")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
@@ -307,7 +308,7 @@ export function Header() {
             >
               <DropdownMenuLabel className="flex items-center gap-2">
                 <Palette className="w-4 h-4" />
-                Selecionar Tema
+                {t("header.select-theme")}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               
@@ -398,7 +399,7 @@ export function Header() {
                     backgroundColor: 'hsl(var(--muted))'
                   }}
                 >
-                  <span className="font-medium">Função:</span> {userData?.role}
+                  <span className="font-medium">{t("header.role")}:</span> {userData?.role}
                 </div>
               </DropdownMenuLabel>
               
@@ -413,7 +414,7 @@ export function Header() {
                         className="text-xs font-medium"
                         style={{ color: 'hsl(var(--muted-foreground))' }}
                       >
-                        Nome Completo
+                        {t("header.full-name")}
                       </label>
                       <input
                         type="text"
@@ -424,7 +425,7 @@ export function Header() {
                           border: '1px solid hsl(var(--border))',
                           color: 'hsl(var(--foreground))'
                         }}
-                        placeholder="Seu nome completo"
+                        placeholder={t("header.full-name-placeholder")}
                       />
                     </div>
                     
@@ -433,7 +434,7 @@ export function Header() {
                         className="text-xs font-medium"
                         style={{ color: 'hsl(var(--muted-foreground))' }}
                       >
-                        Email
+                        {t("header.email")}
                       </label>
                       <input
                         type="email"
@@ -454,7 +455,7 @@ export function Header() {
                         className="text-xs font-medium"
                         style={{ color: 'hsl(var(--muted-foreground))' }}
                       >
-                        Nova Senha (opcional)
+                        {t("header.new-password")}
                       </label>
                       <input
                         type="password"
@@ -482,7 +483,7 @@ export function Header() {
                         ) : (
                           <Save className="w-3 h-3" />
                         )}
-                        Salvar
+                        {t("actions.save")}
                       </Button>
                       <Button
                         type="button"
@@ -505,7 +506,7 @@ export function Header() {
                       onClick={handleEditClick}
                     >
                       <Settings className="w-4 h-4" />
-                      <span>Editar Perfil</span>
+                      <span>{t("header.edit-profile")}</span>
                     </DropdownMenuItem>
                     
                     {userData?.allowed_categories && userData.allowed_categories.length > 0 && (
@@ -518,7 +519,7 @@ export function Header() {
                             style={{ color: 'hsl(var(--muted-foreground))' }}
                           >
                             <Briefcase className="w-4 h-4" />
-                            <span>Categorias Permitidas:</span>
+                            <span>{t("header.allowed-categories")}</span>
                           </div>
                           <div className="flex flex-wrap gap-1 px-2">
                             {userData.allowed_categories.map((cat: string) => (
@@ -552,7 +553,7 @@ export function Header() {
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span>
+                <span>{t("actions.logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

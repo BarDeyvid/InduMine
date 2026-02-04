@@ -1,0 +1,20 @@
+{
+  "header": {
+    "dashboard": "Dashboard",
+    "categories": "Categories",
+    "admin": "Admin",
+    "role": "Role",
+    "theme": "Theme",
+    "select-theme": "Select Theme",
+    "edit-profile": "Edit Profile",
+    "allowed-categories": "Allowed Categories",
+    "full-name": "Full Name",
+    "full-name-placeholder": "Your full name",
+    "email": "Email",
+    "new-password": "New Password"
+  },
+  "actions": {
+    "save": "Save",
+    "logout": "Logout"
+  }
+}
