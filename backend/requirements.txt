@@ -47,7 +47,7 @@ platformdirs==4.5.1
 prompt_toolkit==3.0.52
 psutil==7.2.1
 pure_eval==0.2.3
-pyasn1==0.6.2
+pyasn1==0.4.8
 pycparser==2.23
 pydantic==2.12.5
 pydantic-settings==2.12.0
