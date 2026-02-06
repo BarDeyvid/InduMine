@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -18,6 +18,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const SearchPage = lazy(() => import("@/pages/SearchPage"));
 const Categories = lazy(() => import("@/pages/Categories"));
 const Admin = lazy(() => import("@/pages/Admin"));
+const [lang, setLang] = useState(localStorage.getItem('lang') || 'pt');
 
 // Loading fallback for slow networks
 function PageLoader() {
