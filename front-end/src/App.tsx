@@ -18,7 +18,6 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const SearchPage = lazy(() => import("@/pages/SearchPage"));
 const Categories = lazy(() => import("@/pages/Categories"));
 const Admin = lazy(() => import("@/pages/Admin"));
-const [lang, setLang] = useState(localStorage.getItem('lang') || 'pt');
 
 // Loading fallback for slow networks
 function PageLoader() {
@@ -92,6 +91,7 @@ function AppRoutes() {
 }
 
 function App() {
+  const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'pt');
   return (
     <ThemeProvider>
       <AuthProvider>
