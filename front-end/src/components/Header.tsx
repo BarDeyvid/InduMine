@@ -25,7 +25,9 @@ import { logout, getAuthToken, API_BASE_URL } from "@/lib/api";
 import { useTheme, ThemeName, availableThemes } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { LanguageSelector } from "./LanguageSelector";
 import { t } from "@/i8n";
+import { SearchBar } from "./SearchBar";
 
 interface UserData {
   id: number;
@@ -56,10 +58,17 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('lang', lang);
-    // notify other components/request helpers
-    window.dispatchEvent(new Event('lang-changed'));
-  }, [lang]);
+      const currentLang = localStorage.getItem('lang');
+      
+      if (currentLang && currentLang !== lang) {
+        localStorage.setItem('lang', lang);
+        window.location.reload();
+      } else {
+        localStorage.setItem('lang', lang);
+      }
+      
+      window.dispatchEvent(new Event('lang-changed'));
+    }, [lang]);
 
   const fetchUserData = async () => {
     try {
@@ -116,7 +125,6 @@ export function Header() {
         return;
       }
 
-      // Prepare update data (remove empty fields)
       const updateData: any = {};
       if (editData.full_name !== userData.full_name) {
         updateData.full_name = editData.full_name || null;
@@ -249,52 +257,49 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+      <div className="container mx-auto px-4 md:px-6 flex h-16 items-center justify-between gap-4">
+        
+        <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 flex-shrink-0">
           <div className="p-1.5 rounded-lg bg-primary/10">
             <Activity className="w-6 h-6 text-primary" />
           </div>
-          <span className="font-bold text-xl tracking-tight">
+          <span className="font-bold text-xl tracking-tight hidden sm:block">
             <span className="text-primary">Indu</span>
             <span className="text-foreground">Mine</span>
           </span>
         </Link>
         
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">{t("header.dashboard")}</Link>
-          <Link to="/categories" className="text-sm font-medium text-muted-foreground hover:text-foreground">{t("header.categories")}</Link>
+        <nav className="hidden md:flex items-center gap-8 ml-4">
+          <Link to="/" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            {t("header.dashboard")}
+          </Link>
+          <Link to="/categories" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            {t("header.categories")}
+          </Link>
           {userData?.role === "admin" && (
-            <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
+            <Link to="/admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1.5">
               <Shield className="w-4 h-4" />
               {t("header.admin")}
             </Link>
           )}
         </nav>
 
-        <div className="flex items-center gap-2">
-          {/* Language selector */}
-          <div className="hidden sm:flex items-center gap-2">
-            <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              className="px-2 py-1 text-sm rounded bg-background border"
-              style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-            >
-              <option value="pt">Português</option>
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          {/* Theme Selector Menu */}
+        <div className="hidden lg:flex flex-1 justify-center max-w-md px-4">
+          <SearchBar />
+        </div>
+
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <LanguageSelector lang={lang} setLang={setLang} />
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2 border-primary/20 hover:bg-primary/5 transition-colors"
+                className="h-9 gap-2 border-primary/20 hover:bg-primary/5 transition-colors"
               >
                 <Palette className="w-4 h-4" />
-                <span className="hidden sm:inline">{t("header.theme")}</span>
+                <span className="hidden xl:inline">{t("header.theme")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
@@ -336,11 +341,9 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User Settings Menu */}
           <DropdownMenu 
             open={userMenuOpen} 
             onOpenChange={(open) => {
-              // Don't close if we're editing
               if (isEditing && !open) {
                 setUserMenuOpen(true);
               } else {
@@ -353,10 +356,9 @@ export function Header() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2 border-primary/20 hover:bg-primary/5 transition-colors"
-              >
+                className="h-9 gap-2 border-primary/20 hover:bg-primary/5 transition-colors">
                 <User className="w-4 h-4" />
-                <span className="hidden sm:inline">
+                <span className="hidden sm:inline font-medium">
                   {userData?.username || "Usuário"}
                 </span>
               </Button>
@@ -405,7 +407,6 @@ export function Header() {
               
               <DropdownMenuSeparator />
               
-              {/* Edit Profile Section */}
               <div className="p-2 space-y-3">
                 {isEditing ? (
                   <form onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }} className="space-y-3">

@@ -15,7 +15,14 @@ engine = create_engine(
     max_overflow=30,
     pool_pre_ping=True,
     pool_recycle=3600,
-    echo=settings.DEBUG
+    pool_timeout=30,
+    echo=settings.DEBUG,
+    # MySQL specific optimizations
+    connect_args={
+        "connect_timeout": 10,
+        "read_timeout": 30,
+        "write_timeout": 30
+    } if "mysql" in settings.DATABASE_URL else {}
 )
 
 SessionLocal = sessionmaker(

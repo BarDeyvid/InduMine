@@ -78,10 +78,19 @@ export const getProducts = async () => {
   return handleResponse(response);
 };
 
-export const getProductsByCategory = async (categorySlug: string) => {
+export const getProductsByCategory = async (
+  categorySlug: string, 
+  skip: number = 0, 
+  limit: number = 50,
+  depth: string = "all" 
+) => {
   const token = getAuthToken();
 
-  const response = await fetch(withLang(`${API_BASE_URL}/products/${categorySlug}`), {
+  let url = `${API_BASE_URL}/products/${categorySlug}`;
+  const separator = url.includes('?') ? '&' : '?';
+  url = `${url}${separator}skip=${skip}&limit=${limit}&depth=${depth}`;
+
+  const response = await fetch(withLang(url), {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',

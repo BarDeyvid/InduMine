@@ -12,14 +12,18 @@
     "full-name-placeholder": "Tu nombre completo",
     "email": "Correo Electrónico",
     "new-password": "Nueva Contraseña",
-    "back_to_dashboard": "Volver al Tablero"
+    "back_to_dashboard": "Volver al Tablero",
+    "search-placeholder": "Buscar productos..."
     },
     "actions": {
         "save": "Guardar",
         "logout": "Cerrar sesión"
     },
     "category": {
-        "products": "Productos"
+        "products": "Productos",
+        "description_fallback": "Explora productos en esta categoría.",
+        "view_products": "Ver Productos",
+        "no_more_products": "No hay más productos disponibles."
     },
     "error": {
         "loading_title": "Error al cargar datos",
@@ -164,5 +168,11 @@
         "view_on_supplier_site": "Ver en el Sitio del Proveedor",
         "specifications": "Especificaciones",
         "full_description": "Descripción Completa"
+    },
+    "search": {
+        "showing-results": "Mostrando resultados para",
+        "results": "Resultados de Búsqueda",
+        "items-found": "elementos encontrados",
+        "searching": "Buscando..."
     }
 }

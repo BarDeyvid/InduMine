@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import time
 
 from config import settings
@@ -35,7 +36,7 @@ app.add_middleware(
     ] if settings.ENVIRONMENT == "production" else ["*"]
 )
 
-# 2. CORS Middleware (Must be defined BEFORE the custom http middleware for best results)
+# 2. CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -45,8 +46,13 @@ app.add_middleware(
     max_age=3600
 )
 
-# 3. Consolidated Custom Middleware
-# We combine timing and security headers into ONE function to avoid header conflicts
+# 3. GZip Compression Middleware
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000  # Compress responses larger than 1KB
+)
+
+# 4. Consolidated Custom Middleware
 @app.middleware("http")
 async def unified_middleware(request: Request, call_next):
     start_time = time.time()
@@ -57,7 +63,7 @@ async def unified_middleware(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     
-    # Security Headers (Only add if not already present)
+    # Security Headers
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("X-XSS-Protection", "1; mode=block")
@@ -72,12 +78,8 @@ async def unified_middleware(request: Request, call_next):
 app.include_router(products.router)
 app.include_router(users.router)
 
-
 async def _ensure_argos_models():
-    """Ensure English->Portuguese and English->Spanish Argos models are installed.
-
-    This runs asynchronously and will try to download/install missing models.
-    """
+    """Ensure English->Portuguese and English->Spanish Argos models are installed."""
     if not _ARGOS_AVAILABLE:
         print("Argos Translate not available; skipping model installation")
         return
@@ -93,7 +95,6 @@ async def _ensure_argos_models():
     needed = {"pb", "es"}
     present = set()
     for code in installed_codes:
-        # normalize codes like 'pb' or 'pt_br'
         if not code:
             continue
         normalized = code.split("_")[0].split("-")[0]
@@ -107,11 +108,6 @@ async def _ensure_argos_models():
     print(f"Missing Argos models: {missing}. Attempting to download...")
     
     try:
-        available = _argos_package.get_available_packages()
-        import urllib.request
-        import tempfile
-        import os
-
         _argos_package.update_package_index()
         available = _argos_package.get_available_packages()
 
@@ -119,15 +115,11 @@ async def _ensure_argos_models():
             from_code = getattr(pkg, 'from_code', '')
             to_code = getattr(pkg, 'to_code', '')
             
-            # Match English to our missing languages
             if from_code == 'en' and to_code in missing:
                 try:
                     print(f"  Downloading and installing Argos package {from_code}->{to_code}...")
-                    
-                    # The modern Argos API handles the download to a temp file for you
                     download_path = pkg.download()
                     _argos_package.install_from_path(download_path)
-                    
                     missing.discard(to_code)
                     print(f"  Successfully installed {from_code}->{to_code}")
                     
@@ -143,10 +135,9 @@ async def _ensure_argos_models():
     except Exception as e:
         print(f"Failed to auto-install Argos models: {e}")
 
-
 @app.on_event("startup")
 async def _on_startup_install_models():
-    # Install Argos models on startup (may take a few seconds)
+    # Install Argos models on startup
     try:
         await _ensure_argos_models()
     except Exception as e:

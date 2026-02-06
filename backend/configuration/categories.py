@@ -5,17 +5,24 @@
 # ============================================================================
 from database import SessionLocal
 from models.products import Category
-
-db = SessionLocal()
-
-CATEGORY_CONFIG = query = db.query(Category).all()
-
 def get_all_categories():
     """Return list of all available category slugs"""
-    return list(CATEGORY_CONFIG.keys())
+    db = SessionLocal()
+    try:
+        categories = db.query(Category).all()
+        return [cat.slug for cat in categories]
+    finally:
+        db.close()
 
-def get_category_display_name(slug):
+def get_category_display_name(slug, lang="en"):
     """Get display name for a category slug"""
-    if slug in CATEGORY_CONFIG:
-        return CATEGORY_CONFIG[slug]["display_name"]
-    return slug.replace("-", " ").title()
+    from utils.helpers import get_translator
+    db = SessionLocal()
+    try:
+        category = db.query(Category).filter(Category.slug == slug).first()
+        if category:
+            translator = get_translator(lang)
+            return translator(category.name or "")
+        return slug.replace("-", " ").title()
+    finally:
+        db.close()

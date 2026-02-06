@@ -7,6 +7,8 @@ import { useTheme, ThemeName, availableThemes } from "@/context/ThemeContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from "@radix-ui/react-dropdown-menu";
 import { LiveStack } from "@/components/LiveStack";
 import { t } from "@/i8n";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useState } from "react";
 
 import {
   HardHat,
@@ -109,6 +111,7 @@ const ThemePreview = ({ themeKey, themeConfig, isActive }: {
   );
 
 export default function PublicHome() {
+  const [lang, setLang] = useState<string>(() => localStorage.getItem('lang') || 'pb');
   const { theme, setTheme } = useTheme();
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -125,6 +128,7 @@ export default function PublicHome() {
         </div>
 
         <div className="flex items-center gap-4">
+          <LanguageSelector lang={lang} setLang={setLang} />
           {/* Theme Selector Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

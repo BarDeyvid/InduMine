@@ -15,6 +15,7 @@ const Register = lazy(() => import("@/pages/Register"));
 const CategoryDetail = lazy(() => import("@/pages/CategoryDetail"));
 const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const SearchPage = lazy(() => import("@/pages/SearchPage"));
 const Categories = lazy(() => import("@/pages/Categories"));
 const Admin = lazy(() => import("@/pages/Admin"));
 
@@ -72,6 +73,11 @@ function AppRoutes() {
             element={<ProductDetail />}
           />
         </Route>
+
+          <Route 
+            path="/search" 
+            element={<SearchPage />} 
+            />
 
         {/* Admin Routes */}
         <Route element={<AdminRoute />}>

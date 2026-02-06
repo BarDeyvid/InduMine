@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, HTTPException, Depends, status, Query, Body
 from datetime import datetime
-from sqlalchemy import or_, func
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy import or_, func, select
+from sqlalchemy.orm import Session, aliased, selectinload
 from typing import List, Optional
 import logging
 from slowapi import Limiter
@@ -25,7 +25,7 @@ from schemas.auth import *
 from models.users import User
 from models.products import Category, Products
 from utils.helpers import row_to_dict, get_translator
-from configuration.categories import CATEGORY_CONFIG, get_all_categories, get_category_display_name
+from utils.cache import cache_category_tree, get_cached_category_tree, clear_cache
 
 logger = logging.getLogger(__name__)
 
@@ -38,25 +38,57 @@ limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="")
 
-def get_category_descendants(db, category_slug):
-    """Get all descendant category IDs for a given category slug (including itself)"""
-    # Using recursive CTE to get all descendants
-    category = aliased(Category, name='category')
-    category_tree = (
-        db.query(category.id)
-        .filter(category.slug == category_slug)
-        .cte(name='category_tree', recursive=True)
-    )
+def get_category_descendants(db: Session, category_slug: str, include_all_occurrences: bool = False):
+    """Get all descendant category IDs for a given category slug
     
-    child = aliased(Category, name='child')
-    category_tree = category_tree.union_all(
-        db.query(child.id)
-        .filter(child.parent_id == category_tree.c.id)
-    )
+    Args:
+        db: Database session
+        category_slug: The slug of the category
+        include_all_occurrences: If True, includes ALL categories with this slug 
+                                anywhere in the tree. If False (default), only includes
+                                descendants of the FIRST occurrence (typically top-level)
+    """
+    # Get ALL categories with this slug
+    categories = db.query(Category).filter(Category.slug == category_slug).all()
     
-    return category_tree
+    if not categories:
+        return []
+    
+    if not include_all_occurrences:
+        top_level_category = next((cat for cat in categories if cat.parent_id is None), None)
+        if top_level_category:
+            target_category = top_level_category
+        else:
+            target_category = categories[0]
+        
+        categories = [target_category]
+    
+    all_descendant_ids = []
+    
+    for category in categories:
+        # Create recursive CTE for each category
+        category_cte = (
+            db.query(Category.id)
+            .filter(Category.id == category.id)
+            .cte(name=f'category_tree_{category.id}', recursive=True)
+        )
+        
+        child = aliased(Category, name='child')
+        recursive_part = (
+            db.query(child.id)
+            .filter(child.parent_id == category_cte.c.id)
+        )
+        
+        category_cte = category_cte.union_all(recursive_part)
+        
+        # Execute query and get IDs
+        result = db.query(category_cte.c.id).all()
+        descendant_ids = [row.id for row in result]
+        all_descendant_ids.extend(descendant_ids)
+    
+    return list(set(all_descendant_ids))
 
-# Auth routes
+
 @router.post("/auth/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(or_(User.email == user.email, User.username == user.username)).first()
@@ -76,7 +108,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         allowed_categories=categories_to_assign,
         role="user",
         is_active=True,
-        created_at=str(datetime.now())
+        created_at=datetime.now()
     )
     db.add(new_user)
     db.commit()
@@ -252,27 +284,71 @@ def get_products_by_category(
     category_slug: str, 
     db: Session = Depends(get_db), 
     lang: str = Query("pb"),
-    current_user: User = Depends(get_current_user) # Adicionado
+    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    depth: str = Query("all", description="Category depth: 'direct', 'children', or 'all'")  
 ):
-    # Validação de acesso
+    """
+    Get products by category with depth control:
+    - 'direct': Only products directly in this category
+    - 'children': Products in this category and its direct children  
+    - 'all': Products in this category and all descendants (full tree)
+    """
+    # 1. Primeiro verifica se o usuário tem acesso
     if not has_access_to_category(current_user, category_slug, db):
         raise HTTPException(status_code=403, detail="Você não tem permissão para esta categoria")
-
-    category_tree = get_category_descendants(db, category_slug)
     
-    # 2. Get category IDs from the tree
-    category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+    # 2. Encontrar a categoria (prioritariamente top-level)
+    category = db.query(Category).filter(
+        Category.slug == category_slug,
+        Category.parent_id == None  # Busca primeiro categorias sem pai (top-level)
+    ).first()
     
+    # Se não encontrar como top-level, busca qualquer categoria com esse slug
+    if not category:
+        category = db.query(Category).filter(Category.slug == category_slug).first()
+    
+    if not category:
+        raise HTTPException(status_code=404, detail=f"Categoria '{category_slug}' não encontrada")
+    
+    # 3. Determinar quais IDs de categoria incluir
+    if depth == "direct":
+        # Apenas a categoria exata
+        category_ids = [category.id]
+    elif depth == "children":
+        # Categoria + filhos diretos
+        category_ids = [category.id]
+        for child in category.children:
+            category_ids.append(child.id)
+    else:  # "all" - padrão
+        # Árvore completa recursiva
+        category_ids = get_category_descendants(db, category_slug, include_all_occurrences=False)
+    
+    # DEBUG: Log para verificar os IDs encontrados
+    logger.info(f"Buscando produtos para categoria '{category_slug}' (IDs: {category_ids})")
+    
+    # 4. Se não houver IDs, retorna lista vazia
     if not category_ids:
         return []
     
-    # 3. Get products from all descendant categories
-    products = db.query(Products).filter(Products.category_id.in_(category_ids)).all()
-    # Attach requested language to each instance for translation in row_to_dict
+    # 5. Buscar produtos
+    products = (
+        db.query(Products)
+        .filter(Products.category_id.in_(category_ids))
+        .order_by(Products.name)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    
+    # 6. Processar resultados
     for p in products:
         setattr(p, "_response_lang", lang)
-
-    return [row_to_dict(p, slug=category_slug) for p in products]
+    
+    logger.info(f"Encontrados {len(products)} produtos para categoria '{category_slug}'")
+    
+    return [row_to_dict(p) for p in products]
 
 @router.get("/categories", response_model=list[CategorySummary])
 def get_categories(
@@ -280,66 +356,96 @@ def get_categories(
     lang: str = Query("pb", description="Language code: en, es, pb"),
     current_user: User = Depends(get_current_user)
 ):
+    """Get top-level categories with optimized query"""
+    cache_key = f"{current_user.id}_{lang}"
+    cached = get_cached_category_tree(cache_key)
+    if cached:
+        return cached
+    
+    from sqlalchemy import select, func
+    
+    # Build base query
     query = db.query(Category).filter(Category.parent_id == None)
-
+    
+    # Apply user filter
     if current_user.role != "admin":
-        query = query.filter(Category.slug.in_(current_user.allowed_categories or []))
-
+        user_categories = current_user.allowed_categories or []
+        if user_categories:
+            query = query.filter(Category.slug.in_(user_categories))
+        else:
+            # No categories allowed, return empty
+            return []
+    
     top_categories = query.all()
     
-    results = []
     translator = get_translator(lang)
+    category_list = []
+    
     for cat in top_categories:
-        category_tree = get_category_descendants(db, cat.slug)
-        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        # Get descendant IDs
+        category_ids = get_category_descendants(db, cat.slug)
         
+        # Count products in this category tree
         count = db.query(func.count(Products.id)).filter(
             Products.category_id.in_(category_ids)
-        ).scalar()
-        results.append({
+        ).scalar() or 0
+        
+        # Check if category has children
+        has_children = len(cat.children) > 0
+        
+        category_list.append({
             "name": translator(cat.name or ""),
             "slug": cat.slug,
-            "item_quantity": count or 0,
-            "has_children": len(cat.children) > 0
+            "item_quantity": count,
+            "has_children": has_children
         })
     
-    return results
+    # Cache the results
+    cache_category_tree(cache_key, category_list)
+    
+    return category_list
 
 @router.get("/categories/tree", response_model=list[dict])
 def get_category_tree(
     db: Session = Depends(get_db), 
     lang: str = Query("pb", description="Language code: en, es, pb"), 
     current_user: User = Depends(get_current_user)
-
 ):
     """Get the complete category hierarchy tree"""
     translator = get_translator(lang)
 
     def build_tree(category):
-        category_tree = get_category_descendants(db, category.slug)
-        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        # Get descendant IDs
+        category_ids = get_category_descendants(db, category.slug)
+        
+        # Count products in this category tree
         count = db.query(func.count(Products.id)).filter(
             Products.category_id.in_(category_ids)
-        ).scalar()
+        ).scalar() or 0
 
         node = {
             "id": category.id,
             "name": translator(category.name or ""),
             "slug": category.slug,
-            "item_quantity": count or 0,
+            "item_quantity": count,
             "children": []
         }
 
         for child in sorted(category.children, key=lambda x: x.name):
-            node["children"].append(build_tree(child))
+            if current_user.role == "admin" or child.slug in (current_user.allowed_categories or []):
+                node["children"].append(build_tree(child))
 
         return node
     
     query = db.query(Category).filter(Category.parent_id == None)
     
-    # Filtro de segurança
+    # Apply user filter
     if current_user.role != "admin":
-        query = query.filter(Category.slug.in_(current_user.allowed_categories or []))
+        user_categories = current_user.allowed_categories or []
+        if user_categories:
+            query = query.filter(Category.slug.in_(user_categories))
+        else:
+            return []
         
     top_categories = query.all()
     return [build_tree(cat) for cat in sorted(top_categories, key=lambda x: x.name)]
@@ -362,17 +468,21 @@ def get_category_children(
     
     children = []
     translator = get_translator(lang)
+    
     for child in category.children:
-        category_tree = get_category_descendants(db, child.slug)
-        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        # Get descendant IDs
+        category_ids = get_category_descendants(db, child.slug)
+        
+        # Count products
         count = db.query(func.count(Products.id)).filter(
             Products.category_id.in_(category_ids)
-        ).scalar()
+        ).scalar() or 0
+        
         children.append({
             "id": child.id,
             "name": translator(child.name or ""),
             "slug": child.slug,
-            "item_quantity": count or 0,
+            "item_quantity": count,
             "has_children": len(child.children) > 0
         })
     
@@ -388,21 +498,21 @@ def get_product_globally(
     """
     Searches for a product across ALL categories in the single products table.
     """
-    # Find the product
-    product = db.query(Products).filter(Products.id == product_code).first()
+    # Find the product with category relationship loaded
+    product = db.query(Products).options(selectinload(Products.category_rel)).filter(Products.id == product_code).first()
     
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Check if user has access to this product's category
-    if not has_access_to_category(current_user, product.category_rel.slug, db):
+    if product.category_rel and not has_access_to_category(current_user, product.category_rel.slug, db):
         raise HTTPException(
             status_code=403,
             detail="Access denied to this product's category"
         )
     
     setattr(product, "_response_lang", lang)
-    return row_to_dict(product, slug=product.category_rel.slug)
+    return row_to_dict(product, slug=product.category_rel.slug if product.category_rel else None)
 
 @router.get("/products/{category_slug}/{product_code}", response_model=ProductItemResponse)
 def get_product_detail(
@@ -417,17 +527,21 @@ def get_product_detail(
         raise HTTPException(status_code=403, detail="Access denied to this category")
     
     # 2. Get the category tree
-    category_tree = get_category_descendants(db, category_slug)
-    category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+    category_ids = get_category_descendants(db, category_slug)
     
     if not category_ids:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    # 3. Find Product in the category tree
-    product = db.query(Products).filter(
-        Products.id == product_code,
-        Products.category_id.in_(category_ids)
-    ).first()
+    # 3. Find Product in the category tree with category relationship
+    product = (
+        db.query(Products)
+        .options(selectinload(Products.category_rel))
+        .filter(
+            Products.id == product_code,
+            Products.category_id.in_(category_ids)
+        )
+        .first()
+    )
     
     if not product:
         raise HTTPException(status_code=404, detail="Product not found in this category")
@@ -452,15 +566,18 @@ def search_products(
     # Build a list of all accessible category IDs (including descendants)
     accessible_category_ids = set()
     for category_slug in user_categories:
-        category_tree = get_category_descendants(db, category_slug)
-        category_ids = [id for (id,) in db.query(category_tree.c.id).all()]
+        category_ids = get_category_descendants(db, category_slug)
         accessible_category_ids.update(category_ids)
     
-    # Build query
-    query = db.query(Products)
+    # Build query with category relationship
+    query = db.query(Products).options(selectinload(Products.category_rel))
     
     if current_user.role != "admin":
-        query = query.filter(Products.category_id.in_(accessible_category_ids))
+        if accessible_category_ids:
+            query = query.filter(Products.category_id.in_(accessible_category_ids))
+        else:
+            # No categories accessible, return empty
+            return []
     
     # Add search filters
     search_filter = or_(
@@ -471,12 +588,17 @@ def search_products(
     query = query.filter(search_filter)
     
     # Execute query
-    products = query.limit(limit).all()
+    products = query.order_by(Products.id).limit(limit).all()
+    
     for p in products:
         setattr(p, "_response_lang", lang)
 
-    # Convert to response format (default to Portuguese unless caller provided param)
-    results = [row_to_dict(p) for p in products]
+    # Convert to response format
+    results = []
+    for p in products:
+        slug = p.category_rel.slug if p.category_rel else None
+        results.append(row_to_dict(p, slug=slug))
+    
     return [r for r in results if r is not None]
 
 # Admin endpoints for product management
@@ -502,13 +624,15 @@ def create_product(
         category_id=product.category_id,
         description=product.description,
         specs=product.specs,
-        images=",".join(product.images) if product.images else None,
+        images=product.images,
         scraped_at=product.scraped_at or datetime.now().isoformat()
     )
     
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
+    
+    clear_cache()
     
     return new_product
 
@@ -526,25 +650,24 @@ def update_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    # Update fields
     update_data = product_update.model_dump(exclude_unset=True)
     
-    # Handle specs conversion if it's a string
     if 'specs' in update_data and isinstance(update_data['specs'], str):
         try:
             update_data['specs'] = json.loads(update_data['specs'])
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid JSON in specs field")
     
-    # Handle images conversion
-    if 'images' in update_data and update_data['images']:
-        update_data['images'] = ",".join(update_data['images'])  # Convert list to comma-separated string
+    if 'images' in update_data and isinstance(update_data['images'], list):
+        update_data['images'] = ",".join(update_data['images']) 
     
     for field, value in update_data.items():
         setattr(product, field, value)
     
     db.commit()
     db.refresh(product)
+    
+    clear_cache()
     
     return product
 
@@ -564,6 +687,8 @@ def delete_product(
     db.delete(product)
     db.commit()
     
+    clear_cache()
+    
     return {"message": "Product deleted successfully"}
 
 # ============================================================================
@@ -581,7 +706,6 @@ def get_database_health(db: Session = Depends(get_db)):
         total_users = db.query(func.count(User.id)).scalar() or 0
         
         # Calculate health percentage based on data completeness
-        # Health = (products with specs + products with images) / total_products * 100
         if total_products > 0:
             products_with_specs = db.query(func.count(Products.id)).filter(Products.specs != None).scalar() or 0
             products_with_images = db.query(func.count(Products.id)).filter(Products.images != None).scalar() or 0
@@ -641,7 +765,6 @@ def get_last_sync(db: Session = Depends(get_db)):
         # Format the timestamp for display
         try:
             # Try to parse ISO format
-            from datetime import datetime
             dt = datetime.fromisoformat(last_sync_timestamp.replace('Z', '+00:00'))
             last_sync_formatted = dt.strftime('%d/%m/%Y %H:%M:%S')
         except:

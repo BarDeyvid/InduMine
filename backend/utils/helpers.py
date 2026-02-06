@@ -79,62 +79,68 @@ def get_category_path(category):
     return " > ".join(path) if len(path) > 0 else ""
 
 def row_to_dict(instance, slug=None):
-    """Convert a SQLAlchemy instance (product) to a serializable dict.
-
-    Accepts optional `lang` parameter (language code) to translate
-    human-readable fields (name, category_path, and specifications). Default translation is noop.
-    """
+    """Optimized version of row_to_dict"""
     if instance is None:
         return None
-    # Default language parameter may be passed via kwargs in calls
-    lang = getattr(instance, "_response_lang", None)
-    if not lang:
-        # Allow callers to pass lang via a temporary attribute on the instance
-        # or by passing a kw-only param in the future. Default to English identity.
-        lang = "en"
-
-    data = {c.key: getattr(instance, c.key) for c in inspect(instance).mapper.column_attrs}
-
-    # Get category path
-    category_path = ""
+    
+    lang = getattr(instance, "_response_lang", "en")
+    
+    # Pre-translate category path if available
     if hasattr(instance, 'category_rel') and instance.category_rel:
-        category_path = get_category_path(instance.category_rel)
+        category = instance.category_rel
+        # Build path efficiently
+        path_parts = []
+        current = category
+        while current:
+            path_parts.insert(0, current.name)
+            current = current.parent
+        
+        category_path = " > ".join(path_parts) if path_parts else ""
         if not slug:
-            slug = instance.category_rel.slug
-
-    # Get specs from instance and ensure it's a dictionary
-    specs = data.get("specs", {})
+            slug = category.slug
+    else:
+        category_path = ""
+    
+    # Use dict comprehension for better performance
+    data = {
+        "product_code": instance.id,
+        "name": instance.name,
+        "image": instance.images.split(',')[0] if instance.images else None,
+        "url": instance.url,
+        "category_slug": slug,
+        "category_path": category_path,
+        "scraped_at": instance.scraped_at
+    }
+    
+    # Handle specs efficiently
+    specs = instance.specs
     if isinstance(specs, str):
         try:
             specs = json.loads(specs)
-        except (json.JSONDecodeError, ValueError):
-            specs = {"raw_data": specs}
-
-    # Perform translations for `name`, `category_path`, and `specifications` when requested
-    translator = get_translator(lang)
-    translated_name = translator(data.get("name") or "")
-    translated_category_path = translator(category_path or "")
+        except:
+            specs = {}
     
-    # Translate specifications (both keys and values)
-    translated_specs = {}
-    if isinstance(specs, dict):
-        for key, value in specs.items():
-            translated_key = translator(key)
-            translated_value = translator(str(value)) if value is not None else ""
-            translated_specs[translated_key] = translated_value
+    # Translate only if needed
+    if lang not in ["en", ""]:
+        translator = get_translator(lang)
+        data["name"] = translator(instance.name or "")
+        data["category_path"] = translator(category_path)
+        
+        if specs:
+            translated_specs = {}
+            for key, value in specs.items():
+                if isinstance(value, str):
+                    translated_specs[translator(key)] = translator(value)
+                else:
+                    translated_specs[translator(key)] = value
+            data["specifications"] = translated_specs
+        else:
+            data["specifications"] = {}
     else:
-        translated_specs = specs
+        data["specifications"] = specs or {}
+    
+    return data
 
-    return {
-        "product_code": data.get("id"),
-        "name": translated_name,
-        "image": data.get("images"),
-        "url": data.get("url"),
-        "category_slug": slug,
-        "category_path": translated_category_path,
-        "specifications": translated_specs,
-        "scraped_at": data.get("scraped_at")
-    }
 
 if __name__ == "__main__":
     print("Helper module loaded successfully!")

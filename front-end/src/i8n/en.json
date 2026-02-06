@@ -12,14 +12,18 @@
     "full-name-placeholder": "Your full name",
     "email": "Email",
     "new-password": "New Password",
-    "back_to_dashboard": "Back to Dashboard"
+    "back_to_dashboard": "Back to Dashboard",
+    "search-placeholder": "Search products..."
     },
     "actions": {
         "save": "Save",
         "logout": "Logout"
     },
     "category": {
-        "products": "Products"
+        "products": "Products",
+        "description_fallback": "Explore products in this category.",
+        "view_products": "View Products",
+        "no_more_products": "No more products available."
     },
     "error": {
         "loading_title": "Error loading data",
@@ -166,5 +170,11 @@
         "view_on_supplier_site": "View on Supplier Site",
         "specifications": "Specifications",
         "full_description": "Full Description"
+    },
+    "search": {
+        "showing-results": "Showing results for",
+        "results": "Search Results",
+        "items-found": "items found",
+        "searching": "Searching..."
     }
 }
