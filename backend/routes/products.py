@@ -738,9 +738,6 @@ def get_product_detail(
         raise HTTPException(status_code=500, detail="Error processing product data")
     return result
 
-"""
-Search products across all categories the user has access to.
-"""
 @router.get("/search", response_model=List[ProductItemResponse])
 def search_products(
     q: str = Query(..., description="Search query"),
