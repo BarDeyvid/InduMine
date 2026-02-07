@@ -5,104 +5,149 @@
 # ============================================================================
 
 import json
-from sqlalchemy import inspect
+from typing import Any, Callable, Dict, List, Optional, Protocol, Union, cast
 
-# Optional argostranslate integration for offline translations
+# --- Protocols for Structural Typing ---
+
+class Translation(Protocol):
+    """Protocol for objects that can perform text translation."""
+    def translate(self, text: str) -> str: ...
+
+class Language(Protocol):
+    """Protocol for language objects, typically provided by argostranslate."""
+    code: str
+    def get_translation(self, to_lang: 'Language') -> Optional[Translation]: ...
+    
+class CategoryProtocol(Protocol):
+    """Protocol defining the hierarchy structure of a category."""
+    name: str
+    slug: str
+    parent: Optional['CategoryProtocol']
+
+class InstanceProtocol(Protocol):
+    """Protocol for database instances or data objects representing a product."""
+    id: Any
+    name: str
+    images: Optional[str]
+    url: str
+    scraped_at: Any
+    specs: Union[str, Dict[str, Any]]
+    category_rel: Optional[CategoryProtocol]
+    _response_lang: Optional[str]
+
+# --- Translation Initialization ---
 try:
     from argostranslate import translate as _arg_translate
-    _ARGOSTRANS_AVAILABLE = True
+    _success = True
 except Exception:
-    _ARGOSTRANS_AVAILABLE = False
+    _arg_translate = None
+    _success = False
 
+_ARGOSTRANS_AVAILABLE = _success
 
-# Simple translator cache for (to_code) -> callable(text)->translated_text
-_TRANSLATOR_CACHE = {}
+# In-memory cache for translator functions to prevent redundant lookups
+# (to_code) -> callable(text)
+_TRANSLATOR_CACHE: Dict[str, Callable[[str], str]] = {}
 
+# --- Helper Functions ---
 
-def get_translator(to_code: str):
-    """Return a translator function that translates from English to `to_code`.
-    If argostranslate isn't available or the model isn't installed, returns identity.
+def get_translator(to_code: Optional[str]) -> Callable[[str], str]:
     """
-    to_code = (to_code or "").lower()
-    if to_code in ("", "en"):
+    Retrieves or creates a translator function for the specified language.
+
+    This function attempts to use the `argostranslate` library. If the library
+    is unavailable or the language pair is not installed, it returns an identity 
+    function (returns the original string).
+
+    Args:
+        to_code (Optional[str]): The target language ISO code (e.g., 'es', 'fr').
+
+    Returns:
+        Callable[[str], str]: A function that takes a string and returns its translation.
+    """
+    code_str = (to_code or "").lower()
+    
+    if code_str in ("", "en"):
         return lambda s: s
 
-    if to_code in _TRANSLATOR_CACHE:
-        return _TRANSLATOR_CACHE[to_code]
+    if code_str in _TRANSLATOR_CACHE:
+        return _TRANSLATOR_CACHE[code_str]
 
-    if not _ARGOSTRANS_AVAILABLE:
-        print(f"Warning: Argostranslate not available; no translation for {to_code}")
-        _TRANSLATOR_CACHE[to_code] = lambda s: s
-        return _TRANSLATOR_CACHE[to_code]
+    if not _ARGOSTRANS_AVAILABLE or _arg_translate is None:
+        _TRANSLATOR_CACHE[code_str] = lambda s: s
+        return _TRANSLATOR_CACHE[code_str]
 
     try:
-        installed = _arg_translate.get_installed_languages()
-        installed_codes = [(l.code, l) for l in installed if l.code]
+        installed = cast(List[Language], _arg_translate.get_installed_languages())
         
-        # Find English language
-        from_lang = None
-        for code, lang_obj in installed_codes:
-            if code.startswith('en'):
-                from_lang = lang_obj
-                break
-        
-        # Find target language with exact or prefix match
-        to_lang = None
-        for code, lang_obj in installed_codes:
-            if code == to_code or code.startswith(to_code + '_') or code.startswith(to_code + '-'):
-                to_lang = lang_obj
-                break
-        
-        if not from_lang:
-            print(f"Warning: English language not found in Argos. Available: {[c for c, _ in installed_codes]}")
-            _TRANSLATOR_CACHE[to_code] = lambda s: s
-        elif not to_lang:
-            print(f"Warning: Language {to_code} not found in Argos. Available: {[c for c, _ in installed_codes]}")
-            _TRANSLATOR_CACHE[to_code] = lambda s: s
-        else:
-            translation = from_lang.get_translation(to_lang)
-            print(f"Successfully loaded translator: English -> {to_code}")
-            _TRANSLATOR_CACHE[to_code] = translation.translate
-    except Exception as e:
-        print(f"Error loading translator for {to_code}: {e}")
-        _TRANSLATOR_CACHE[to_code] = lambda s: s
+        from_lang = next((l for l in installed if l.code.startswith('en')), None)
+        to_lang = next((l for l in installed if l.code == code_str or l.code.startswith(f"{code_str}_")), None)
 
-    return _TRANSLATOR_CACHE[to_code]
+        if from_lang and to_lang:
+            translation_obj = from_lang.get_translation(to_lang)
+            if translation_obj:
+                _TRANSLATOR_CACHE[code_str] = translation_obj.translate
+                return _TRANSLATOR_CACHE[code_str]
+    except Exception:
+        pass
 
-def get_category_path(category):
-    """Get the full path of a category including all parents"""
-    path = []
+    _TRANSLATOR_CACHE[code_str] = lambda s: s
+    return _TRANSLATOR_CACHE[code_str]
+
+def get_category_path(category: Optional[CategoryProtocol]) -> str:
+    """
+    Constructs a breadcrumb string representing the category hierarchy.
+
+    Args:
+        category (Optional[CategoryProtocol]): The leaf category object.
+
+    Returns:
+        str: A string in the format "Parent > Child > Subchild" or empty string if None.
+    """
+    path: List[str] = []
     current = category
     while current:
         path.insert(0, current.name)
         current = current.parent
     return " > ".join(path) if len(path) > 0 else ""
 
-def row_to_dict(instance, slug=None):
-    """Optimized version of row_to_dict"""
+def row_to_dict(instance: Optional[InstanceProtocol], slug: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Converts a database instance into a serializable dictionary, handling 
+    translations and JSON parsing for specifications.
+
+    Args:
+        instance (Optional[InstanceProtocol]): The raw data instance.
+        slug (Optional[str]): Override for the category slug. Defaults to the 
+            slug found in the instance's category relation.
+
+    Returns:
+        Optional[Dict[str, Any]]: A dictionary containing processed product data, 
+            or None if the instance is invalid.
+    """
     if instance is None:
         return None
     
-    lang = getattr(instance, "_response_lang", "en")
+    lang = getattr(instance, "_response_lang", "en") or "en"
+    category_path = ""
     
-    # Pre-translate category path if available
     if hasattr(instance, 'category_rel') and instance.category_rel:
-        category = instance.category_rel
-        # Build path efficiently
-        path_parts = []
-        current = category
-        while current:
-            path_parts.insert(0, current.name)
-            current = current.parent
-        
-        category_path = " > ".join(path_parts) if path_parts else ""
+        cat = instance.category_rel
+        category_path = get_category_path(cat)
         if not slug:
-            slug = category.slug
-    else:
-        category_path = ""
+            slug = cat.slug
     
-    # Use dict comprehension for better performance
-    data = {
+    specs_raw = instance.specs
+    specs: Dict[str, Any] = {}
+    if isinstance(specs_raw, str):
+        try:
+            specs = json.loads(specs_raw)
+        except json.JSONDecodeError:
+            specs = {}
+    else:
+        specs = specs_raw
+    
+    data: Dict[str, Any] = {
         "product_code": instance.id,
         "name": instance.name,
         "image": instance.images.split(',')[0] if instance.images else None,
@@ -112,32 +157,19 @@ def row_to_dict(instance, slug=None):
         "scraped_at": instance.scraped_at
     }
     
-    # Handle specs efficiently
-    specs = instance.specs
-    if isinstance(specs, str):
-        try:
-            specs = json.loads(specs)
-        except:
-            specs = {}
-    
-    # Translate only if needed
     if lang not in ["en", ""]:
         translator = get_translator(lang)
         data["name"] = translator(instance.name or "")
         data["category_path"] = translator(category_path)
         
-        if specs:
-            translated_specs = {}
-            for key, value in specs.items():
-                if isinstance(value, str):
-                    translated_specs[translator(key)] = translator(value)
-                else:
-                    translated_specs[translator(key)] = value
-            data["specifications"] = translated_specs
-        else:
-            data["specifications"] = {}
+        translated_specs: Dict[str, Any] = {}
+        for k, v in specs.items():
+            translated_key = translator(str(k))
+            translated_val = translator(str(v)) if isinstance(v, str) else v
+            translated_specs[translated_key] = translated_val
+        data["specifications"] = translated_specs
     else:
-        data["specifications"] = specs or {}
+        data["specifications"] = specs
     
     return data
 
@@ -145,4 +177,3 @@ def row_to_dict(instance, slug=None):
 if __name__ == "__main__":
     print("Helper module loaded successfully!")
     print("This module is meant to be imported, not run directly.")
-    print("Run 'python app.py' to start the application.")
