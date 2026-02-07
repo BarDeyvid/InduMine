@@ -9,6 +9,11 @@ from sqlalchemy.orm import relationship
 from database import Base
 
 class Category(Base):
+    """Category Table Model
+
+    Args:
+        Base (declarative_base): The SQLAlchemy declarative base class.
+    """
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False, index=True)
@@ -25,6 +30,11 @@ class Category(Base):
     )
 
 class Products(Base):
+    """Products Table Model
+
+    Args:
+        Base (declarative_base): The SQLAlchemy declarative base class.
+    """
     __tablename__ = 'products'
     id = Column(String(50), primary_key=True)
     url = Column(Text, nullable=False)
