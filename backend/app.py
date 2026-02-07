@@ -1,21 +1,30 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
+from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from starlette.routing import BaseRoute
 import time
+
+from fastapi.routing import APIRoute
 
 from config import settings
 from routes import products, users
 from database import engine, Base
-# Import other models as needed
+from typing import Any, Callable, Awaitable
 
-# Optional: auto-install Argos Translate models on startup
+_argos_package: Any = None
+_argos_translate: Any = None
+
+
 try:
     from argostranslate import package as _argos_package
     from argostranslate import translate as _argos_translate
-    _ARGOS_AVAILABLE = True
+    _success = True
 except Exception:
-    _ARGOS_AVAILABLE = False
+    _success = False
+
+ARGOS_AVAILABLE: bool = _success
 
 app = FastAPI(
     title="InduMine Modular Backend",
@@ -52,9 +61,19 @@ app.add_middleware(
     minimum_size=1000  # Compress responses larger than 1KB
 )
 
-# 4. Consolidated Custom Middleware
 @app.middleware("http")
-async def unified_middleware(request: Request, call_next):
+async def unified_middleware(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    """
+    Custom middleware to handle performance tracking, security headers, 
+    and server header obfuscation.
+
+    Args:
+        request: The incoming Starlette/FastAPI request.
+        call_next: The next middleware or route handler in the chain.
+
+    Returns:
+        Response: The augmented HTTP response.
+    """
     start_time = time.time()
     
     response = await call_next(request)
@@ -79,8 +98,11 @@ app.include_router(products.router)
 app.include_router(users.router)
 
 async def _ensure_argos_models():
-    """Ensure English->Portuguese and English->Spanish Argos models are installed."""
-    if not _ARGOS_AVAILABLE:
+    """
+    Checks for required Argos Translate models (EN -> PT/ES) and installs 
+    them if they are missing.
+    """     
+    if not ARGOS_AVAILABLE:
         print("Argos Translate not available; skipping model installation")
         return
 
@@ -90,10 +112,10 @@ async def _ensure_argos_models():
         print(f"Currently installed Argos languages: {installed_codes}")
     except Exception as e:
         print(f"Error checking installed languages: {e}")
-        installed_codes = set()
+        installed_codes: set[str] = set()
 
     needed = {"pb", "es"}
-    present = set()
+    present: set[str] = set()
     for code in installed_codes:
         if not code:
             continue
@@ -135,30 +157,46 @@ async def _ensure_argos_models():
     except Exception as e:
         print(f"Failed to auto-install Argos models: {e}")
 
-@app.on_event("startup")
-async def _on_startup_install_models():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handles application startup and shutdown events.
+    Ensures translation models are ready before the server starts accepting requests.
+    """
     # Install Argos models on startup
     try:
         await _ensure_argos_models()
     except Exception as e:
         print(f"Error during Argos model installation: {e}")
+    yield
+    # No special shutdown actions needed for now
 
-# Health check endpoint
 @app.get("/health")
 async def health_check():
+    """
+    Returns the current status of the API and environment context.
+    """
     return {"status": "healthy", "environment": settings.ENVIRONMENT}
 
-# List all available routes
 @app.get("/routes")
-async def list_routes():
-    routes = []
+async def list_routes() -> list[dict[str, Any]]:
+    """
+    Dynamically fetches and lists all registered API endpoints.
+
+    Returns:
+        List[dict]: Path, methods, and names for all active routes.
+    """
+    routes_info: list[dict[str, Any]] = []
+    
+    route: BaseRoute
     for route in app.routes:
-        routes.append({
-            "path": route.path,
-            "methods": route.methods if hasattr(route, "methods") else ["WS"],
-            "name": route.name if hasattr(route, "name") else "N/A"
-        })
-    return routes
+        if isinstance(route, APIRoute):
+            routes_info.append({
+                "path": route.path,
+                "methods": route.methods if hasattr(route, "methods") else ["WS"],
+                "name": route.name if hasattr(route, "name") else "N/A"
+            })
+    return routes_info
 
 if __name__ == "__main__":
     import uvicorn
@@ -171,15 +209,15 @@ if __name__ == "__main__":
     print("\n" + "="*50)
     print("Available routes:")
     for route in app.routes:
-        if hasattr(route, "methods"):
+        if isinstance(route, APIRoute):
             print(f"{', '.join(route.methods):<20} {route.path}")
     print("="*50 + "\n")
     
-    uvicorn.run(
+    uvicorn.run( # type: ignore
         "app:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,
         log_level="info" if settings.DEBUG else "warning",
         server_header=False
-    )
+    ) # Uvicorn is way too complex to type hint properly, so it's better to ignore type checking here
