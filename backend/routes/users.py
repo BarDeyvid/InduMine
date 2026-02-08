@@ -4,7 +4,7 @@ from models.users import User
 from schemas.auth import UserResponse, UserUpdate
 from database import get_db
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Any
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -13,12 +13,20 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
     """Retorna os dados do usuário autenticado pelo token Bearer"""
     return current_user
 
-
 # ========== ADMIN ENDPOINTS ==========
-
 def check_admin_role(current_user: User = Depends(get_current_user)):
-    """Verifica se o usuário tem role de admin"""
-    if current_user.role != "admin":
+    """Checks if the current user has admin role
+
+    Args:
+        current_user (User, optional): Defaults to Depends(get_current_user).
+
+    Raises:
+        HTTPException: 403 If user isn't Admin
+
+    Returns:
+        `User`: Returns the user if it's Admin
+    """
+    if str(current_user.role) != "admin":
         raise HTTPException(
             status_code=403,
             detail="Acesso negado. Apenas administradores podem acessar este recurso."
@@ -34,7 +42,18 @@ async def list_users(
     role: str = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Lista todos os usuários. Apenas administradores podem acessar."""
+    """List all users, only admins can access.
+
+    Args:
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        skip (int, optional): Defaults to Query(0, ge=0).
+        limit (int, optional): Defaults to Query(10, ge=1, le=100).
+        role (str, optional): Defaults to Query(None).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Returns:
+        `users`: Returns all users
+    """
     query = db.query(User)
     
     if role:
@@ -43,13 +62,20 @@ async def list_users(
     users = query.offset(skip).limit(limit).all()
     return users
 
-
 @router.get("/counts/stats")
 async def get_users_stats(
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
 ):
-    """Retorna estatísticas de usuários"""
+    """Returns user stats
+
+    Args:
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Returns:
+        list: total, active, admin and inactive users.
+    """
     total_users = db.query(User).count()
     active_users = db.query(User).filter(User.is_active == True).count()
     admin_users = db.query(User).filter(User.role == "admin").count()
@@ -61,14 +87,25 @@ async def get_users_stats(
         "inactive_users": total_users - active_users
     }
 
-
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: int,
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
 ):
-    """Obtém detalhes de um usuário específico"""
+    """Gets details of a specific user 
+
+    Args:
+        user_id (int): User unique id
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: 404 If user isn't found
+
+    Returns:
+        `user`: Details of requested user
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -82,7 +119,20 @@ async def update_user(
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
 ):
-    """Atualiza dados de um usuário. Apenas administradores podem fazer isso."""
+    """Updates a user's data. Only administrators can do this.
+
+    Args:
+        user_id (int): User unique id
+        user_update (UserUpdate): `UserUpdate` Form
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: 404 If user isn't found
+
+    Returns:
+        `user`: Returns updated user
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -100,15 +150,30 @@ async def update_user(
     db.refresh(user)
     return user
 
-
 @router.patch("/{user_id}/role")
 async def update_user_role(
     user_id: int,
-    role_update: dict,
+    role_update: dict[Any, Any],
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
-):
-    """Atualiza o papel (role) de um usuário"""
+) -> dict[str, Any]:
+    """Updates the role of a user
+
+    Args:
+        user_id (int): User unique id
+        role_update (dict[Any, Any]): The new role
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: 400 If role is missing from `role_update`
+        HTTPException: 400 If role isn't one of the accepted ones
+        HTTPException: 404 If user isn't found
+        HTTPException: 400 If last admin requests its demotion
+
+    Returns:
+        dict[str, Any]: Function Status
+    """
     if "role" not in role_update:
         raise HTTPException(status_code=400, detail="Campo 'role' é obrigatório")
     
@@ -124,7 +189,7 @@ async def update_user_role(
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     # Prevent demoting the last admin
-    if user.role == "admin" and role != "admin":
+    if str(user.role) == "admin" and role != "admin":
         admin_count = db.query(User).filter(User.role == "admin").count()
         if admin_count == 1:
             raise HTTPException(
@@ -132,7 +197,7 @@ async def update_user_role(
                 detail="Não é possível remover o último administrador"
             )
     
-    user.role = role
+    user.role = role  # type: ignore
     user.updated_by = current_user.id
     
     db.add(user)
@@ -144,11 +209,25 @@ async def update_user_role(
 @router.patch("/{user_id}/categories")
 async def update_user_categories(
     user_id: int,
-    categories_update: dict,
+    categories_update: dict[Any, Any],
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
-):
-    """Atualiza as categorias permitidas para um usuário"""
+) -> dict[Any, Any]:
+    """Updates the categories for a user
+
+    Args:
+        user_id (int): User unique id
+        categories_update (dict[Any, Any]): Which Categories user has
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: 400 If `allowed_categories` is missing from `categories_update`
+        HTTPException: 404 If user isn't found
+
+    Returns:
+        dict[Any, Any]: Function Status
+    """
     if "allowed_categories" not in categories_update:
         raise HTTPException(status_code=400, detail="Campo 'allowed_categories' é obrigatório")
     
@@ -168,11 +247,25 @@ async def update_user_categories(
 @router.patch("/{user_id}/status")
 async def toggle_user_status(
     user_id: int,
-    status_update: dict,
+    status_update: dict[str, Any],
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
-):
-    """Ativa ou desativa um usuário"""
+) -> dict[str, Any]:
+    """Activates or de-activates an user
+
+    Args:
+        user_id (int): User unique id
+        status_update (dict[str, Any]): `ativado` or `desativado`
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: 400 If is_activate is missing from `status_update`
+        HTTPException: 404 If user isn't found
+
+    Returns:
+        dict[str, Any]: Function Result
+    """
     if "is_active" not in status_update:
         raise HTTPException(status_code=400, detail="Campo 'is_active' é obrigatório")
     
@@ -195,13 +288,26 @@ async def delete_user(
     current_user: User = Depends(check_admin_role),
     db: Session = Depends(get_db)
 ):
-    """Deleta um usuário. Apenas administradores podem fazer isso."""
+    """Deletes an user. Only admins can do that.
+
+    Args:
+        user_id (int): User unique id
+        current_user (User, optional): Defaults to Depends(check_admin_role).
+        db (Session, optional): Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: 404 If user isn't found
+        HTTPException: 400 if the last admin is tried to delete itself 
+
+    Returns:
+        dict[str, str]: Endpoint Status
+    """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
     # Prevent deleting the last admin
-    if user.role == "admin":
+    if str(user.role) == "admin":
         admin_count = db.query(User).filter(User.role == "admin").count()
         if admin_count == 1:
             raise HTTPException(
